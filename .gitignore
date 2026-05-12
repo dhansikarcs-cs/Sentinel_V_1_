@@ -1,0 +1,22 @@
+# Runtime data (auto-created by data_manager.py)
+data/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment / secrets
+.env
+.streamlit/secrets.toml
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

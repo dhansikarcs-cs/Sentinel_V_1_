@@ -1,0 +1,17 @@
+{
+  "name": "Sentinel — Mental Health Platform",
+  "short_name": "Sentinel",
+  "description": "AI-Assisted Mental Health Ecosystem",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
