@@ -31,8 +31,11 @@ def _query_groq(prompt: str) -> str:
         )
         if resp.status_code == 200:
             return resp.json()["choices"][0]["message"]["content"].strip()
-    except Exception:
-        pass
+        import logging
+        logging.warning(f"Groq API error {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        import logging
+        logging.warning(f"Groq API exception: {e}")
     return ""
 
 

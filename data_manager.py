@@ -19,15 +19,8 @@ def _get_key() -> bytes:
     raw = os.getenv("SENTINEL_ENCRYPTION_KEY")
     if raw:
         return raw.encode()
-    _ensure_dir()
-    if os.path.exists(KEY_FILE):
-        with open(KEY_FILE, "rb") as f:
-            return f.read().strip()
     from cryptography.fernet import Fernet
-    key = Fernet.generate_key()
-    with open(KEY_FILE, "wb") as f:
-        f.write(key)
-    return key
+    return Fernet.generate_key()
 
 
 def encrypt_text(plain: str) -> str:
