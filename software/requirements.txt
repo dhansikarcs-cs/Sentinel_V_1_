@@ -1,0 +1,12 @@
+streamlit>=1.28.0
+plotly>=5.17.0
+pandas>=2.0.0
+numpy>=1.24.0
+requests>=2.31.0
+cryptography>=41.0.0
+python-dotenv>=1.0.0
+streamlit-autorefresh>=1.0.0
+groq>=1.0.0
+pytest>=7.0.0
+bleak>=0.20.0
+psycopg2-binary>=2.9.9

@@ -1,37 +1,47 @@
-# 🧠 Sentinel
+# Sentinel — AI-Assisted Mental Health Ecosystem
 
-**AI-Assisted Mental Health Ecosystem — Dual Portal Healthcare Simulation Platform**
-
-Sentinel is a modular, futuristic mental-health monitoring platform built with Streamlit. It simulates a complete hospital ecosystem with separate patient and clinician portals, real-time biometric tracking (simulated), AI-powered journal analysis, crisis escalation engine, follow-up task system, smart-room simulation, and a full session booking workflow.
+**Continuous mental health infrastructure connecting patients, clinicians, and trusted contacts through real-time monitoring, AI-powered triage, automated crisis escalation, and structured follow-up management.**
 
 > **Creator:** Dhansika  
-> **Architecture:** Dual Portal · Cloud AI · Crisis Engine · Biometric Emulation
+> **Version:** 3.0  
+> **Architecture:** Microservice-Isolated Modules · Local/Groq AI · Crisis Engine · Biometric Emulation · PWA
 
 ---
 
-## Architecture Overview
+## Architecture
 
 ```
-main.py
+main_.py                  ← Entry point — login, routing, PWA, trustee portal
 │
-├── patient_profiles.py    ← Auth (3 patients, 2 psychologists)
+├── patient_profiles_.py  ← Auth (3 patients, 2 psychologists)
 │
-├── Role Detection
-│   ├── Patient  →  patient_portal.py  (6 tabs)
-│   └── Psychologist →  psychologist.py (7 tabs)
+├── portal routing (try/except isolated)
+│   ├── Patient       →  patient_portal_.py   (6 tabs)
+│   └── Psychologist  →  psychologist_.py     (7 tabs + AI sidebar)
 │
-├── Shared Services
-│   ├── crisis.py           ← Crisis escalation + email alerts
-│   ├── followup.py         ← Follow-up task assignment + grading
-│   ├── ai_kernel.py        ← Groq AI + Ollama fallback
-│   ├── data_manager.py     ← JSON persistent storage
-│   ├── smart_room.py       ← Environmental visual simulator
-│   ├── ring.py             ← Simulated biometric data emulator
-│   ├── booking.py          ← Session booking workflow
-│   └── pages/trustee.py    ← Standalone trusted contact page
+├── Shared Modules (fault-isolated — one failure never affects others)
+│   ├── crisis_.py         ← Crisis engine + SMTP email + audio siren
+│   ├── ai_kernel_.py      ← AI: Groq Cloud → Ollama → rule-based fallback
+│   ├── data_manager_.py   ← JSON persistent storage + encryption
+│   ├── agent_.py          ← 14 AI agent functions (triage, slots, patterns, etc.)
+│   ├── smart_room_.py     ← Environmental visual simulator
+│   ├── ring_.py           ← Seeded biometric data emulator
+│   ├── booking_.py        ← Session booking workflow
+│   └── followup_.py       ← Follow-up task engine + grading
 │
-└── data/                   ← Auto-initialized storage directory
+└── data/                  ← JSON storage directory
+    ├── crisis_state.json
+    ├── crisis_log.json
+    ├── bookings.json
+    ├── followups.json
+    ├── clinical_vault.json
+    ├── history_archive.json
+    └── patient_profiles.json
 ```
+
+### Fault Isolation
+
+Every module, import, tab, and external call is wrapped in try/except with the `_safe(func, default, *args)` pattern. If any single feature crashes — missing dependency, API timeout, file corruption — the error is caught at the boundary and the **rest of the app continues** with a graceful "unavailable" message. A broken `agent_.py` does not block the patient portal. A crashed bookings tab does not block the triage tab. Each feature is its own microservice within a single process.
 
 ---
 
@@ -41,73 +51,81 @@ main.py
 
 | Feature | Description |
 |---------|-------------|
-| **Biometric Dashboard** | Heart rate, stress, sleep, SpO₂, mood — seeded per user, stable across sessions |
-| **24h Trend Charts** | Sharp line graphs with table view toggle, zoom/reset via modebar |
-| **Wellness Journal** | Free-text entries → AI summarization (Ollama or fallback). Raw content private, summaries only shared |
-| **Journal Export** | Download personal journal summaries as CSV |
-| **Session Booking** | 3-step form: attendance count → session details → member details |
-| **Booking Notification** | Banner alert when psychologist accepts or waitlists a booking |
-| **Follow-Up Tasks** | View assigned tasks, upload proof (photo/file), mark ✅/❌, receive grade + feedback |
-| **Smart Room** | Visual environment — calm yellow circle or intense blue circle with sound visualization |
-| **Crisis Trigger** | Emergency siren with 30s → trusted contact email, 60s → helpline escalation |
+| **Biometric Dashboard** | Heart rate, stress, sleep, SpO₂, mood — seeded per user per hour, stable across sessions |
+| **24h Trend Charts** | Line graphs with graph/table toggle, zoom/reset |
+| **AI-Powered Insights** | Expander shows journal count, compliance %, grade breakdown (green/yellow/red), mood trend direction, relapse flags |
+| **Wellness Journal** | Free-text entries → AI summarization (Groq → Ollama → rule). Raw content encrypted at rest, never shared with psychologist |
+| **Session Booking** | 3-step form: attendance → session details → member info |
+| **Follow-Up Tasks** | Accept, complete with proof upload, view grades and feedback |
+| **Smart Room** | Calm (yellow) / Intense (blue) visual environment |
+| **Crisis Trigger** | Emergency siren → 3-stage escalation protocol |
 
 ### Psychologist Portal (`📋 Triage · 📝 Notes · 📓 Journal · 📅 Bookings · 📋 Follow-Up · 🧠 Smart Room · 📦 Export`)
 
 | Feature | Description |
 |---------|-------------|
-| **Patient Triage** | Per-patient expanders with biometric cards, mini trend charts with table toggle, AI clinical insights. Crisis patients auto-expand with red border |
-| **Clinical Notes** | Write session observations → AI synthesis into structured clinical notes |
-| **Practitioner Journal** | Personal wellness journal with BPM/SpO₂ gauges, 7-day dual-axis trend, 24h stress chart |
-| **Booking Queue** | Accept/waitlist workflow with status hierarchy |
-| **Follow-Up Tasks** | Assign tasks with file attachments, view patient proof, grade (🟢🟡🔴), write feedback |
-| **Export Center** | Download patient summaries, clinical notes, or personal journal as CSV |
-| **Sidebar Ops** | Daily workload summary, high-risk patient list, rotating wellness quote, demo toggle |
+| **Patient Triage** | Per-patient expanders with biometric cards, mini charts, AI insights. Crisis patients auto-expand with red border |
+| **Clinical Notes** | Write session observations → AI synthesis into structured notes (OAP format). Also: Journal → Note conversion from patient entries |
+| **After-Session Summary** | One-click AI summary generation from any saved clinical note |
+| **Booking Queue** | Accept/waitlist + AI suggest-slots feature |
+| **Follow-Up Grading** | Assign tasks, review proof uploads, grade green/yellow/red with feedback |
+| **Export Center** | Download patient journal summaries, clinical notes, personal journal as CSV |
+| **AI Agent Sidebar** | 3 tabs: Briefs (pre-session brief per patient), Patterns (cross-patient themes + compliance), Monitors (silent period + relapse flags) |
+| **Crisis Triage AI** | One-click AI-priority summary during active crisis (🚨/⚠️/ℹ️) |
 
-### Follow-Up Task System
+### AI Agent Functions (`agent_.py`)
 
-```
-Psychologist assigns task (+ file) → Patient sees in Follow-Up tab
-    → Patient uploads proof + marks ✅  OR  marks ❌ (skipped)
-    → Psychologist grades: 🟢 Correct / 🟡 Partial / 🔴 Wrong
-    → Psychologist writes feedback (patient can view + download, cannot reply)
-```
+All 14 functions follow the same contract: `AI call → rule-based fallback → return dict`. All are **button-triggered suggestions** — AI proposes, psychologist approves/edits/ignores.
 
-- Both sides can download: task attachment, proof file, and feedback as `.txt`
-- ✅ button disabled until proof file is uploaded
-- Card border colors reflect status: 🟠 pending, 🟢 correct, 🟡 partial, 🔴 wrong/not done
-- Persistent JSON storage across sessions
+| Function | Inputs | Returns |
+|----------|--------|---------|
+| `triage_summary` | patient | priority (high/medium/low) + clinical reasoning |
+| `suggest_slots` | patient, psych | suggested time slots |
+| `draft_followup` | patient, psych | draft follow-up tasks |
+| `journal_to_note` | patient, journal_text | structured clinical note draft |
+| `after_session_summary` | patient, clinical_note | patient-facing session summary |
+| `pre_session_brief` | patient | recent journals, grades, mood, compliance, flags |
+| `mood_trend` | patient | declining/improving/stable direction |
+| `compliance_radar` | patient | compliance % + message |
+| `silent_period_watch` | patient | flag if no journal in N days |
+| `relapse_indicators` | patient | flag if red flags detected |
+| `cross_patient_patterns` | — | shared themes across all patients |
+| `patient_insights` | patient | journal_count, compliance, missed, grades |
+| `crisis_debrief` | — | structured post-crisis summary |
+| `crisis_rules` | config | suggested crisis rule configuration |
 
 ### Crisis Engine
 
 ```
-Trigger → 🔴 Siren (0-29s)
-        → 📧 Trusted Contact Email (30s)
-        → 🚨 Helpline Escalation Email (60s)
-        → ✅ Psychologist Acknowledgment (stops all escalation)
+Trigger
+  → 0-29s:     🔴 Siren (440-660Hz sweep, amplitude pulsing)
+  → 30s:       📧 Trusted Contact email (with /?trustee=1 link)
+  → 30s+:      👤 Banner shows TC status (notified/clicked/en route)
+  → 60s:       🚨 Helpline escalation email
+  → Acknowledge: ✅ Freezes timer, halts escalation, logs debrief
 ```
 
-- Real SMTP email via Gmail
-- 2-stage escalation with one-shot boolean guards
-- Dedicated `/trustee` page for trusted contact response
-- Trusted contact flow: notified → on the way → psychologist sees status
-- Ambulance-style siren audio
-- Frozen resolution timer on acknowledge
+- Real SMTP via Gmail app password
+- One-shot boolean guards (no duplicate emails)
+- Trustee page at `/?trustee=1` — view crisis, acknowledge arrival
+- Crisis log in sidebar — last 5 events with icons
+- Auto-generated AI debrief on acknowledgment
 
 ### AI Layer
 
-- **Primary Engine:** Groq Cloud (`llama3-70b-8192`) — free, no credit card needed
-- **Fallback:** Local Ollama (`mistral`) if Groq is unreachable
-- **Last Resort:** Rule-based extraction when no AI is available
-- **Caching:** LRU cache (last 20 results) stored in session state
+| Component | Description |
+|-----------|-------------|
+| **Primary** | Groq Cloud free-tier (`llama3-8b-8192`) — sub-second response |
+| **Fallback 1** | Local Ollama (`http://localhost:11434`) |
+| **Fallback 2** | Rule-based extraction (no dependencies) |
+| **Cache** | 20-entry LRU in session state |
+| **Functions** | Journal summarization, clinical note synthesis |
 
 ### Biometric Emulation
 
-> **Note:** All biometric data is **simulated**, not real patient data.
-
-- `random.Random(username + hour)` — stable per-user, per-hour deterministic values
+- `random.Random(username + hour)` — stable per-user, per-hour values
 - Metrics: BPM (40-120), Stress (0-100%), Sleep (3-10h), SpO₂ (90-100%), Mood (7 states)
 - Smart-room intensity multiplier affects stress, BPM, mood distribution
-- No real hardware or wearable integration
 
 ---
 
@@ -128,45 +146,16 @@ Trigger → 🔴 Siren (0-29s)
 ### Prerequisites
 
 - Python 3.9+
-- Ollama (optional — for AI summarization with Mistral)
+- (Optional) Ollama for local AI fallback
+- (Optional) Groq API key for cloud AI (set in `.env`)
 
 ### Setup
 
 ```bash
-# Clone or navigate to project directory
 cd sentinel3
-
-# Install dependencies
 pip install -r requirements.txt
-
-# (Optional) Pull Mistral model for AI features
-ollama pull mistral
-```
-
-### Environment Configuration
-
-Copy `.env.example` to `.env` and fill in your credentials:
-
-```bash
-cp .env.example .env   # Linux/Mac
-copy .env.example .env  # Windows
-```
-
-Edit `.env` with your details:
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `SENTINEL_EMAIL` | No | Gmail address for crisis alerts |
-| `SENTINEL_EMAIL_PASSWORD` | No | Gmail app password |
-| `SENTINEL_RECEIVER` | No | Where crisis alerts are sent |
-| `GROQ_API_KEY` | No | Free AI key from [console.groq.com](https://console.groq.com/keys) |
-| `SENTINEL_ENCRYPTION_KEY` | No | Auto-generated if empty |
-
-> `.env` is in `.gitignore` — your secrets stay local.
-
-```bash
-# Run the application
-streamlit run main.py
+cp .env.example .env    # Add your Groq API key and SMTP credentials
+streamlit run main_.py
 ```
 
 ### Dependencies
@@ -177,6 +166,10 @@ plotly>=5.17.0
 pandas>=2.0.0
 numpy>=1.24.0
 requests>=2.31.0
+cryptography>=41.0.0
+python-dotenv>=1.0.0
+streamlit-autorefresh>=1.0.0
+groq>=1.0.0
 ```
 
 ---
@@ -185,55 +178,40 @@ requests>=2.31.0
 
 ```
 sentinel3/
-├── main.py                # App orchestrator — login, routing, sidebar
-├── patient_portal.py      # Patient dashboard (6 tabs)
-├── psychologist.py        # Clinician dashboard (7 tabs)
-├── crisis.py              # Crisis engine + SMTP email escalation
-├── followup.py            # Follow-up task assignment + grading
-├── ai_kernel.py           # Groq AI + Ollama fallback
-├── data_manager.py        # JSON persistent storage layer
-├── ring.py                # Simulated biometric data emulator
-├── smart_room.py          # Visual smart-room environment
-├── booking.py             # Session booking workflow
-├── patient_profiles.py    # Authentication system
-├── requirements.txt       # Python dependencies
-├── pages/
-│   └── trustee.py         # Standalone trusted contact response page
-├── icons/
-│   └── icon.svg           # PWA app icon
-├── manifest.json          # PWA manifest
-├── sw.js                  # Service worker for offline/PWA
-├── .gitignore             # Git ignore rules
-├── .env.example           # Environment variable template (copy to .env)
-├── LICENSE                # MIT license
-├── README.md              # This file
-└── data/                  # Runtime data directory (gitignored)
-    ├── bookings.json
-    ├── clinical_vault.json
-    ├── crisis_state.json
-    ├── followups.json
-    ├── history_archive.json
-    └── patient_profiles.json
+├── main_.py               # Entry point — login, routing, trustee portal, PWA
+├── patient_portal_.py     # Patient dashboard (6 tabs + insights)
+├── psychologist_.py       # Clinician dashboard (7 tabs + AI sidebar)
+├── crisis_.py             # Crisis engine + SMTP + audio siren
+├── agent_.py              # 14 AI agent functions
+├── ai_kernel_.py          # Groq → Ollama → rule fallback
+├── data_manager_.py       # JSON persistence + encryption
+├── ring_.py               # Seeded biometric emulator
+├── smart_room_.py         # Visual smart-room environment
+├── booking_.py            # Booking workflow
+├── followup_.py           # Follow-up task engine
+├── patient_profiles_.py   # Authentication
+├── .env                   # Secrets (Groq key, SMTP, ACK_LINK)
+├── requirements.txt
+└── data/                  # Runtime data (auto-created)
 ```
 
 ---
 
-## Data Privacy Architecture
+## Data Privacy
 
-- **Journal raw content** is stored but never shared with the psychologist
-- **AI summaries** only are visible in the psychologist portal and exports
-- **Clinical vault** is per-psychologist — notes are not shared between clinicians
-- **Crisis state** is file-persisted for reliability across page loads
+- **Journal raw content** encrypted at rest (Fernet). Never shared with psychologist
+- **AI summaries** only visible in psychologist portal and exports
+- **Clinical vault** segregated per psychologist
+- **Crisis state** file-persisted for cross-portal synchronization
+- **`.env`** holds all secrets — excluded from version control
 
 ---
 
-## UI Theme
+## Deployment
 
-- Dark medical theme: `#0a0e1a` → `#111827` → `#0a1628` gradient
-- Plotly charts with transparent backgrounds, sharp lines, modebar controls
-- Toggle between graph and table views on all chart sections
-- Gradient-bordered metric cards per biometric value
-- Crisis escalation banners with color progression (yellow → orange → dark red)
+- **Render.com** free tier: HTTPS, auto-deploy from GitHub, ~30s cold start
+- **PWA**: "Add to Home Screen" on mobile, offline service worker manifest
+- **Configuration**: Environment variables via Render dashboard or `.env`
 
 ---
 

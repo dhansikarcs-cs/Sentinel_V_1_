@@ -1,0 +1,137 @@
+(footprint "BQ25180_WCSP16"
+  (version 20241229)
+  (generator "kicad-mcp")
+  (generator_version "9.0")
+  (layer "F.Cu")
+  (descr "TI BQ25180 WCSP-16, 1.96x1.96mm, 0.5mm pitch, 4x4 ball array")
+  (tags "BQ25180 TI WCSP battery charger")
+
+  (property "Reference" "REF**" (at 0 -1.27 0)
+    (layer "F.SilkS")
+    (uuid "6f8d8cc0-74ed-492a-b1c4-52f20750b8b8")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (property "Value" "BQ25180_WCSP16" (at 0 1.27 0)
+    (layer "F.Fab")
+    (uuid "b58b99db-6570-4c80-8d8a-f2924b834f15")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (property "Datasheet" "" (at 0 0 0)
+    (layer "F.Fab")
+    (uuid "3128058a-55c4-42ea-98ce-c5329f907966")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+
+  (pad "A1" smd circle
+    (at -0.735 -0.735 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "83909cb5-8db3-4000-bc13-77495bf550b6")
+  )
+
+  (pad "A2" smd circle
+    (at -0.245 -0.735 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "b7e888d0-1544-455e-9189-4b79fad31b55")
+  )
+
+  (pad "A3" smd circle
+    (at 0.245 -0.735 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "c1fc9902-3a4a-4b43-ad40-fd01c5a77c60")
+  )
+
+  (pad "A4" smd circle
+    (at 0.735 -0.735 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "859d71b3-ced7-4c69-80c8-1e61e14bbf9e")
+  )
+
+  (pad "B1" smd circle
+    (at -0.735 -0.245 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "19af4b0e-7f70-45e9-acff-30ef04b2d4fd")
+  )
+
+  (pad "B2" smd circle
+    (at -0.245 -0.245 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "e929e527-b072-4bf6-8fd5-75b62b4cefcb")
+  )
+
+  (pad "B3" smd circle
+    (at 0.245 -0.245 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "fb396366-55cb-427b-a427-3676d91d5c0f")
+  )
+
+  (pad "B4" smd circle
+    (at 0.735 -0.245 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "162ea7a0-8161-4688-af74-9b71fc0c9bd3")
+  )
+
+  (pad "C1" smd circle
+    (at -0.735 0.245 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "8b7347b0-0458-4838-a0f0-c2a213864a80")
+  )
+
+  (pad "C2" smd circle
+    (at -0.245 0.245 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "303adc6f-4e94-4dfb-84ea-ce4bf5236c27")
+  )
+
+  (pad "C3" smd circle
+    (at 0.245 0.245 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "a33fc799-ee24-43e8-928a-cecc537836f4")
+  )
+
+  (pad "C4" smd circle
+    (at 0.735 0.245 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "5575770d-f27c-479e-b5f6-e1c996fdc1db")
+  )
+
+  (pad "D1" smd circle
+    (at -0.735 0.735 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "f599404e-3692-45b8-b9f2-9e526650ee9e")
+  )
+
+  (pad "D2" smd circle
+    (at -0.245 0.735 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "c33ae20e-903d-4900-9eed-9324d6315130")
+  )
+
+  (pad "D3" smd circle
+    (at 0.245 0.735 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "4de3b756-8c48-4d6a-a92e-330fe9076b16")
+  )
+
+  (pad "D4" smd circle
+    (at 0.735 0.735 0)
+    (size 0.28 0.28)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "44715298-2e79-4631-afd7-530d3640697c")
+  )
+
+)

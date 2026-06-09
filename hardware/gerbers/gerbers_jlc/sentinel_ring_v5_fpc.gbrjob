@@ -1,0 +1,130 @@
+{
+  "Header": {
+    "GenerationSoftware": {
+      "Vendor": "KiCad",
+      "Application": "Pcbnew",
+      "Version": "10.0.3"
+    },
+    "CreationDate": "2026-05-30T05:49:55+05:30"
+  },
+  "GeneralSpecs": {
+    "ProjectId": {
+      "Name": "sentinel_ring_v5_fpc",
+      "GUID": "73656e74-696e-4656-9c5f-72696e675f76",
+      "Revision": "rev?"
+    },
+    "Size": {
+      "X": 63.7,
+      "Y": 14.4
+    },
+    "LayerNumber": 2,
+    "BoardThickness": 1.6,
+    "Finish": "None",
+    "ImpedanceControlled": true
+  },
+  "DesignRules": [
+    {
+      "Layers": "Outer",
+      "PadToPad": 0.1,
+      "PadToTrack": 0.1,
+      "TrackToTrack": 0.1,
+      "MinLineWidth": 0.1
+    }
+  ],
+  "FilesAttributes": [
+    {
+      "Path": "sentinel_ring_v5_fpc-Top Layer.gtl",
+      "FileFunction": "Copper,L1,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "sentinel_ring_v5_fpc-Bottom Layer.gbl",
+      "FileFunction": "Copper,L2,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "sentinel_ring_v5_fpc-F_Paste.gtp",
+      "FileFunction": "SolderPaste,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "sentinel_ring_v5_fpc-B_Paste.gbp",
+      "FileFunction": "SolderPaste,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "sentinel_ring_v5_fpc-Top Overlay.gto",
+      "FileFunction": "Legend,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "sentinel_ring_v5_fpc-Board Layer Stack Bottom Overlay.gbo",
+      "FileFunction": "Legend,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "sentinel_ring_v5_fpc-Top Solder.gts",
+      "FileFunction": "SolderMask,Top",
+      "FilePolarity": "Negative"
+    },
+    {
+      "Path": "sentinel_ring_v5_fpc-Board Layer Stack Bottom Solder.gbs",
+      "FileFunction": "SolderMask,Bot",
+      "FilePolarity": "Negative"
+    },
+    {
+      "Path": "sentinel_ring_v5_fpc-Edge_Cuts.gm1",
+      "FileFunction": "Profile",
+      "FilePolarity": "Positive"
+    }
+  ],
+  "MaterialStackup": [
+    {
+      "Type": "Legend",
+      "Name": "Top Silk Screen"
+    },
+    {
+      "Type": "SolderPaste",
+      "Name": "Top Solder Paste"
+    },
+    {
+      "Type": "SolderMask",
+      "Color": "R255G0B128",
+      "Thickness": 0.0305,
+      "Name": "Top Solder Mask"
+    },
+    {
+      "Type": "Copper",
+      "Thickness": 0.035,
+      "Name": "Top Layer"
+    },
+    {
+      "Type": "Dielectric",
+      "Thickness": 0.05,
+      "Material": "Polyimide",
+      "DielectricConstant": "3.5",
+      "LossTangent": "0.02",
+      "Name": "Top Layer/Bottom Layer",
+      "Notes": "Type: dielectric layer 1 (from Top Layer to Bottom Layer)"
+    },
+    {
+      "Type": "Copper",
+      "Thickness": 0.035,
+      "Name": "Bottom Layer"
+    },
+    {
+      "Type": "SolderMask",
+      "Color": "R255G0B128",
+      "Thickness": 0.0305,
+      "Name": "Bottom Solder Mask"
+    },
+    {
+      "Type": "SolderPaste",
+      "Name": "Bottom Solder Paste"
+    },
+    {
+      "Type": "Legend",
+      "Name": "Bottom Silk Screen"
+    }
+  ]
+}

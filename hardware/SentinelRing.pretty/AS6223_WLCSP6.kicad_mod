@@ -1,0 +1,67 @@
+(footprint "AS6223_WLCSP6"
+  (version 20241229)
+  (generator "kicad-mcp")
+  (generator_version "9.0")
+  (layer "F.Cu")
+  (descr "AMS AS6223 WLCSP-6, 1.5x1.0mm, 0.5mm pitch")
+  (tags "AS6223 AMS WLCSP temperature sensor")
+
+  (property "Reference" "REF**" (at 0 -1.27 0)
+    (layer "F.SilkS")
+    (uuid "ebe224ab-f945-4fd9-a783-fa832bc4eb2f")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (property "Value" "AS6223_WLCSP6" (at 0 1.27 0)
+    (layer "F.Fab")
+    (uuid "fef29ac8-55eb-4e3a-bcee-a44a90cef7d8")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (property "Datasheet" "" (at 0 0 0)
+    (layer "F.Fab")
+    (uuid "a411b5ac-f58c-4613-9633-393afab13365")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+
+  (pad "1" smd circle
+    (at -0.5 -0.25 0)
+    (size 0.25 0.25)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "5a3706f2-0bf7-429a-9eca-3b2f351c6fd1")
+  )
+
+  (pad "2" smd circle
+    (at -0.5 0.25 0)
+    (size 0.25 0.25)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "13e378f1-b152-4d7d-b81c-78cfa0c9f6f8")
+  )
+
+  (pad "3" smd circle
+    (at -0.5 0.75 0)
+    (size 0.25 0.25)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "0f7d86df-385e-41e4-9f70-ae6cf3968506")
+  )
+
+  (pad "4" smd circle
+    (at 0.5 0.75 0)
+    (size 0.25 0.25)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "9844471e-4dda-43f6-a1c5-d157ded34f2c")
+  )
+
+  (pad "5" smd circle
+    (at 0.5 0.25 0)
+    (size 0.25 0.25)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "6dc65943-77c1-46c3-ab4f-e0e4def3b7d2")
+  )
+
+  (pad "6" smd circle
+    (at 0.5 -0.25 0)
+    (size 0.25 0.25)
+    (layers "F.Cu" "F.Paste" "F.Mask")
+    (uuid "66cb05ca-5487-460d-9be4-79b176b75b3f")
+  )
+
+)

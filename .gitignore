@@ -1,23 +1,12 @@
-# Runtime data (auto-created by data_manager.py)
-data/
-
-# Python bytecode
+software/venv/
+software/data/
+software/.env
+software_backup/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-
-# Environment / secrets
-.env
-.streamlit/secrets.toml
-
-# Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+*.egg-info/
+dist/
+build/
 .DS_Store
-Thumbs.db
-.venv/
+data/
+.env
