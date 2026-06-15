@@ -1,9 +1,9 @@
 import streamlit as st
 
 try:
-    from patient_profiles_ import authenticate, register_user, get_patient_name, get_psychologist_name
+    from patient_profiles_ import authenticate, register_user, get_patient_name, get_psychologist_name, get_clinic_psychs_for_registration
 except Exception:
-    authenticate = register_user = get_patient_name = get_psychologist_name = None
+    authenticate = register_user = get_patient_name = get_psychologist_name = get_clinic_psychs_for_registration = None
 
 
 def render_login():
@@ -11,7 +11,7 @@ def render_login():
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        tab_signin, tab_register = st.tabs(["Sign In", "Register New User"])
+        tab_signin, tab_register = st.tabs(["Sign In", "Register"])
         with tab_signin:
             _signin_tab()
         with tab_register:
@@ -54,27 +54,44 @@ def _signin_tab():
                 st.error("Invalid credentials. Check ACCOUNTS.md for valid accounts.")
 
     st.markdown("---")
-    st.markdown("##### Demo Credentials")
-    cols = st.columns(2)
-    with cols[0]:
-        st.markdown("**Patients**")
-        st.code("test_patient_1 / test123  (CLINIC_ALPHA)")
-        st.code("test_patient_5 / test123  (CLINIC_BETA)")
-        st.code("test_patient_10 / test123 (CLINIC_GAMMA)")
-        st.code("test_extra_1 / extra123")
-    with cols[1]:
-        st.markdown("**Psychologists**")
-        st.code("test_psych_1 / doc123  (CLINIC_ALPHA)")
-        st.code("test_psych_2 / doc123  (CLINIC_BETA)")
-        st.code("test_psych_3 / doc123  (CLINIC_GAMMA)")
-        st.code("test_psych_4 / doc123  (CLINIC_DELTA)")
-        st.code("test_psych_5 / doc123  (CLINIC_EPSILON)")
-        st.code("test_extra_3 / extra123")
+    st.markdown("##### Demo Accounts")
+    st.code("Patient:  cel / 123456")
+    st.code("Psych:    alaya / 654321")
 
 
 def _register_tab():
     st.markdown("#### Create Account")
-    is_psych = st.checkbox("I am a Psychologist", key="reg_is_psych")
+
+    role_choice = st.radio("I am a...", ["Patient", "Psychologist"], horizontal=True, key="reg_role")
+
+    clinic_code = st.text_input("Clinic Code", key="reg_clinic_code", help="Enter the clinic code provided by your clinic")
+
+    assigned_psych = ""
+    prof_code = ""
+
+    if role_choice == "Psychologist":
+        st.markdown("""
+        <div style="background:#1a2238;border:1px solid #7c3aed;border-radius:10px;padding:14px;margin:8px 0;">
+            <div style="color:#a78bfa;font-size:0.8125rem;font-weight:600;margin-bottom:6px;">\U0001f9ec Psychologist Verification</div>
+        """, unsafe_allow_html=True)
+        prof_code = st.text_input("Profession Code", key="reg_prof_code", help="Provided by your clinic for psychologist registration")
+        st.markdown("</div>", unsafe_allow_html=True)
+    elif role_choice == "Patient" and clinic_code.strip():
+        st.markdown("""
+        <div style="background:#1a2238;border:1px solid #60a5fa;border-radius:10px;padding:14px;margin:8px 0;">
+            <div style="color:#60a5fa;font-size:0.8125rem;font-weight:600;margin-bottom:6px;">\U0001f465 Select Your Psychologist</div>
+        """, unsafe_allow_html=True)
+        try:
+            psychs = get_clinic_psychs_for_registration(clinic_code.strip())
+        except Exception:
+            psychs = []
+        if psychs:
+            psych_options = {f"{p['name']} (@{p['username']})": p["username"] for p in psychs}
+            st.selectbox("Psychologist", list(psych_options.keys()), key="reg_psych_sel", label_visibility="collapsed")
+        else:
+            st.markdown("<div style='color:#7a8aaa;font-size:0.75rem;'>No psychologists found in this clinic yet.</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
     with st.form("register_form"):
         r_username = st.text_input("Username")
         r_password = st.text_input("Password", type="password")
@@ -82,35 +99,36 @@ def _register_tab():
         r_name = st.text_input("Full Name")
         r_age = st.number_input("Age", min_value=1, max_value=120, value=25, step=1)
         r_occupation = st.text_input("Occupation")
-        clinic_code = st.text_input("Clinic Code", help="Contact your clinic to get a registration code")
-        prof_code = ""
-        if st.session_state.get("reg_is_psych", False):
-            st.markdown("""
-            <div class="psych-box">
-                <div class="psych-box-title">Psychologist Verification</div>
-                <div class="psych-box-desc">Enter your unique profession code to verify your credentials.</div>
-            </div>
-            """, unsafe_allow_html=True)
-            prof_code = st.text_input("Profession Code", help="Provided by the clinic for psychologist registration")
+
         submitted = st.form_submit_button("Register", type="primary", use_container_width=True)
 
     if submitted:
-        _handle_registration(r_username, r_password, r_password_confirm, r_name, r_age, r_occupation, clinic_code, prof_code)
+        _assigned = st.session_state.get("reg_psych_sel", "")
+        if _assigned:
+            try:
+                psych_opts = {f"{p['name']} (@{p['username']})": p["username"] for p in (get_clinic_psychs_for_registration(clinic_code.strip()) if clinic_code.strip() else [])}
+                _assigned = psych_opts.get(_assigned, _assigned)
+            except Exception:
+                pass
+        _handle_registration(r_username, r_password, r_password_confirm, r_name, r_age, r_occupation, clinic_code, role_choice, prof_code, _assigned)
 
 
-def _handle_registration(r_username, r_password, r_password_confirm, r_name, r_age, r_occupation, clinic_code, prof_code):
+def _handle_registration(r_username, r_password, r_password_confirm, r_name, r_age, r_occupation, clinic_code, role_choice, prof_code="", assigned_psych=""):
     if not all([r_username, r_password, r_password_confirm, r_name, r_occupation, clinic_code]):
-        st.error("All fields except Profession Code are required.")
+        st.error("All fields are required.")
     elif r_password != r_password_confirm:
         st.error("Passwords do not match.")
-    elif st.session_state.get("reg_is_psych", False) and not prof_code:
+    elif role_choice == "Psychologist" and not prof_code:
         st.error("Profession Code is required for psychologist registration.")
+    elif role_choice == "Patient" and not assigned_psych:
+        st.error("Please select a psychologist from your clinic.")
     else:
-        role = "psychologist" if st.session_state.get("reg_is_psych", False) else "patient"
+        role = "psychologist" if role_choice == "Psychologist" else "patient"
         ok, msg = register_user(
             r_username.strip(), r_password, r_name.strip(),
             r_age, r_occupation.strip(), role, clinic_code.strip(),
             prof_code.strip() if prof_code else None,
+            assigned_psych,
         )
         if ok:
             st.session_state.authenticated = True

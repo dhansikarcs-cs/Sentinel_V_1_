@@ -1,6 +1,11 @@
 import streamlit as st
+from datetime import date
 
-from patient_profiles_ import get_patient_clinic, get_clinic_psychologists
+from patient_profiles_ import get_patient_clinic, get_clinic_psychologists, get_assigned_psych, get_psychologist_name, get_contact_info
+try:
+    from data_manager_ import get_available_psychologists
+except Exception:
+    get_available_psychologists = None
 
 try:
     from crisis_ import get_crisis_status, handle_escalation
@@ -62,18 +67,40 @@ try:
 except Exception:
     render_patient_onboarding = None
 
+try:
+    from patient_profiles_ import get_onboarding_step
+except Exception:
+    get_onboarding_step = None
+
+try:
+    from dashboard_tour_ import render_dashboard_tour
+except Exception:
+    render_dashboard_tour = None
+
 
 def render_patient_portal():
     username = st.session_state.username
     patient_name = st.session_state.get("patient_name", username)
 
-    # ── Onboarding wizard for first-time patients ──
-    if st.session_state.get("onboarding_step", 0) < 99:
+    # ── Profile settings (triggered from sidebar) ──
+    if st.session_state.get("show_profile", False):
         try:
-            if render_patient_onboarding and render_patient_onboarding(username):
-                return
+            from profile_ import render_profile
+            render_profile(username)
+        except Exception:
+            st.error("Profile settings unavailable.")
+        return
+
+    # ── Onboarding wizard for first-time patients ──
+    db_step = get_onboarding_step(username) if get_onboarding_step else 99
+    st.session_state["_patient_onboarding"] = db_step < 99
+    if db_step < 99:
+        try:
+            if render_patient_onboarding:
+                render_patient_onboarding(username)
         except Exception:
             pass
+        return
 
     # ── Auto-refresh to detect crisis state changes ──
     try:
@@ -83,6 +110,20 @@ def render_patient_portal():
         pass
 
     st.markdown(f"# \U0001f33f Welcome, {patient_name}")
+    try:
+        _assigned_psych = get_assigned_psych(username)
+        if _assigned_psych:
+            _psych_name = safe(get_psychologist_name, _assigned_psych, _assigned_psych)
+            _psych_email = safe(get_contact_info, "", _assigned_psych)
+            st.markdown(
+                f"<div style='font-size:0.8125rem;color:#7a8aaa;margin-bottom:8px;'>"
+                f"\U0001f489 Your psychologist: <strong style='color:#c0d0e0;'>{_psych_name}</strong>"
+                f" &nbsp;|&nbsp; \U0001f4e7 <span style='color:#60a5fa;'>{_psych_email}</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+    except Exception:
+        pass
     st.markdown("---")
 
     # ── Crisis banner ──
@@ -170,67 +211,64 @@ def render_patient_portal():
 
     # ── Today's Overview ──
     try:
-        st.markdown("### \U0001f4ca Today's Overview")
         render_patient_status(username)
     except Exception:
         pass
 
-    @st.fragment
-    def _pt_booking_actions(proposed_bookings):
-        for _p in proposed_bookings:
-            _psych_name = _p.get("psychologist_username", "")
-            st.markdown(f"""<div style="background:#1a2238;border:1px solid #1e3a5a;border-radius:10px;padding:14px;margin:8px 0;">
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-<span style="background:#f59e0b20;color:#f59e0b;font-size:0.6875rem;font-weight:600;padding:2px 8px;border-radius:4px;">PROPOSED</span>
-<span style="color:#7a8aaa;font-size:0.75rem;">\U0001f9d1\u200d\u2695\ufe0f {_psych_name}</span>
-</div>
-<div style="color:#c0d0e0;font-size:1rem;font-weight:600;">{_p['date']}</div>
-<div style="color:#60a5fa;font-size:0.9375rem;">\U0001f550 {_p['time']}</div>
-<div style="color:#7a8aaa;font-size:0.75rem;margin-top:4px;">Session: {_p.get('session_type', 'Therapy')}</div>
-<div style="color:#5a6a8a;font-size:0.6875rem;margin-top:2px;">{_p.get('explanation', '')}</div>
-</div>""", unsafe_allow_html=True)
-            _pc1, _pc2 = st.columns(2)
-            with _pc1:
-                if st.button(f"\u2705 Accept", key=f"p_acc_{_p['id']}", use_container_width=True, type="primary"):
-                    update_booking_status_by_id(_p["id"], "Pending")
-                    st.success("Confirmed! Your psychologist will review shortly.")
-            with _pc2:
-                if st.button(f"\u274c Decline", key=f"p_dec_{_p['id']}", use_container_width=True):
-                    update_booking_status_by_id(_p["id"], "Declined")
-                    st.info("Declined. You can request a different time in the Book Appointment tab.")
+    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
 
-    @st.fragment
+    # ── Tab content helpers ──
+
+    def _pt_booking_actions(bookings):
+        for _bi, _b in enumerate(bookings):
+            st.markdown(
+                f"<div style='background:linear-gradient(135deg,#1a2238,#1e2a45);border:1px solid #f59e0b;"
+                f"border-radius:10px;padding:14px;margin:8px 0;'>"
+                f"<div style='color:#f59e0b;font-size:0.9rem;font-weight:600;'>"
+                f"{_b['date']} @ {_b['time']}</div>"
+                f"<div style='color:#7a8aaa;font-size:0.75rem;margin-top:4px;'>{_b.get('explanation','')}</div>"
+                f"</div>", unsafe_allow_html=True,
+            )
+            _ac1, _ac2 = st.columns(2)
+            with _ac1:
+                if st.button(f"Accept", key=f"pt_bk_acc_{_bi}", type="primary", use_container_width=True):
+                    from data_manager_ import update_booking_status_by_id, load_bookings
+                    _all_b = load_bookings()
+                    _real_idx = next((i for i, x in enumerate(_all_b) if x == _b), None)
+                    if _real_idx is not None:
+                        update_booking_status_by_id(_real_idx, "Accepted")
+                        st.success("Accepted!")
+                        st.rerun()
+            with _ac2:
+                if st.button(f"Decline", key=f"pt_bk_dec_{_bi}", use_container_width=True):
+                    from data_manager_ import update_booking_status_by_id, load_bookings
+                    _all_b = load_bookings()
+                    _real_idx = next((i for i, x in enumerate(_all_b) if x == _b), None)
+                    if _real_idx is not None:
+                        update_booking_status_by_id(_real_idx, "Declined")
+                        st.info("Declined.")
+                        st.rerun()
+
     def _pt_smart_room_toggle():
-        if st.button("\u26a1 Intense" if st.session_state.get("patient_room_intense", False) else "\U0001f319 Calm", key="patient_room_toggle", use_container_width=True):
+        if st.button("⚡ Intense" if st.session_state.get("patient_room_intense", False) else "🌙 Calm", key="pt_room_toggle", use_container_width=True):
             st.session_state.patient_room_intense = not st.session_state.patient_room_intense
+            st.rerun()
 
-    tabs = st.tabs([
-        "\U0001f4ca Wellness",
-        "\U0001f4dd Journal",
-        "\U0001f4c5 Booking",
-        "\U0001f4cb Follow-Up",
-        "\U0001f9e0 Smart Room",
-        "\U0001f6ae Emergency",
-    ])
-
-    # ─── TAB 0: Wellness ──────────────────────────────
-    with tabs[0]:
+    def _render_wellness_tab():
         try:
             render_patient_wellness(username)
         except Exception:
             st.error("Wellness dashboard unavailable.")
 
-    # ─── TAB 1: Journal ───────────────────────────────
-    with tabs[1]:
+    def _render_journal_tab():
         try:
             render_patient_journal(username)
         except Exception:
             st.error("Journal tab unavailable.")
 
-    # ─── TAB 2: Booking ───────────────────────────────
-    with tabs[2]:
+    def _render_booking_tab():
         try:
-            from data_manager_ import load_bookings, update_booking_status_by_id, get_available_psychologists
+            from data_manager_ import load_bookings, update_booking_status_by_id, load_psych_availability
             _all_my = [b for b in load_bookings() if b["patient"] == username]
             _ai_bookings = [b for b in _all_my if "AI-suggested" in b.get("explanation", "")]
             _manual_bookings = [b for b in _all_my if "AI-suggested" not in b.get("explanation", "")]
@@ -283,15 +321,13 @@ def render_patient_portal():
         except Exception:
             st.error("Booking unavailable.")
 
-    # ─── TAB 3: Follow-Up ─────────────────────────────
-    with tabs[3]:
+    def _render_followup_tab():
         try:
             safe(render_patient_followup, None, username)
         except Exception:
             st.error("Follow-Up unavailable.")
 
-    # ─── TAB 4: Smart Room ────────────────────────────
-    with tabs[4]:
+    def _render_smart_room_tab():
         try:
             head_col1, head_col2 = st.columns([3, 1])
             with head_col1:
@@ -303,15 +339,28 @@ def render_patient_portal():
         except Exception:
             st.error("Smart Room unavailable.")
 
-    # ─── TAB 5: Emergency ─────────────────────────────
-    with tabs[5]:
+    def _render_emergency_tab():
         try:
             render_patient_emergency(username)
         except Exception:
             st.error("Emergency section unavailable.")
 
-    with st.expander("\U0001f4cb Recent Activity"):
-        render_activity_feed(username, 10)
+    # ── Tab selector (segmented control works with tour) ──
+    _pt_tab_names = ["\U0001f4ca Wellness", "\U0001f4dd Journal", "\U0001f4c5 Booking", "\U0001f4cb Follow-Up", "\U0001f9e0 Smart Room", "\U0001f6ae Emergency"]
+    _pt_renderers = [_render_wellness_tab, _render_journal_tab, _render_booking_tab, _render_followup_tab, _render_smart_room_tab, _render_emergency_tab]
+
+    _tour_tab = render_dashboard_tour("Patient") if render_dashboard_tour else ""
+    if _tour_tab:
+        st.session_state["pt_selected_tab"] = _tour_tab
+
+    _tab_default = st.session_state.get("pt_selected_tab", _pt_tab_names[0])
+    _selected = st.segmented_control(
+        "", _pt_tab_names, default=_tab_default,
+        key="pt_selected_tab", selection_mode="single", label_visibility="collapsed",
+    )
+    _active_idx = _pt_tab_names.index(_selected) if _selected in _pt_tab_names else 0
+    if 0 <= _active_idx < len(_pt_renderers):
+        _pt_renderers[_active_idx]()
 
     st.markdown("---")
     st.caption("Sentinel \u2014 Your wellness, monitored with care.")

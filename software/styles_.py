@@ -67,11 +67,12 @@ MAIN_CSS = """
     .stApp {
         background: linear-gradient(160deg, #0f1525 0%, #131b2e 40%, #0e1628 100%);
     }
+    .main > div { padding: 1.5rem 2rem; }
 
     ::selection { background: #3b82f6; color: white; }
-    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #0f1525; }
-    ::-webkit-scrollbar-thumb { background: #2a3a5a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: #2a3a5a; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #3a4a6a; }
 
     h1, h2, h3 {
@@ -79,19 +80,22 @@ MAIN_CSS = """
         font-weight: 600;
         letter-spacing: -0.01em;
     }
-    h1 { font-size: 1.75rem !important; }
-    h2 { font-size: 1.4rem !important; }
-    h3 { font-size: 1.15rem !important; }
+    h1 { font-size: 1.75rem !important; margin-bottom: 0.5rem !important; }
+    h2 { font-size: 1.4rem !important; margin-bottom: 0.4rem !important; }
+    h3 { font-size: 1.15rem !important; margin-bottom: 0.35rem !important; }
 
     .stMarkdown, p, li, .st-c0, .st-da {
         color: #d0d8e8 !important;
-        line-height: 1.6;
-    }
-    .st-bw, .st-bv, .st-cx, .st-cy {
-        color: #d0d8e8 !important;
+        line-height: 1.7;
     }
 
-    button, .stButton > button, section[data-testid="stSidebar"] button {
+    .element-container { margin-bottom: 0.4rem; }
+    .stMarkdown { margin-bottom: 0.25rem; }
+    hr { margin: 1.25rem 0 !important; border-color: #1e2940 !important; opacity: 0.5; }
+
+    .st-bw, .st-bv, .st-cx, .st-cy { color: #d0d8e8 !important; }
+
+    button, .stButton > button {
         background: #1e2940 !important;
         color: #d0d8e8 !important;
         border-radius: 8px;
@@ -99,24 +103,25 @@ MAIN_CSS = """
         font-size: 0.875rem;
         transition: all 0.2s ease;
         border: 1px solid #2a3a5a !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
-    button:hover, .stButton > button:hover, section[data-testid="stSidebar"] button:hover {
+    button:hover, .stButton > button:hover {
         background: #2a3a5a !important;
         color: #eef2f8 !important;
         border-color: #3b82f6 !important;
         transform: translateY(-1px);
         box-shadow: 0 4px 16px rgba(59,130,246,0.15);
     }
-    button:active, .stButton > button:active {
-        transform: translateY(0);
-    }
+    button:active { transform: translateY(0); }
     button[kind="primary"], .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
         border: none !important;
         color: white !important;
+        box-shadow: 0 2px 8px rgba(59,130,246,0.25);
     }
-    button[kind="primary"]:hover, .stButton > button[kind="primary"]:hover {
+    button[kind="primary"]:hover {
         background: linear-gradient(135deg, #60a5fa, #3b82f6) !important;
+        box-shadow: 0 4px 16px rgba(59,130,246,0.35);
     }
 
     .stTextInput > div > div > input, .stTextArea textarea {
@@ -129,7 +134,7 @@ MAIN_CSS = """
     }
     .stTextInput > div > div > input:focus, .stTextArea textarea:focus {
         border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.12) !important;
     }
     .stTextInput input::placeholder, .stTextArea textarea::placeholder {
         color: #5a6a8a !important;
@@ -153,10 +158,14 @@ MAIN_CSS = """
         border: 1px solid #2a3a5a !important;
         border-radius: 8px !important;
         color: #e0e8f5 !important;
-        transition: border-color 0.2s ease !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
     }
     .stNumberInput > div > div:hover, .stDateInput > div > div:hover, .stTimeInput > div > div:hover, .stSelectbox > div > div:hover {
         border-color: #3b82f6 !important;
+    }
+    .stNumberInput > div > div:focus-within, .stDateInput > div > div:focus-within, .stTimeInput > div > div:focus-within, .stSelectbox > div > div:focus-within {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important;
     }
     .stNumberInput input, .stDateInput input, .stTimeInput input, .stSelectbox input,
     .stNumberInput input[type="number"], input[type="number"] {
@@ -165,13 +174,13 @@ MAIN_CSS = """
         caret-color: #60a5fa !important;
     }
     .stNumberInput button, .stDateInput button, .stTimeInput button {
-        background: #1e2940 !important;
+        background: transparent !important;
         color: #7a8aaa !important;
         border: none !important;
         cursor: pointer !important;
+        transition: color 0.15s;
     }
     .stNumberInput button:hover, .stDateInput button:hover, .stTimeInput button:hover {
-        background: #2a3a5a !important;
         color: #eef2f8 !important;
     }
 
@@ -181,14 +190,12 @@ MAIN_CSS = """
         color: #eef2f8 !important;
         caret-color: #60a5fa !important;
     }
-    div[data-baseweb="select"] > div:hover {
-        border-color: #3b82f6 !important;
-    }
+    div[data-baseweb="select"] > div:hover { border-color: #3b82f6 !important; }
     ul[role="listbox"], div[role="listbox"] {
         background: #1a2238 !important;
         border: 1px solid #2a3a5a !important;
         border-radius: 8px !important;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.5) !important;
     }
     li[role="option"] {
         background: #1a2238 !important;
@@ -207,14 +214,13 @@ MAIN_CSS = """
         color: #e0e8f5 !important;
         background: transparent !important;
     }
-    .stSelectbox svg, .stDateInput svg, .stTimeInput svg {
-        fill: #7a8aaa !important;
-    }
+    .stSelectbox svg, .stDateInput svg, .stTimeInput svg { fill: #7a8aaa !important; }
 
     label, .stTextInput label, .stTextArea label, .stSelectbox label, .stNumberInput label, .stDateInput label, .stTimeInput label {
         color: #b0bcd0 !important;
         font-weight: 500;
         font-size: 0.8125rem;
+        margin-bottom: 0.2rem;
     }
 
     .stMetric {
@@ -222,10 +228,10 @@ MAIN_CSS = """
         border-radius: 10px;
         padding: 12px !important;
         border: 1px solid #1e2940;
+        transition: border-color 0.2s;
     }
-    .stMetric label, .stMetric div {
-        color: #b0bcd0 !important;
-    }
+    .stMetric:hover { border-color: #2a3a5a; }
+    .stMetric label, .stMetric div { color: #b0bcd0 !important; }
     [data-testid="stMetricValue"] {
         color: #f0f4ff !important;
         font-size: 1.5rem !important;
@@ -240,17 +246,12 @@ MAIN_CSS = """
         background: #161d30;
         border: 1px solid #1e2940;
         border-radius: 10px;
-        transition: border-color 0.2s ease;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        margin-bottom: 0.5rem;
     }
-    div[data-testid="stExpander"]:hover {
-        border-color: #2a3a5a;
-    }
-    div[data-testid="stExpander"] > div[role="button"] p {
-        font-size: 0.875rem;
-    }
-    div[data-testid="stExpander"] div[role="button"] p {
-        color: #d0d8e8 !important;
-    }
+    div[data-testid="stExpander"]:hover { border-color: #2a3a5a; }
+    div[data-testid="stExpander"] > div[role="button"] p { font-size: 0.875rem; }
+    div[data-testid="stExpander"] div[role="button"] p { color: #d0d8e8 !important; }
     div[data-testid="stExpander"] div[role="button"]:hover {
         background: #1a2238;
         border-radius: 10px;
@@ -259,9 +260,10 @@ MAIN_CSS = """
     .stTabs [data-baseweb="tab-list"] {
         gap: 4px;
         background: #161d30;
-        padding: 4px;
+        padding: 5px;
         border-radius: 10px;
         border: 1px solid #1e2940;
+        margin-bottom: 1rem;
     }
     .stTabs [data-baseweb="tab"] {
         border-radius: 7px;
@@ -286,36 +288,34 @@ MAIN_CSS = """
         border: 1px solid #2a3a5a;
         color: #d0d8e8;
         border-radius: 10px;
+        margin: 0.6rem 0;
     }
     .stAlert [data-testid="stAlertIcon"] svg { fill: currentColor; }
 
-    .st-bw, .st-bv {
-        background-color: #1a2238;
-    }
+    .st-bw, .st-bv { background-color: #1a2238; }
 
     div[data-testid="stDataFrame"] {
         background: #161d30;
         border: 1px solid #1e2940;
         border-radius: 10px;
+        overflow: hidden;
     }
     div[data-testid="stDataFrame"] th {
         background: #1a2238 !important;
         color: #c0d0e0 !important;
         font-weight: 600;
         font-size: 0.8125rem;
+        padding: 10px 12px !important;
     }
     div[data-testid="stDataFrame"] td {
         background: #161d30 !important;
         color: #d0d8e8 !important;
         font-size: 0.8125rem;
+        padding: 8px 12px !important;
     }
-    div[data-testid="stDataFrame"] tr:nth-child(even) td {
-        background: #131b2e !important;
-    }
+    div[data-testid="stDataFrame"] tr:nth-child(even) td { background: #131b2e !important; }
 
-    .stToggle label {
-        color: #b0bcd0 !important;
-    }
+    .stToggle label { color: #b0bcd0 !important; }
     .stCheckbox label { color: #b0bcd0 !important; }
 
     .psych-box {
@@ -346,6 +346,7 @@ MAIN_CSS = """
         background: #0f1525 !important;
         border-right: 1px solid #1e2940 !important;
     }
+    section[data-testid="stSidebar"] > div { padding: 1rem 0.8rem; }
     section[data-testid="stSidebar"] .stMarkdown,
     section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] li,
@@ -354,46 +355,48 @@ MAIN_CSS = """
     }
     section[data-testid="stSidebar"] h3 {
         color: #eef2f8 !important;
-        font-size: 1.1rem !important;
+        font-size: 1.05rem !important;
+        margin: 0.75rem 0 0.4rem !important;
     }
     section[data-testid="stSidebar"] .stMetric {
         background: rgba(26,34,56,0.6) !important;
-        padding: 8px !important;
+        padding: 6px 8px !important;
         border-radius: 8px !important;
         border: 1px solid #1e2940 !important;
     }
     section[data-testid="stSidebar"] .stMetric label,
     section[data-testid="stSidebar"] .stMetric div {
         color: #b0bcd0 !important;
-    }
-    section[data-testid="stSidebar"] .stCaption {
-        color: #7a8aaa !important;
-    }
-    section[data-testid="stSidebar"] .st-bb {
-        background-color: transparent !important;
+        font-size: 0.6875rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stMetricValue"] {
         color: #f0f4ff !important;
-        font-size: 1.25rem !important;
+        font-size: 1.15rem !important;
         font-weight: 700;
     }
     section[data-testid="stSidebar"] [data-testid="stMetricLabel"] {
         color: #7a8aaa !important;
-        font-size: 0.75rem !important;
+        font-size: 0.6875rem !important;
     }
+    section[data-testid="stSidebar"] .stCaption { color: #7a8aaa !important; }
+    section[data-testid="stSidebar"] .st-bb { background-color: transparent !important; }
     section[data-testid="stSidebar"] hr {
         border-color: #1e2940 !important;
+        margin: 0.75rem 0 !important;
     }
     section[data-testid="stSidebar"] .stAlert {
         background: #1a2238 !important;
         border: 1px solid #1e2940 !important;
         color: #d0d8e8 !important;
+        margin: 0.4rem 0;
     }
     section[data-testid="stSidebar"] .stButton > button {
         background: #1a2238 !important;
         border: 1px solid #1e2940 !important;
         color: #d0d8e8 !important;
         transition: all 0.2s ease !important;
+        font-size: 0.8125rem;
+        padding: 0.35rem 0.6rem;
     }
     section[data-testid="stSidebar"] .stButton > button:hover {
         background: #3b82f6 !important;
@@ -402,15 +405,61 @@ MAIN_CSS = """
         transform: translateY(-1px);
     }
 
-    hr { border-color: #1e2940 !important; }
-
     .stSpinner > div { border-color: #3b82f6 !important; }
 
-    div[role="alert"] {
-        border-radius: 10px;
-    }
+    div[role="alert"] { border-radius: 10px; }
 
     footer { display: none; }
     #MainMenu { visibility: hidden; }
+
+    .journal-card {
+        background: linear-gradient(135deg, #1a2238, #1e2a45);
+        border: 1px solid #1e3a5a;
+        border-radius: 10px;
+        padding: 16px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .journal-card:hover { border-color: #2a4a6a; box-shadow: 0 2px 12px rgba(59,130,246,0.08); }
+
+    .step-done { background: #1a3a2a; border-color: #22c55e40; }
+    .step-active { background: #1a2a4a; border-color: #60a5fa60; }
+    .step-pending { background: #1a2238; border-color: #1e2940; }
+
+    div[data-baseweb="segmented-control"] {
+        background: #161d30 !important;
+        border: 1px solid #1e2940 !important;
+        border-radius: 10px !important;
+        padding: 3px !important;
+        gap: 2px !important;
+    }
+    div[data-baseweb="segmented-control"] button {
+        background: transparent !important;
+        border: none !important;
+        color: #7a8aaa !important;
+        font-size: 0.8125rem !important;
+        font-weight: 500 !important;
+        border-radius: 7px !important;
+        padding: 6px 14px !important;
+        transition: all 0.2s ease !important;
+        box-shadow: none !important;
+    }
+    div[data-baseweb="segmented-control"] button:hover {
+        color: #d0d8e8 !important;
+        background: #1a2238 !important;
+    }
+    div[data-baseweb="segmented-control"] button[aria-checked="true"] {
+        background: #1e2940 !important;
+        color: #eef2f8 !important;
+    }
+
+    div[data-testid="column"], section[data-testid="stSidebar"] div[data-testid="column"] {
+        gap: 0.5rem;
+    }
+    div[data-testid="stForm"] { border: none !important; padding: 0 !important; }
+    div[role="radiogroup"] { gap: 0.25rem; }
+    button[title^="Download"] {
+        background: transparent !important;
+        border: 1px solid #1e2940 !important;
+    }
 </style>
 """
