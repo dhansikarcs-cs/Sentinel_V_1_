@@ -10,3 +10,6 @@ build/
 .DS_Store
 data/
 .env
+hardware/
+sentinel3_backup.zip
+icons/

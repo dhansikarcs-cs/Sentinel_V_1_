@@ -36,14 +36,99 @@ def render_booking_form(patient_name: str, clinic_psychs=None, patient_clinic=""
     selected_psych_label = st.selectbox("Psychologist", psych_options, key="bk_psych_sel")
     selected_psych = psych_map.get(selected_psych_label, "")
 
-    _avail_dates = []
+    _avail_date_objs = []
     if selected_psych:
         _avail = load_psych_availability(selected_psych)
-        _avail_dates = sorted([a["date"] for a in _avail if a["date"] >= date.today().isoformat()])
-    if _avail_dates:
-        st.markdown(f"<div style='color:#4ade80;font-size:0.8125rem;margin-bottom:8px;'>✅ {selected_psych_label} has {len(_avail_dates)} free date(s)</div>", unsafe_allow_html=True)
+        _avail_strs = sorted([a["date"] for a in _avail if a["date"] >= date.today().isoformat()])
+        _avail_date_objs = [datetime.strptime(d, "%Y-%m-%d").date() for d in _avail_strs]
+        _avail_set = set(_avail_strs)
 
-    st.markdown("#### Step 2: Attendance")
+    st.markdown("#### Step 2: Select Date")
+    today = date.today()
+    ym_key = f"bk_ym_{selected_psych}"
+    sel_key = f"bk_sel_{selected_psych}"
+    if ym_key not in st.session_state:
+        st.session_state[ym_key] = (today.year, today.month)
+    cal_y, cal_m = st.session_state[ym_key]
+
+    cal_cols = st.columns([1, 4, 1])
+    with cal_cols[0]:
+        st.markdown(f"<div style='padding-top:6px;'>", unsafe_allow_html=True)
+        if st.button("◀", key=f"bk_prev_{selected_psych}"):
+            cal_m -= 1
+            if cal_m < 1:
+                cal_m = 12; cal_y -= 1
+            st.session_state[ym_key] = (cal_y, cal_m)
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+    with cal_cols[1]:
+        st.markdown(f"<div style='color:#c0d0e0;font-weight:600;text-align:center;padding:4px 0;'>{calendar.month_name[cal_m]} {cal_y}</div>", unsafe_allow_html=True)
+    with cal_cols[2]:
+        st.markdown(f"<div style='padding-top:6px;'>", unsafe_allow_html=True)
+        if st.button("▶", key=f"bk_next_{selected_psych}"):
+            cal_m += 1
+            if cal_m > 12:
+                cal_m = 1; cal_y += 1
+            st.session_state[ym_key] = (cal_y, cal_m)
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    _, days_in_month = calendar.monthrange(cal_y, cal_m)
+    first_weekday = date(cal_y, cal_m, 1).weekday()
+
+    day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    dn_cols = st.columns(7)
+    for i, dn in enumerate(day_names):
+        dn_cols[i].markdown(f"<div style='color:#5a6a8a;font-size:0.65rem;text-align:center;'>{dn}</div>", unsafe_allow_html=True)
+
+    cal_days = []
+    row = [None] * first_weekday
+    for d in range(1, days_in_month + 1):
+        row.append(d)
+        if len(row) == 7:
+            cal_days.append(row)
+            row = []
+    if row:
+        while len(row) < 7:
+            row.append(None)
+        cal_days.append(row)
+
+    selected_date_str = st.session_state.get(sel_key, "")
+    for week in cal_days:
+        wk_cols = st.columns(7)
+        for i, d in enumerate(week):
+            with wk_cols[i]:
+                if d is None:
+                    st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
+                else:
+                    dt = date(cal_y, cal_m, d)
+                    ds = dt.isoformat()
+                    is_past = dt < today
+                    is_avail = ds in _avail_set
+                    is_selected = ds == selected_date_str
+
+                    if is_past or not is_avail:
+                        st.markdown(
+                            f"<div style='background:#1a1a2a;color:#2a2a3a;border-radius:6px;padding:5px 0;text-align:center;font-size:0.8rem;'>{d}</div>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        btn_style = "primary" if is_selected else "secondary"
+                        if st.button(str(d), key=f"bk_day_{selected_psych}_{ds}", use_container_width=True, type=btn_style):
+                            st.session_state[sel_key] = ds
+                            st.rerun()
+
+    if _avail_date_objs:
+        remaining = [d for d in _avail_date_objs if d >= today]
+        if remaining:
+            st.markdown(
+                f"<div style='color:#4ade80;font-size:0.7rem;margin:4px 0;'>✅ {len(remaining)} date(s) available — click a green day above</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("No available dates. Your psychologist hasn't opened slots yet.")
+
+    st.markdown("#### Step 3: Attendance")
     if "booking_member_count" not in st.session_state:
         st.session_state.booking_member_count = 1
 
@@ -51,14 +136,22 @@ def render_booking_form(patient_name: str, clinic_psychs=None, patient_clinic=""
     st.session_state.booking_member_count = member_count
 
     with st.form("booking_request_form", clear_on_submit=True):
-        st.markdown("#### Step 3: Session Details")
+        st.markdown("#### Step 4: Session Details")
         cols_top = st.columns(3)
-        bk_date = cols_top[0].date_input("Date")
+        bk_date = st.session_state.get(f"bk_sel_{selected_psych}", "")
+        try:
+            bk_date_obj = datetime.strptime(bk_date, "%Y-%m-%d").date() if bk_date else None
+        except Exception:
+            bk_date_obj = None
+        if bk_date_obj:
+            cols_top[0].markdown(f"<div style='color:#c0d0e0;font-size:0.9rem;padding:8px 0;'>📅 {bk_date_obj.strftime('%a, %b %d %Y')}</div>", unsafe_allow_html=True)
+        else:
+            cols_top[0].markdown("<div style='color:#5a6a8a;font-size:0.8rem;padding:8px 0;'>Click an available date above</div>", unsafe_allow_html=True)
         bk_time = cols_top[1].time_input("Time")
         session_type = cols_top[2].selectbox("Type", ["Therapy", "Follow-up", "Crisis Check-in", "Mindfulness"])
 
         st.markdown("---")
-        st.markdown("#### Step 4: Member Details")
+        st.markdown("#### Step 5: Member Details")
         members = []
         for idx in range(member_count):
             c1, c2 = st.columns([3, 1])
@@ -73,6 +166,8 @@ def render_booking_form(patient_name: str, clinic_psychs=None, patient_clinic=""
         if st.form_submit_button("Submit Request"):
             if not selected_psych:
                 st.error("Please select a psychologist.")
+            elif not bk_date:
+                st.error("Please select an available date from the calendar.")
             elif not contact.strip() or not explanation.strip():
                 st.error("Please complete the Contact and Context fields.")
             elif any(not name.strip() for name, _ in members):
@@ -80,7 +175,7 @@ def render_booking_form(patient_name: str, clinic_psychs=None, patient_clinic=""
             else:
                 member_text = "; ".join([f"{name.strip()} ({age})" for name, age in members])
                 try:
-                    save_booking(patient_name, bk_date.isoformat(), bk_time.strftime("%H:%M"), session_type, member_text, contact.strip(), explanation.strip(), psychologist_username=selected_psych)
+                    save_booking(patient_name, bk_date, bk_time.strftime("%H:%M"), session_type, member_text, contact.strip(), explanation.strip(), psychologist_username=selected_psych)
                     st.success(f"Request sent to {selected_psych_label}!")
                 except Exception as err:
                     st.error(f"System Error: {err}")
@@ -90,12 +185,11 @@ def _cal_ym_changed():
     st.session_state["cal_ym"] = (st.session_state.cal_y, st.session_state.cal_m)
 
 
-@st.fragment
 def render_booking_queue(psych_username=None):
     st.markdown("### 📋 Booking Management")
     bookings = load_bookings()
     if psych_username:
-        bookings = [b for b in bookings if b.get("psychologist_username", "") == psych_username or b.get("psychologist_username", "") == ""]
+        bookings = [b for b in bookings if b.get("psychologist_username", "") == psych_username]
     if not bookings:
         st.info("The queue is currently empty.")
         return
@@ -109,6 +203,9 @@ def render_booking_queue(psych_username=None):
         with st.expander(f"{status_color} {item['patient']}{_psych_label} — {item['date']} @ {item['time']}"):
             st.write(f"**Status:** {item['status']}")
             st.write(f"**Psychologist:** {_psych if _psych else 'Not assigned'}")
+            st.write(f"**Patient:** {item['patient']}")
+            st.write(f"**Date:** {item['date']}")
+            st.write(f"**Time:** {item['time']}")
             st.write(f"**Members:** {item.get('members', 'N/A')}")
             st.write(f"**Contact:** {item.get('contact', 'N/A')}")
             st.info(f"**Reason:** {item.get('explanation', 'N/A')}")
@@ -116,9 +213,17 @@ def render_booking_queue(psych_username=None):
             current_status = item['status']
 
             if current_status == "Proposed":
-                st.markdown(f"<span style='color:#f59e0b;font-size:0.8125rem;'>💡 AI-suggested — waiting for patient to confirm.</span>", unsafe_allow_html=True)
+                _ts = item.get("timestamp", item.get("date", ""))[:16]
+                st.markdown(
+                    f"<div style='background:#2a2a00;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin:8px 0;'>"
+                    f"<div style='color:#f59e0b;font-weight:600;margin-bottom:4px;'>💡 Proposed Appointment</div>"
+                    f"<div style='color:#c0d0e0;font-size:0.8125rem;'>Proposed to <strong>{item['patient']}</strong> on <strong>{item['date']} @ {item['time']}</strong></div>"
+                    f"<div style='color:#7a8aaa;font-size:0.6875rem;margin-top:4px;'>Proposed at: {_ts} — Awaiting patient response</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
             elif current_status == "Declined":
-                st.markdown(f"<span style='color:#ef4444;font-size:0.8125rem;'>❌ Patient declined this AI-suggested slot.</span>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background:#2a0a0a;border:1px solid #ef4444;border-radius:8px;padding:8px;margin:4px 0;'><span style='color:#ef4444;'>❌ Patient declined this slot.</span></div>", unsafe_allow_html=True)
             elif current_status == "Pending":
                 st.markdown("---")
                 btn_cols = st.columns([1, 1, 2])
@@ -129,14 +234,10 @@ def render_booking_queue(psych_username=None):
                         update_booking_status(index, "Waitlisted")
 
 
-@st.fragment
 def render_booking_calendar(psych_username=""):
     today = date.today()
     _ym = st.session_state.get("cal_ym", (today.year, today.month))
     y, m = _ym
-    first = date(y, m, 1)
-    _, days_in_month = calendar.monthrange(y, m)
-    weekday = first.weekday()
 
     cal1, cal2, _ = st.columns([1, 1, 4])
     with cal1:
@@ -147,50 +248,79 @@ def render_booking_calendar(psych_username=""):
     _ym2 = st.session_state.get("cal_ym", (today.year, today.month))
     y2, m2 = _ym2
     _, days_in_month2 = calendar.monthrange(y2, m2)
-
-    bookings = load_bookings()
-    booked = {}
-    for b in bookings:
-        try:
-            bd = datetime.strptime(b["date"][:10], "%Y-%m-%d").date()
-            if bd.year == y2 and bd.month == m2:
-                booked.setdefault(bd.day, []).append(b)
-        except ValueError:
-            pass
+    first2 = date(y2, m2, 1)
+    weekday2 = first2.weekday()
 
     _db_free = set()
     if psych_username:
         _avail = load_psych_availability(psych_username)
         _db_free = set(a["date"] for a in _avail)
 
-    days_header = "".join(f"<div style='text-align:center;color:#5a6a8a;font-size:0.65rem;padding:2px;'>{d}</div>" for d in ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"])
-    st.markdown(f"<div style='display:grid;grid-template-columns:repeat(7,1fr);gap:1px;'>{days_header}</div>", unsafe_allow_html=True)
-    cells = []
-    for _ in range(weekday):
-        cells.append("<div></div>")
+    st.markdown("""
+    <style>
+    .cal-wrap { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px; }
+    .cal-hdr { text-align:center; color:#5a6a8a; font-size:0.65rem; font-weight:600; padding:2px 0; }
+    .cal-cell { text-align:center; font-size:0.75rem; padding:4px; border-radius:6px; cursor:default; }
+    .cal-past { color:#4a5a6a; }
+    .cal-day { color:#c0d0e0; }
+    .cal-today { color:#c0d0e0; border:1px solid #3b82f6; }
+    .cal-avail { background:#1a4a2a; color:#4ade80; font-weight:700; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    hdrs = "".join(f"<div class='cal-hdr'>{d}</div>" for d in ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"])
+    st.markdown(f"<div class='cal-wrap'>{hdrs}</div>", unsafe_allow_html=True)
+
+    _cells = []
+    for _ in range(weekday2):
+        _cells.append("<div></div>")
+
     for d in range(1, days_in_month2 + 1):
         ds = f"{y2}-{m2:02d}-{d:02d}"
-        bs = booked.get(d, [])
-        has_book = any(b["status"] in ("Accepted", "Confirmed", "Pending", "Proposed") for b in bs)
         is_free = ds in _db_free
         is_today = (y2, m2, d) == (today.year, today.month, today.day)
-        bg = "#2a5a2a" if is_free else ("#2a3a5a" if has_book else ("#1a2940" if is_today else "#1a2238"))
-        bdr = "2px solid #4ade80" if is_free else ("2px solid #3b82f6" if is_today else ("2px solid #4a7a5a" if has_book else "1px solid #1e3a5a"))
-        names = ", ".join(b["patient"][:6] for b in bs[:2]) + ("\u2026" if len(bs) > 2 else "") if bs else ""
-        extra = f"<div style='color:#7a8aaa;font-size:0.5rem;line-height:1;'>{names}</div>" if names else ""
-        cells.append(f"<div style='background:{bg};border:{bdr};border-radius:6px;padding:2px;text-align:center;min-height:34px;display:flex;flex-direction:column;justify-content:center;'><div style='color:#c0d0e0;font-weight:600;font-size:0.75rem;'>{d}</div>{extra}</div>")
-    st.markdown(f"<div style='display:grid;grid-template-columns:repeat(7,1fr);gap:2px;'>{''.join(cells)}</div>", unsafe_allow_html=True)
-    st.markdown("---")
+        is_past = date(y2, m2, d) < today
+        _cls = "cal-cell"
+        if is_past:
+            _cls += " cal-past"
+        elif is_free:
+            _cls += " cal-avail"
+        elif is_today:
+            _cls += " cal-today"
+        else:
+            _cls += " cal-day"
+        _cells.append(f"<div class='{_cls}'>{d}</div>")
+
+    st.markdown(f"<div class='cal-wrap'>{''.join(_cells)}</div>", unsafe_allow_html=True)
 
     if psych_username:
-        st.markdown("##### Toggle Your Availability")
-        col_row = st.columns(7)
-        for i, d in enumerate(range(1, days_in_month2 + 1)):
-            with col_row[i % 7]:
-                ds = f"{y2}-{m2:02d}-{d:02d}"
-                fg = ds in _db_free
-                if st.button("✅" if fg else "⬜", key=f"cal_d_{ds}", help=f"{'Unmark' if fg else 'Mark'} {ds} as free", use_container_width=True):
-                    if fg:
-                        delete_psych_availability(psych_username, ds)
+        st.markdown("##### Block Unavailable Dates")
+        _rows_needed = (weekday2 + days_in_month2 + 6) // 7
+        day_num = 1
+        for row in range(_rows_needed):
+            cols = st.columns(7)
+            for ci in range(7):
+                if row == 0 and ci < weekday2:
+                    cols[ci].write("")
+                    continue
+                if day_num > days_in_month2:
+                    break
+                ds = f"{y2}-{m2:02d}-{day_num:02d}"
+                is_free = ds in _db_free
+                is_past = date(y2, m2, day_num) < today
+                with cols[ci]:
+                    if is_past:
+                        st.markdown(f"<div style='text-align:center;color:#4a5a6a;font-size:0.75rem;padding:4px;'>{day_num}</div>", unsafe_allow_html=True)
+                    elif is_free:
+                        if st.button(f"\u2716 {day_num}", key=f"cal_{ds}", use_container_width=True, type="primary"):
+                            delete_psych_availability(psych_username, ds)
                     else:
-                        save_psych_availability(psych_username, ds)
+                        if st.button(str(day_num), key=f"cal_{ds}", use_container_width=True, type="secondary"):
+                            save_psych_availability(psych_username, ds)
+                day_num += 1
+
+        _free_count = len(_db_free)
+        st.markdown("---")
+        st.markdown(f"<div style='display:flex;gap:16px;font-size:0.75rem;'>"
+                    f"<span><span style='display:inline-block;width:12px;height:12px;background:#ef4444;border-radius:3px;vertical-align:middle;margin-right:4px;'></span> Blocked ({_free_count})</span>"
+                    f"<span style='color:#5a6a8a;'>Click a date to toggle available/blocked</span></div>", unsafe_allow_html=True)
