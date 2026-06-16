@@ -5,7 +5,8 @@ import hashlib
 from datetime import datetime
 from contextlib import contextmanager
 
-DB_DIR = "data"
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+DB_DIR = os.path.join(_ROOT, "..", "data")
 
 # ── Backend Selection ─────────────────────────────────────
 
@@ -116,6 +117,10 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
     trusted_contact TEXT DEFAULT '',
     locked_until TEXT DEFAULT '',
     failed_attempts INTEGER DEFAULT 0,
+    assigned_psych TEXT DEFAULT '',
+    onboarding_step INTEGER DEFAULT 0,
+    contact_info TEXT DEFAULT '',
+    psych_trusted_contact TEXT DEFAULT '',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -260,6 +265,16 @@ CREATE TABLE IF NOT EXISTS activity_log (
     detail TEXT DEFAULT '',
     timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS mood_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_username TEXT NOT NULL,
+    date TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    label TEXT NOT NULL,
+    timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_username) REFERENCES patient_profiles(username)
+);
 """
 
 SCHEMA_PG = """
@@ -274,6 +289,10 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
     trusted_contact TEXT DEFAULT '',
     locked_until TEXT DEFAULT '',
     failed_attempts INTEGER DEFAULT 0,
+    assigned_psych TEXT DEFAULT '',
+    onboarding_step INTEGER DEFAULT 0,
+    contact_info TEXT DEFAULT '',
+    psych_trusted_contact TEXT DEFAULT '',
     created_at TEXT NOT NULL DEFAULT NOW()
 );
 
@@ -410,6 +429,15 @@ CREATE TABLE IF NOT EXISTS activity_log (
     detail TEXT DEFAULT '',
     timestamp TEXT NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS mood_log (
+    id SERIAL PRIMARY KEY,
+    patient_username TEXT NOT NULL,
+    date TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    label TEXT NOT NULL,
+    timestamp TEXT NOT NULL DEFAULT NOW()
+);
 """
 
 _MIGRATIONS_PG = [
@@ -421,6 +449,10 @@ _MIGRATIONS_PG = [
     "ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS hmac TEXT DEFAULT ''",
     "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS psychologist_username TEXT DEFAULT ''",
     "ALTER TABLE profession_codes DROP COLUMN IF EXISTS assigned_to",
+    "ALTER TABLE patient_profiles ADD COLUMN IF NOT EXISTS assigned_psych TEXT DEFAULT ''",
+    "ALTER TABLE patient_profiles ADD COLUMN IF NOT EXISTS onboarding_step INTEGER DEFAULT 0",
+    "ALTER TABLE patient_profiles ADD COLUMN IF NOT EXISTS contact_info TEXT DEFAULT ''",
+    "ALTER TABLE patient_profiles ADD COLUMN IF NOT EXISTS psych_trusted_contact TEXT DEFAULT ''",
 ]
 
 _MIGRATIONS_SQLITE = [
@@ -431,6 +463,10 @@ _MIGRATIONS_SQLITE = [
     "ALTER TABLE patient_profiles ADD COLUMN clinic_code TEXT DEFAULT ''",
     "ALTER TABLE journal_entries ADD COLUMN hmac TEXT DEFAULT ''",
     "ALTER TABLE bookings ADD COLUMN psychologist_username TEXT DEFAULT ''",
+    "ALTER TABLE patient_profiles ADD COLUMN assigned_psych TEXT DEFAULT ''",
+    "ALTER TABLE patient_profiles ADD COLUMN onboarding_step INTEGER DEFAULT 0",
+    "ALTER TABLE patient_profiles ADD COLUMN contact_info TEXT DEFAULT ''",
+    "ALTER TABLE patient_profiles ADD COLUMN psych_trusted_contact TEXT DEFAULT ''",
 ]
 
 

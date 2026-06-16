@@ -394,3 +394,40 @@ def get_activity_feed(actor: str = "", limit: int = 50):
                 (limit,)
             ).fetchall()
         return [dict(r) for r in rows]
+
+
+def save_mood(patient_username: str, emoji: str, label: str):
+    _ensure_migrated()
+    today = datetime.now().strftime("%Y-%m-%d")
+    try:
+        with get_db() as db:
+            existing = db.execute(
+                "SELECT id FROM mood_log WHERE patient_username = ? AND date = ?",
+                (patient_username, today)
+            ).fetchone()
+            if existing:
+                db.execute(
+                    "UPDATE mood_log SET emoji = ?, label = ?, timestamp = CURRENT_TIMESTAMP WHERE id = ?",
+                    (emoji, label, existing["id"])
+                )
+            else:
+                db.execute(
+                    "INSERT INTO mood_log (patient_username, date, emoji, label) VALUES (?, ?, ?, ?)",
+                    (patient_username, today, emoji, label)
+                )
+    except Exception:
+        pass
+
+
+def get_today_mood(patient_username: str):
+    _ensure_migrated()
+    today = datetime.now().strftime("%Y-%m-%d")
+    try:
+        with get_db() as db:
+            row = db.execute(
+                "SELECT emoji, label FROM mood_log WHERE patient_username = ? AND date = ?",
+                (patient_username, today)
+            ).fetchone()
+            return dict(row) if row else None
+    except Exception:
+        return None
