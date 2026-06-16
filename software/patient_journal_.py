@@ -45,15 +45,24 @@ def render_patient_journal(username: str):
 
         if mood_locked:
             st.markdown(
-                f"<div style='text-align:center;font-size:1.5rem;padding:4px 0 8px;'>"
-                f"{today_mood['emoji']} <span style='color:#9aa8c0;font-size:0.85rem;'>{today_mood['label']}</span>"
-                f"<span style='color:#5a6a8a;font-size:0.65rem;margin-left:8px;'>locked for today</span></div>",
+                "<div style='color:#5a6a8a;font-size:0.65rem;text-align:center;margin-bottom:4px;'>locked for today</div>",
                 unsafe_allow_html=True,
             )
-        else:
-            cols = st.columns(len(MOODS))
-            for i, (emoji, label) in enumerate(MOODS):
-                with cols[i]:
+        cols = st.columns(len(MOODS))
+        for i, (emoji, label) in enumerate(MOODS):
+            with cols[i]:
+                if mood_locked:
+                    is_selected = today_mood and today_mood["emoji"] == emoji
+                    st.markdown(
+                        f"<div style='text-align:center;font-size:1.35rem;padding:4px 0;"
+                        f"border:1px solid {'#c06a8b' if is_selected else '#2a3a5a'};"
+                        f"border-radius:8px;"
+                        f"background:{'#1e2838' if is_selected else 'transparent'};"
+                        f"opacity:{'1' if is_selected else '0.3'};"
+                        f"cursor:default;'>{emoji}</div>",
+                        unsafe_allow_html=True,
+                    )
+                else:
                     if st.button(emoji, key=f"mood_{i}", help=label, use_container_width=True):
                         safe(save_mood, None, username, emoji, label)
                         st.rerun()
