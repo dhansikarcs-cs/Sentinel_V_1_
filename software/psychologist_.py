@@ -3,9 +3,9 @@ import traceback
 from datetime import datetime
 
 try:
-    from ai_kernel_ import synthesize_clinical_notes
+    from ai_kernel_ import synthesize_clinical_notes, summarize_journal
 except Exception:
-    synthesize_clinical_notes = None
+    synthesize_clinical_notes = summarize_journal = None
 
 try:
     from data_manager_ import save_clinical_note, get_clinical_notes
@@ -13,9 +13,9 @@ except Exception:
     save_clinical_note = get_clinical_notes = None
 
 try:
-    from patient_profiles_ import get_all_patients, get_patient_name
+    from patient_profiles_ import get_assigned_patients, get_patient_name
 except Exception:
-    get_all_patients = get_patient_name = None
+    get_assigned_patients = get_patient_name = None
 
 try:
     from agent_ import (triage_summary, suggest_slots, draft_followup, journal_to_note,
@@ -65,11 +65,26 @@ try:
 except Exception:
     render_activity_feed = None
 
+try:
+    from psych_onboarding_ import render_psych_onboarding
+except Exception:
+    render_psych_onboarding = None
+
+try:
+    from patient_profiles_ import get_onboarding_step
+except Exception:
+    get_onboarding_step = None
+
+try:
+    from dashboard_tour_ import render_dashboard_tour
+except Exception:
+    render_dashboard_tour = None
+
 
 @st.fragment
 def _ai_card(key: str, text: str):
-    st.markdown(f"""<div style="background:#1a2238;border:1px solid #1e3a5a;border-radius:10px;padding:14px;margin:8px 0;">
-<div style="color:#60a5fa;font-size:0.8125rem;font-weight:600;margin-bottom:6px;">🤖 AI Suggestion</div>
+    st.markdown(f"""<div style="background:#1e2336;border:1px solid #2d2d44;border-radius:10px;padding:14px;margin:8px 0;">
+<div style="color:#c49ea4;font-size:0.8125rem;font-weight:600;margin-bottom:6px;">🤖 AI Suggestion</div>
 <div style="color:#c0d0e0;font-size:0.8125rem;line-height:1.6;">{text}</div>
 </div>""", unsafe_allow_html=True)
     _ac, _ec, _rc = st.columns(3)
@@ -109,22 +124,22 @@ def _booking_agent_panel(username, patients):
         _urg = _agent.get("urgency_score", 0)
         _wl = _agent.get("workload", {}).get("pending_bookings", 0)
         _reason = _agent.get("reasoning", "")
-        st.markdown(f"""<div style="background:#1a2238;border:1px solid #1e3a5a;border-radius:10px;padding:12px;margin:4px 0;">
+        st.markdown(f"""<div style="background:#1e2336;border:1px solid #2d2d44;border-radius:10px;padding:12px;margin:4px 0;">
 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
 <span style="color:#c0d0e0;font-size:0.75rem;">Priority: <strong>{_pri_icon} {_pri.title()}</strong></span>
-<span style="color:#5a6a8a;">|</span>
+<span style="color:#5a4a5a;">|</span>
 <span style="color:#c0d0e0;font-size:0.75rem;">Urgency: <strong>{_urg}/10</strong></span>
-<span style="color:#5a6a8a;">|</span>
+<span style="color:#5a4a5a;">|</span>
 <span style="color:#c0d0e0;font-size:0.75rem;">Pending: <strong>{_wl}</strong></span>
 </div>
-<div style="color:#7a8aaa;font-size:0.6875rem;margin-top:6px;">{_reason}</div>
+<div style="color:#6a6474;font-size:0.6875rem;margin-top:6px;">{_reason}</div>
 </div>""", unsafe_allow_html=True)
         _slots = _agent.get("suggested_slots", [])
         if _slots:
             for i, _s in enumerate(_slots):
                 _sc1, _sc2 = st.columns([3, 1])
                 with _sc1:
-                    st.markdown(f"<div style='color:#60a5fa;font-size:0.8125rem;font-weight:600;padding:4px 0;'>{_s['label']}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='color:#c49ea4;font-size:0.8125rem;font-weight:600;padding:4px 0;'>{_s['label']}</div>", unsafe_allow_html=True)
                 with _sc2:
                     if st.button("Propose", key=f"b_create_{i}", use_container_width=True, type="primary"):
                         try:
@@ -148,15 +163,15 @@ def _followup_agent_panel(username, patients):
         _fagent = st.session_state["f_agent"]
         _reason = _fagent.get("reasoning", "")
         st.markdown(
-            f"<div style='color:#7a8aaa;font-size:0.6875rem;padding:6px 0;'>{_reason}</div>",
+            f"<div style='color:#6a6474;font-size:0.6875rem;padding:6px 0;'>{_reason}</div>",
             unsafe_allow_html=True,
         )
         _ftasks = _fagent.get("tasks", [])
         if _ftasks:
             for i, _t in enumerate(_ftasks):
-                st.markdown(f"""<div style="background:#1a2238;border:1px solid #1e3a5a;border-radius:10px;padding:10px;margin:6px 0;">
-<div style="color:#60a5fa;font-size:0.8125rem;font-weight:600;">{_t['title']}</div>
-<div style="color:#9aa8c0;font-size:0.75rem;margin-top:4px;">{_t['description']}</div>
+                st.markdown(f"""<div style="background:#1e2336;border:1px solid #2d2d44;border-radius:10px;padding:10px;margin:6px 0;">
+<div style="color:#c49ea4;font-size:0.8125rem;font-weight:600;">{_t['title']}</div>
+<div style="color:#9a92a2;font-size:0.75rem;margin-top:4px;">{_t['description']}</div>
 </div>""", unsafe_allow_html=True)
                 if st.button(f"\u21b3 Fill Form", key=f"f_fill_{i}", use_container_width=True):
                     st.session_state["fu_ai_patient"] = _fpat
@@ -175,6 +190,10 @@ def _psych_crisis_alert(username):
         from data_manager_ import acknowledge_crisis
     except Exception:
         acknowledge_crisis = None
+    try:
+        from crisis_ import resolve_crisis
+    except Exception:
+        resolve_crisis = None
     _cs = _read_crisis_state()
     if not _cs.get("active"):
         return
@@ -205,12 +224,23 @@ def _psych_crisis_alert(username):
             _resolved = int((datetime.fromisoformat(_cs["acknowledged_at"]) - datetime.fromisoformat(_cs["triggered_at"])).total_seconds()) if _cs.get("acknowledged_at") else _elapsed
             _tc_msg = " | \U0001f464 Trusted Contact was also on the way" if _cs.get("trustee_acknowledged") else ""
             st.success(f"\u2705 **Crisis Acknowledged by {_by}** \u2014 Resolved in {_resolved}s{_tc_msg}")
+            _rc1, _rc2 = st.columns([1, 4])
+            with _rc1:
+                if st.button("\U0001f5d1 Resolve", key="ps_resolve_ack", use_container_width=True):
+                    _safe(resolve_crisis, None, username)
+                    st.rerun()
         elif _cs.get("trustee_acknowledged"):
             st.info(f"\U0001f7e1 **Trusted Contact En Route \u2014 {_patient}**")
             if crisis_elapsed_html:
                 st.markdown(crisis_elapsed_html(_elapsed), unsafe_allow_html=True)
-            if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_tc", use_container_width=True):
-                _safe(acknowledge_crisis, None, username)
+            _rc1, _rc2 = st.columns([1, 1])
+            with _rc1:
+                if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_tc", use_container_width=True):
+                    _safe(acknowledge_crisis, None, username)
+            with _rc2:
+                if st.button("\U0001f5d1 Resolve", key="ps_resolve_tc", use_container_width=True):
+                    _safe(resolve_crisis, None, username)
+                    st.rerun()
         elif _elapsed >= 60:
             _helpline_msg = f"\U0001f6a8 **CRISIS ESCALATION \u2014 HELPLINE CONTACTED \u2014 {_patient}** \U0001f6a8"
             if _cs.get("trustee_acknowledged"):
@@ -222,14 +252,26 @@ def _psych_crisis_alert(username):
             st.error(_helpline_msg)
             if crisis_elapsed_html:
                 st.markdown(crisis_elapsed_html(60, large=True, icon_color="#ff9999", text_color="white", label_color="#889"), unsafe_allow_html=True)
-            if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_h", use_container_width=True):
-                _safe(acknowledge_crisis, None, username)
+            _rc1, _rc2 = st.columns([1, 1])
+            with _rc1:
+                if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_h", use_container_width=True):
+                    _safe(acknowledge_crisis, None, username)
+            with _rc2:
+                if st.button("\U0001f5d1 Resolve", key="ps_resolve_h", use_container_width=True):
+                    _safe(resolve_crisis, None, username)
+                    st.rerun()
         elif _cs.get("trustee_clicked"):
             st.info(f"\U0001f464 **Trusted Contact Notified \u2014 {_patient}**")
             if crisis_elapsed_html:
                 st.markdown(crisis_elapsed_html(_elapsed), unsafe_allow_html=True)
-            if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_tcn", use_container_width=True):
-                _safe(acknowledge_crisis, None, username)
+            _rc1, _rc2 = st.columns([1, 1])
+            with _rc1:
+                if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_tcn", use_container_width=True):
+                    _safe(acknowledge_crisis, None, username)
+            with _rc2:
+                if st.button("\U0001f5d1 Resolve", key="ps_resolve_tcn", use_container_width=True):
+                    _safe(resolve_crisis, None, username)
+                    st.rerun()
         elif _elapsed >= 30:
             _tc_status = ""
             if _cs.get("trusted_contact_notified"):
@@ -241,14 +283,26 @@ def _psych_crisis_alert(username):
             st.warning(f"\u26a0\ufe0f **Crisis Alert \u2014 {_patient}**{_tc_status}")
             if crisis_elapsed_html:
                 st.markdown(crisis_elapsed_html(_elapsed, large=True, icon_color="#ff9999", text_color="white", label_color="#889"), unsafe_allow_html=True)
-            if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_30", use_container_width=True):
-                _safe(acknowledge_crisis, None, username)
+            _rc1, _rc2 = st.columns([1, 1])
+            with _rc1:
+                if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_30", use_container_width=True):
+                    _safe(acknowledge_crisis, None, username)
+            with _rc2:
+                if st.button("\U0001f5d1 Resolve", key="ps_resolve_30", use_container_width=True):
+                    _safe(resolve_crisis, None, username)
+                    st.rerun()
         else:
             st.error(f"\U0001f6a8 **Emergency Siren \u2014 {_patient}**")
             if crisis_elapsed_html:
                 st.markdown(crisis_elapsed_html(_elapsed, large=True, icon_color="#ff9999", text_color="white", label_color="#889"), unsafe_allow_html=True)
-            if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_0", use_container_width=True):
-                _safe(acknowledge_crisis, None, username)
+            _rc1, _rc2 = st.columns([1, 1])
+            with _rc1:
+                if st.button("\u2713 Acknowledge Crisis", type="primary", key="ps_ack_0", use_container_width=True):
+                    _safe(acknowledge_crisis, None, username)
+            with _rc2:
+                if st.button("\U0001f5d1 Resolve", key="ps_resolve_0", use_container_width=True):
+                    _safe(resolve_crisis, None, username)
+                    st.rerun()
     except Exception:
         st.error(f"Crisis display error.\n{traceback.format_exc()}")
 
@@ -256,7 +310,7 @@ def _psych_crisis_alert(username):
 @st.fragment
 def _cn_ai_panel(username):
     st.markdown("#### \U0001f916 Journal \u2192 Note")
-    pts = _safe(get_all_patients, [])
+    pts = _safe(get_assigned_patients, [], username)
     if not pts:
         return
     _cnjpat = st.selectbox("Patient", pts, format_func=lambda p: _safe(get_patient_name, p, p), key="cn_j2n_pat")
@@ -269,11 +323,20 @@ def _cn_ai_panel(username):
         st.caption("No journal entries yet.")
         return
     _cnj_raw = _cnj[-1].get("raw_content", "")
-    _cnj_summary = _cnj[-1].get("summary", "") or _cnj_raw[:200]
-    st.caption(f"Latest journal ({_cnj[-1].get('timestamp','')[:10]}):")
-    st.markdown(f"<div style='background:#1a2238;padding:8px;border-radius:6px;font-size:0.75rem;color:#9aa8c0;'>{_cnj_summary[:300]}{'...' if len(_cnj_summary)>300 else ''}</div>", unsafe_allow_html=True)
+    _cnj_clinical = _safe(summarize_journal, "Clinical summary unavailable", _cnj_raw, "clinical")
+    st.markdown(
+        f"<div style='background:linear-gradient(135deg,#1e2336,#1e2a45);border:1px solid #2d2d44;border-radius:10px;padding:14px;margin:8px 0;'>"
+        f"<div style='display:flex;align-items:center;gap:6px;margin-bottom:6px;'>"
+        f"<span style='color:#6a6474;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;'>"
+        f"Latest journal ({_cnj[-1].get('timestamp','')[:10]})</span>"
+        f"<span style='background:#2a2040;color:#c49ea4;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:600;'>CLINICAL</span>"
+        f"</div>"
+        f"<div style='color:#9a92a2;font-size:0.75rem;line-height:1.5;'>{_cnj_clinical[:300]}{'...' if len(_cnj_clinical)>300 else ''}</div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
     if st.button("\U0001f916 Analyze & Draft Clinical Note", key="cn_btn", use_container_width=True, type="primary"):
-        _j2n = journal_to_note(_cnjpat, _cnj_raw, _cnj_summary)
+        _j2n = journal_to_note(_cnjpat, _cnj_raw, _cnj_clinical)
         if _j2n:
             st.session_state["cn_card"] = _j2n
     if st.session_state.get("cn_card"):
@@ -282,17 +345,17 @@ def _cn_ai_panel(username):
         _themes = _j2n.get("themes", [])
         _matched = _j2n.get("matched_therapies", [])
         if _themes or _matched:
-            st.markdown(f"""<div style="background:#1a2238;border:1px solid #1e3a5a;border-radius:10px;padding:12px;margin:8px 0;">
+            st.markdown(f"""<div style="background:#1e2336;border:1px solid #2d2d44;border-radius:10px;padding:12px;margin:8px 0;">
 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-<span style="color:#60a5fa;font-size:0.75rem;">Detected: </span>
-{''.join(f'<span style="background:#1e3a5a;color:#9aa8c0;font-size:0.6875rem;padding:2px 8px;border-radius:4px;">{t.title()}</span>' for t in _themes)}
-<span style="color:#5a6a8a;margin:0 4px;">|</span>
-<span style="color:#60a5fa;font-size:0.75rem;">Suggested: </span>
-{''.join(f'<span style="background:#0a2a1a;color:#6bcbff;font-size:0.6875rem;padding:2px 8px;border-radius:4px;">{t.split("(")[0].strip()}</span>' for t in _matched)}
+<span style="color:#c49ea4;font-size:0.75rem;">Detected: </span>
+{''.join(f'<span style="background:#2d2d44;color:#9a92a2;font-size:0.6875rem;padding:2px 8px;border-radius:4px;">{t.title()}</span>' for t in _themes)}
+<span style="color:#5a4a5a;margin:0 4px;">|</span>
+<span style="color:#c49ea4;font-size:0.75rem;">Suggested: </span>
+{''.join(f'<span style="background:#1a1e30;color:#d8b4ba;font-size:0.6875rem;padding:2px 8px;border-radius:4px;">{t.split("(")[0].strip()}</span>' for t in _matched)}
 </div>
 </div>""", unsafe_allow_html=True)
-        st.markdown(f"""<div style="background:#1a2238;border:1px solid #1e3a5a;border-radius:10px;padding:14px;margin:8px 0;">
-<div style="color:#6bcbff;font-size:13px;font-weight:600;margin-bottom:6px;">\U0001f916 AI Draft</div>
+        st.markdown(f"""<div style="background:#1e2336;border:1px solid #2d2d44;border-radius:10px;padding:14px;margin:8px 0;">
+<div style="color:#d8b4ba;font-size:13px;font-weight:600;margin-bottom:6px;">\U0001f916 AI Draft</div>
 <div style="color:#c0d0e0;font-size:13px;line-height:1.5;">{_cn_txt}</div>
 </div>""", unsafe_allow_html=True)
         _cnc1, _cnc2, _cnc3 = st.columns(3)
@@ -321,6 +384,26 @@ def _cn_ai_panel(username):
 def render_psychologist_portal():
     username = st.session_state.username
     doc_name = st.session_state.get("psychologist_name", username)
+
+    # ── Profile settings (triggered from sidebar) ──
+    if st.session_state.get("show_profile", False):
+        try:
+            from profile_ import render_profile
+            render_profile(username)
+        except Exception:
+            st.error("Profile settings unavailable.")
+        return
+
+    # ── Onboarding wizard for first-time psychologists ──
+    _psych_db_step = _safe(get_onboarding_step, 0, username)
+    st.session_state["_psych_onboarding"] = _psych_db_step < 99
+    if _psych_db_step < 99:
+        try:
+            if render_psych_onboarding:
+                render_psych_onboarding(username)
+        except Exception:
+            pass
+        return
 
     _poll_cs = _read_crisis_state()
     _interval = 5000 if _poll_cs.get("active") else 300000
@@ -359,102 +442,34 @@ def render_psychologist_portal():
     except Exception:
         pass
 
-    # ── AGENT SIDEBAR (lazy — only calls APIs on explicit refresh click) ──
-    try:
-        with st.sidebar:
-            st.markdown("### 🤖 Agent Insights")
-            _refresh = st.button("🔄 Refresh Insights", key="agent_refresh", use_container_width=True)
-            if "agent_sidebar_cache" not in st.session_state:
-                st.session_state.agent_sidebar_cache = None
-            if _refresh:
-                st.session_state.agent_sidebar_cache = {}
-            _all_patients = _safe(get_all_patients, [])
-            if st.session_state.agent_sidebar_cache is None:
-                st.caption("Click 🔄 Refresh Insights to load.")
-            else:
-                tab_p, tab_c, tab_m = st.tabs(["Briefs", "Patterns", "Monitors"])
-                with tab_p:
-                    for _ap in _all_patients:
-                        _key = f"brief_{_ap}"
-                        if _key not in st.session_state.agent_sidebar_cache:
-                            st.session_state.agent_sidebar_cache[_key] = _safe(pre_session_brief, {"suggestion": ""}, _ap)
-                        _b = st.session_state.agent_sidebar_cache[_key]
-                        if _b and _b.get("suggestion"):
-                            _pn = _safe(get_patient_name, _ap, _ap)
-                            st.markdown(f"**{_pn}**  \n{_b['suggestion']}", unsafe_allow_html=True)
-                            st.divider()
-                with tab_c:
-                    _cp_key = "patterns"
-                    if _cp_key not in st.session_state.agent_sidebar_cache:
-                        st.session_state.agent_sidebar_cache[_cp_key] = _safe(cross_patient_patterns, {"suggestion": ""})
-                    _cp = st.session_state.agent_sidebar_cache[_cp_key]
-                    if _cp and _cp.get("suggestion"):
-                        st.markdown(_cp["suggestion"])
-                    else:
-                        st.caption("No patterns yet.")
-                    st.divider()
-                    st.markdown("**Compliance**")
-                    for _ap in _all_patients:
-                        _ckey = f"comp_{_ap}"
-                        if _ckey not in st.session_state.agent_sidebar_cache:
-                            st.session_state.agent_sidebar_cache[_ckey] = _safe(compliance_radar, {"message": ""}, _ap)
-                        _cr = st.session_state.agent_sidebar_cache[_ckey]
-                        if _cr and _cr.get("message"):
-                            st.caption(_cr["message"])
-                with tab_m:
-                    for _ap in _all_patients:
-                        _sikey = f"silent_{_ap}"
-                        if _sikey not in st.session_state.agent_sidebar_cache:
-                            st.session_state.agent_sidebar_cache[_sikey] = _safe(silent_period_watch, {"flag": False, "message": ""}, _ap)
-                        _si = st.session_state.agent_sidebar_cache[_sikey]
-                        if _si and _si.get("flag"):
-                            st.warning(_si["message"])
-                        _rikey = f"relapse_{_ap}"
-                        if _rikey not in st.session_state.agent_sidebar_cache:
-                            st.session_state.agent_sidebar_cache[_rikey] = _safe(relapse_indicators, {"flag": False, "message": ""}, _ap)
-                        _ri = st.session_state.agent_sidebar_cache[_rikey]
-                        if _ri and _ri.get("flag"):
-                            st.warning(_ri["message"])
-    except Exception:
-        pass
-
-    st.markdown(f"# 🏥 Welcome, {doc_name}")
+    # ── AGENT SIDEBAR (removed — moved to main sidebar)
+    # ── End of agent sidebar ──
     st.markdown("---")
 
     # ── Today's Overview ──
     try:
-        st.markdown("### 📊 Today's Overview")
         render_psych_status(username)
     except Exception:
         pass
 
-    # --- Tabs ---
-    tabs = st.tabs([
-        "📋 Patient Triage",
-        "📝 Clinical Notes",
-        "📓 Journal & Wellness",
-        "📅 Bookings",
-        "📋 Follow-Up",
-        "🧠 Smart Room",
-        "📦 Export Center",
-    ])
+    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
 
-    # ─── TAB 0: Patient Triage ──────────────────────────
-    with tabs[0]:
+    # ── Tab content helpers ──
+
+    def _render_triage_tab():
         try:
             from psych_triage_ import render_psych_triage
             render_psych_triage(username)
         except Exception as e:
             st.error(f"Patient triage unavailable:\n{traceback.format_exc()}")
 
-    # ─── TAB 1: Clinical Notes ──────────────────────────
-    with tabs[1]:
+    def _render_clinical_notes_tab():
         try:
             st.markdown("### Clinical Documentation")
             _cncol1, _cncol2 = st.columns([2, 1])
             with _cncol1:
                 st.markdown("#### New Session Note")
-                pts = _safe(get_all_patients, [])
+                pts = _safe(get_assigned_patients, [], username)
                 if pts:
                     sel = st.selectbox("Patient", pts, format_func=lambda p: _safe(get_patient_name, p, p), key="cn_pat")
                     with st.form("clinical_note_form"):
@@ -476,7 +491,7 @@ def render_psychologist_portal():
             notes = _safe(get_clinical_notes, [], username)
             if notes:
                 for ni, n in enumerate(reversed(notes[-10:])):
-                    with st.expander(f"{n['patient']} — {n['timestamp']}"):
+                    with st.expander(f"{n['patient']} \u2014 {n['timestamp']}"):
                         st.markdown(f"**Patient**: {_safe(get_patient_name, n['patient'], n['patient'])}")
                         st.markdown(n["ai_synthesis"])
             else:
@@ -484,21 +499,19 @@ def render_psychologist_portal():
         except Exception as e:
             st.error(f"Saved notes unavailable:\n{traceback.format_exc()}")
 
-    # ─── TAB 2: Journal & Wellness ──────────────────────
-    with tabs[2]:
+    def _render_journal_wellness_tab():
         try:
             from psych_journal_ import render_psych_journal
             render_psych_journal(username)
         except Exception as e:
             st.error(f"Journal & Wellness tab unavailable:\n{traceback.format_exc()}")
 
-    # ─── TAB 3: Bookings ────────────────────────────────
-    with tabs[3]:
+    def _render_bookings_tab():
         try:
-            _bpats = _safe(get_all_patients, [])
+            _bpats = _safe(get_assigned_patients, [], username)
             _bcol1, _bcol2 = st.columns([3, 1])
             with _bcol1:
-                cal_tab, queue_tab = st.tabs(["📅 Calendar", "📋 Queue"])
+                cal_tab, queue_tab = st.tabs(["\U0001f4c5 Calendar", "\U0001f4cb Queue"])
                 with cal_tab:
                     render_booking_calendar(username)
                 with queue_tab:
@@ -508,10 +521,9 @@ def render_psychologist_portal():
         except Exception as e:
             st.error(f"Bookings unavailable:\n{traceback.format_exc()}")
 
-    # ─── TAB 4: Follow-Up ───────────────────────────────
-    with tabs[4]:
+    def _render_followup_tab():
         try:
-            _fupats = _safe(get_all_patients, [])
+            _fupats = _safe(get_assigned_patients, [], username)
             _fcol1, _fcol2 = st.columns([3, 1])
             with _fcol1:
                 render_psychologist_followup(username)
@@ -520,30 +532,42 @@ def render_psychologist_portal():
         except Exception as e:
             st.error(f"Follow-Up unavailable:\n{traceback.format_exc()}")
 
-    # ─── TAB 5: Smart Room ──────────────────────────────
-    with tabs[5]:
+    def _render_smart_room_tab():
         try:
             head_col1, head_col2 = st.columns([3, 1])
             with head_col1:
-                st.markdown("### 🧠 Smart Room")
+                st.markdown("### \U0001f9e0 Smart Room")
             with head_col2:
-                if st.button("⚡ Intense" if st.session_state.get("psych_room_intense", False) else "🌙 Calm", key="psych_room_toggle", use_container_width=True):
+                if st.button("\u26a1 Intense" if st.session_state.get("psych_room_intense", False) else "\U0001f319 Calm", key="psych_room_toggle", use_container_width=True):
                     st.session_state.psych_room_intense = not st.session_state.psych_room_intense
             room_mode = "intense" if st.session_state.get("psych_room_intense", False) else "calm"
             render_smart_room(room_mode, 2.0 if room_mode=="intense" else 1.0)
         except Exception as e:
             st.error(f"Smart Room unavailable:\n{traceback.format_exc()}")
 
-    # ─── TAB 6: Export Center ───────────────────────────
-    with tabs[6]:
+    def _render_export_tab():
         try:
             from psych_export_ import render_psych_export
             render_psych_export(username)
         except Exception as e:
             st.error(f"Export Center unavailable:\n{traceback.format_exc()}")
 
-    with st.expander("\U0001f4cb Recent Activity"):
-        render_activity_feed(limit=20)
+    # ── Tab selector (segmented control works with tour) ──
+    _psych_tab_names = ["\U0001f4cb Patient Triage", "\U0001f4dd Clinical Notes", "\U0001f4d3 Journal & Wellness", "\U0001f4c5 Bookings", "\U0001f4cb Follow-Up", "\U0001f9e0 Smart Room", "\U0001f4e6 Export Center"]
+    _psych_renderers = [_render_triage_tab, _render_clinical_notes_tab, _render_journal_wellness_tab, _render_bookings_tab, _render_followup_tab, _render_smart_room_tab, _render_export_tab]
+
+    _tour_tab = render_dashboard_tour("Psychologist") if render_dashboard_tour else ""
+    if _tour_tab:
+        st.session_state["psych_selected_tab"] = _tour_tab
+
+    _tab_default = st.session_state.get("psych_selected_tab", _psych_tab_names[0])
+    _selected = st.segmented_control(
+        "", _psych_tab_names, default=_tab_default,
+        key="psych_selected_tab", selection_mode="single", label_visibility="collapsed",
+    )
+    _active_idx = _psych_tab_names.index(_selected) if _selected in _psych_tab_names else 0
+    if 0 <= _active_idx < len(_psych_renderers):
+        _psych_renderers[_active_idx]()
 
     st.markdown("---")
     st.caption("Sentinel \u2014 Clinician Portal")

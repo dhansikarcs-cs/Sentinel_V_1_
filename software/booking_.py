@@ -79,7 +79,7 @@ def render_booking_form(patient_name: str, clinic_psychs=None, patient_clinic=""
     day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     dn_cols = st.columns(7)
     for i, dn in enumerate(day_names):
-        dn_cols[i].markdown(f"<div style='color:#5a6a8a;font-size:0.65rem;text-align:center;'>{dn}</div>", unsafe_allow_html=True)
+        dn_cols[i].markdown(f"<div style='color:#5a4a5a;font-size:0.65rem;text-align:center;'>{dn}</div>", unsafe_allow_html=True)
 
     cal_days = []
     row = [None] * first_weekday
@@ -146,7 +146,7 @@ def render_booking_form(patient_name: str, clinic_psychs=None, patient_clinic=""
         if bk_date_obj:
             cols_top[0].markdown(f"<div style='color:#c0d0e0;font-size:0.9rem;padding:8px 0;'>📅 {bk_date_obj.strftime('%a, %b %d %Y')}</div>", unsafe_allow_html=True)
         else:
-            cols_top[0].markdown("<div style='color:#5a6a8a;font-size:0.8rem;padding:8px 0;'>Click an available date above</div>", unsafe_allow_html=True)
+            cols_top[0].markdown("<div style='color:#5a4a5a;font-size:0.8rem;padding:8px 0;'>Click an available date above</div>", unsafe_allow_html=True)
         bk_time = cols_top[1].time_input("Time")
         session_type = cols_top[2].selectbox("Type", ["Therapy", "Follow-up", "Crisis Check-in", "Mindfulness"])
 
@@ -218,7 +218,7 @@ def render_booking_queue(psych_username=None):
                     f"<div style='background:#2a2a00;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin:8px 0;'>"
                     f"<div style='color:#f59e0b;font-weight:600;margin-bottom:4px;'>💡 Proposed Appointment</div>"
                     f"<div style='color:#c0d0e0;font-size:0.8125rem;'>Proposed to <strong>{item['patient']}</strong> on <strong>{item['date']} @ {item['time']}</strong></div>"
-                    f"<div style='color:#7a8aaa;font-size:0.6875rem;margin-top:4px;'>Proposed at: {_ts} — Awaiting patient response</div>"
+                    f"<div style='color:#6a6474;font-size:0.6875rem;margin-top:4px;'>Proposed at: {_ts} — Awaiting patient response</div>"
                     f"</div>",
                     unsafe_allow_html=True,
                 )
@@ -259,11 +259,11 @@ def render_booking_calendar(psych_username=""):
     st.markdown("""
     <style>
     .cal-wrap { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px; }
-    .cal-hdr { text-align:center; color:#5a6a8a; font-size:0.65rem; font-weight:600; padding:2px 0; }
+    .cal-hdr { text-align:center; color:#5a4a5a; font-size:0.65rem; font-weight:600; padding:2px 0; }
     .cal-cell { text-align:center; font-size:0.75rem; padding:4px; border-radius:6px; cursor:default; }
     .cal-past { color:#4a5a6a; }
     .cal-day { color:#c0d0e0; }
-    .cal-today { color:#c0d0e0; border:1px solid #3b82f6; }
+    .cal-today { color:#c0d0e0; border:1px solid #c49ea4; }
     .cal-avail { background:#1a4a2a; color:#4ade80; font-weight:700; }
     </style>
     """, unsafe_allow_html=True)
@@ -323,4 +323,4 @@ def render_booking_calendar(psych_username=""):
         st.markdown("---")
         st.markdown(f"<div style='display:flex;gap:16px;font-size:0.75rem;'>"
                     f"<span><span style='display:inline-block;width:12px;height:12px;background:#ef4444;border-radius:3px;vertical-align:middle;margin-right:4px;'></span> Blocked ({_free_count})</span>"
-                    f"<span style='color:#5a6a8a;'>Click a date to toggle available/blocked</span></div>", unsafe_allow_html=True)
+                    f"<span style='color:#5a4a5a;'>Click a date to toggle available/blocked</span></div>", unsafe_allow_html=True)

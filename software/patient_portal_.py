@@ -116,9 +116,9 @@ def render_patient_portal():
             _psych_name = safe(get_psychologist_name, _assigned_psych, _assigned_psych)
             _psych_email = safe(get_contact_info, "", _assigned_psych)
             st.markdown(
-                f"<div style='font-size:0.8125rem;color:#7a8aaa;margin-bottom:8px;'>"
+                f"<div style='font-size:0.8125rem;color:#6a6474;margin-bottom:8px;'>"
                 f"\U0001f489 Your psychologist: <strong style='color:#c0d0e0;'>{_psych_name}</strong>"
-                f" &nbsp;|&nbsp; \U0001f4e7 <span style='color:#60a5fa;'>{_psych_email}</span>"
+                f" &nbsp;|&nbsp; \U0001f4e7 <span style='color:#c49ea4;'>{_psych_email}</span>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -157,7 +157,7 @@ def render_patient_portal():
                     active = is_terminal and stage in ("helpline_escalated", "acknowledged") and key == "helpline_escalated"
                 fc = "#ef4444" if active else ("#22c55e" if passed else "#3a4a5a")
                 bg = "rgba(239,68,68,0.15)" if active else ("rgba(34,197,94,0.12)" if passed else "rgba(26,34,56,0.6)")
-                bd = "1px solid rgba(239,68,68,0.4)" if active else ("1px solid rgba(34,197,94,0.3)" if passed else "1px solid #1e2940")
+                bd = "1px solid rgba(239,68,68,0.4)" if active else ("1px solid rgba(34,197,94,0.3)" if passed else "1px solid #2d2d44")
                 bars_html += f"<div style='flex:1;text-align:center;padding:8px;margin:0 4px;border-radius:8px;background:{bg};border:{bd};color:{fc};font-size:0.8125rem;font-weight:600;'>{label}<br><span style='font-size:0.6875rem;font-weight:400;'>{sec}s</span></div>"
             display_time = "60+" if crisis.get("elapsed", 0) >= 60 else str(elapsed)
             status_tag = ""
@@ -170,11 +170,11 @@ def render_patient_portal():
             elif stage == "acknowledged":
                 status_tag = "<span style='color:#4ade80;font-weight:600;'>\u2705 Psychologist acknowledged</span>"
             st.markdown(
-                f"<div style='background:#161d30;border:1px solid #1e2940;border-radius:10px;padding:12px;margin-top:8px;'>"
+                f"<div style='background:#161d30;border:1px solid #2d2d44;border-radius:10px;padding:12px;margin-top:8px;'>"
                 f"<div style='display:flex;align-items:center;gap:12px;margin-bottom:8px;'>"
                 f"<span style='color:#fca5a5;font-size:1.125rem;'>\u23f1\ufe0f</span>"
                 f"<span style='color:#f0f4ff;font-size:1.25rem;font-weight:700;'>{display_time}s</span>"
-                f"<span style='color:#7a8aaa;font-size:0.8125rem;'>elapsed</span>"
+                f"<span style='color:#6a6474;font-size:0.8125rem;'>elapsed</span>"
                 f"<div style='margin-left:auto;'>{status_tag}</div>"
                 f"</div>"
                 f"<div style='display:flex;'>{bars_html}</div>"
@@ -222,11 +222,11 @@ def render_patient_portal():
     def _pt_booking_actions(bookings):
         for _bi, _b in enumerate(bookings):
             st.markdown(
-                f"<div style='background:linear-gradient(135deg,#1a2238,#1e2a45);border:1px solid #f59e0b;"
+                f"<div style='background:linear-gradient(135deg,#1e2336,#1e2a45);border:1px solid #f59e0b;"
                 f"border-radius:10px;padding:14px;margin:8px 0;'>"
                 f"<div style='color:#f59e0b;font-size:0.9rem;font-weight:600;'>"
                 f"{_b['date']} @ {_b['time']}</div>"
-                f"<div style='color:#7a8aaa;font-size:0.75rem;margin-top:4px;'>{_b.get('explanation','')}</div>"
+                f"<div style='color:#6a6474;font-size:0.75rem;margin-top:4px;'>{_b.get('explanation','')}</div>"
                 f"</div>", unsafe_allow_html=True,
             )
             _ac1, _ac2 = st.columns(2)
@@ -278,9 +278,9 @@ def render_patient_portal():
                 _past_ai = [b for b in _ai_bookings if b["status"] != "Proposed"]
                 if _proposed:
                     st.markdown(
-                        f"<div style='background:#1a2238;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin:8px 0;'>"
+                        f"<div style='background:#1e2336;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin:8px 0;'>"
                         f"<div style='color:#f59e0b;font-size:0.75rem;font-weight:600;'>\U0001f4a1 NEW \u2014 Psychologist Suggested</div>"
-                        f"<div style='color:#7a8aaa;font-size:0.75rem;margin-top:4px;'>"
+                        f"<div style='color:#6a6474;font-size:0.75rem;margin-top:4px;'>"
                         f"Your psychologist recommended the following appointment. "
                         f"Accept to request a review or decline to suggest a different time.</div></div>",
                         unsafe_allow_html=True,
@@ -292,7 +292,7 @@ def render_patient_portal():
                     st.markdown("#### History")
                     for _b in reversed(_past_ai[-5:]):
                         _icon = {"Accepted": "\u2705", "Declined": "\u274c", "Waitlisted": "\U0001f7e1", "Pending": "\u23f3"}.get(_b["status"], "\u26aa")
-                        _clr = {"Accepted": "#22c55e", "Declined": "#ef4444", "Waitlisted": "#f59e0b", "Pending": "#60a5fa"}.get(_b["status"], "#7a8aaa")
+                        _clr = {"Accepted": "#22c55e", "Declined": "#ef4444", "Waitlisted": "#f59e0b", "Pending": "#c49ea4"}.get(_b["status"], "#6a6474")
                         st.markdown(
                             f"<div style='font-size:0.75rem;padding:4px 0;color:#c0d0e0;line-height:1.5;'>"
                             f"{_icon} <strong>{_b['date']} @ {_b['time']}</strong> \u2014 "
@@ -311,7 +311,7 @@ def render_patient_portal():
                     st.markdown("#### Your Requests")
                     for _b in reversed(_manual_bookings[-5:]):
                         _icon = {"Accepted": "\u2705", "Declined": "\u274c", "Waitlisted": "\U0001f7e1", "Pending": "\u23f3"}.get(_b["status"], "\u26aa")
-                        _clr = {"Accepted": "#22c55e", "Declined": "#ef4444", "Waitlisted": "#f59e0b", "Pending": "#60a5fa"}.get(_b["status"], "#7a8aaa")
+                        _clr = {"Accepted": "#22c55e", "Declined": "#ef4444", "Waitlisted": "#f59e0b", "Pending": "#c49ea4"}.get(_b["status"], "#6a6474")
                         st.markdown(
                             f"<div style='font-size:0.75rem;padding:4px 0;color:#c0d0e0;line-height:1.5;'>"
                             f"{_icon} <strong>{_b['date']} @ {_b['time']}</strong> \u2014 "

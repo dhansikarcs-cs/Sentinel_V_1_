@@ -3,14 +3,14 @@ import traceback
 from datetime import datetime, timedelta
 
 try:
-    from ring_ import get_ring_data
+    from ring_ import get_ring_data, get_seeded_history
 except Exception:
-    get_ring_data = None
+    get_ring_data = get_seeded_history = None
 
 try:
-    from data_manager_ import get_patient_history, load_bookings, get_activity_feed
+    from data_manager_ import get_patient_history, load_bookings
 except Exception:
-    get_patient_history = load_bookings = get_activity_feed = None
+    get_patient_history = load_bookings = None
 
 try:
     from crisis_ import trigger_crisis, resolve_crisis, get_crisis_status
@@ -18,9 +18,9 @@ except Exception:
     trigger_crisis = resolve_crisis = get_crisis_status = None
 
 try:
-    from patient_profiles_ import get_patient_name
+    from patient_profiles_ import get_patient_name, get_contact_info, get_any_trusted_contact
 except Exception:
-    get_patient_name = None
+    get_patient_name = get_contact_info = get_any_trusted_contact = None
 
 try:
     from agent_ import ring_vitals_risk
@@ -31,6 +31,55 @@ try:
     from psych_shared_ import safe
 except Exception:
     safe = None
+
+try:
+    import plotly.graph_objects as go
+except Exception:
+    go = None
+
+try:
+    import pandas as pd
+except Exception:
+    pd = None
+
+
+def _build_metric(label, value, unit, color):
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, {color}22, {color}11);
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid {color}44;
+            text-align: center;
+        ">
+            <div style="color:#889;font-size:12px;">{label}</div>
+            <div style="color:white;font-size:24px;font-weight:700;">{value}</div>
+            <div style="color:#889;font-size:11px;">{unit}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _build_mini_chart(patient, metric, color):
+    values = safe(get_seeded_history, [], patient, metric, 24)
+    if not values or go is None:
+        return
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        y=values, mode="lines+markers",
+        marker=dict(size=2, color=color),
+        line=dict(color=color, width=2, shape="linear"),
+    ))
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=0, b=0), height=60,
+        showlegend=False, paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(visible=False), yaxis=dict(visible=False),
+        hovermode="x unified", dragmode=False,
+    )
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "displaylogo": False})
 
 
 def _compute_priority(patient: str, crisis_state: dict) -> dict:
@@ -88,6 +137,8 @@ def _compute_priority(patient: str, crisis_state: dict) -> dict:
         "mood": ring.get("mood", "neutral").title(),
         "bpm": ring.get("bpm", 0),
         "stress": ring.get("stress", 0),
+        "sleep": ring.get("sleep", 7),
+        "spo2": ring.get("spo2", 98),
     }
 
 
@@ -95,19 +146,24 @@ def render_psych_triage(username: str):
     st.markdown("### \U0001f4ca Priority Triage Dashboard")
 
     try:
-        from data_manager_ import get_all_patients, get_crisis_state
+        from patient_profiles_ import get_assigned_patients
+        from data_manager_ import get_crisis_state, get_all_patient_summaries
     except Exception:
-        get_all_patients = get_crisis_state = None
+        get_assigned_patients = get_crisis_state = get_all_patient_summaries = None
 
-    pts = safe(get_all_patients, [])
+    pts = safe(get_assigned_patients, [], username)
     if not pts:
         st.info("No patients registered.")
         return
 
     crisis_state = safe(get_crisis_state, {})
+    summaries = safe(get_all_patient_summaries, {})
 
     with st.spinner("Analyzing patient risk..."):
-        priorities = sorted([_compute_priority(p, crisis_state) for p in pts], key=lambda x: (x["tier"] != "crisis", x["tier"] != "high", x["tier"] != "attention", -x["score"]))
+        priorities = sorted(
+            [_compute_priority(p, crisis_state) for p in pts],
+            key=lambda x: (x["tier"] != "crisis", x["tier"] != "high", x["tier"] != "attention", -x["score"]),
+        )
 
     counts = {"crisis": 0, "high": 0, "attention": 0, "stable": 0}
     for p in priorities:
@@ -117,13 +173,13 @@ def render_psych_triage(username: str):
     summary_data = [
         ("\U0001f6a8 Crisis", counts["crisis"], "#ef4444"),
         ("\U0001f7e1 High", counts["high"], "#f59e0b"),
-        ("\U0001f7e0 Attention", counts["attention"], "#60a5fa"),
+        ("\U0001f7e0 Attention", counts["attention"], "#c49ea4"),
         ("\U0001f7e2 Stable", counts["stable"], "#22c55e"),
     ]
     for col, (label, count, color) in zip(summary_cols, summary_data):
         with col:
             st.markdown(
-                f"<div style='background:#1a2238;border:1px solid {color}30;border-radius:10px;padding:10px;text-align:center;'>"
+                f"<div style='background:#1e2336;border:1px solid {color}30;border-radius:10px;padding:10px;text-align:center;'>"
                 f"<div style='color:{color};font-size:0.75rem;font-weight:600;'>{label}</div>"
                 f"<div style='color:#f0f4ff;font-size:1.5rem;font-weight:700;'>{count}</div></div>",
                 unsafe_allow_html=True,
@@ -132,68 +188,82 @@ def render_psych_triage(username: str):
     st.markdown("---")
 
     for p in priorities:
-        _render_priority_card(p, username, crisis_state)
+        patient = p["patient"]
+        pname = safe(get_patient_name, patient, patient)
+        ring = {"bpm": p["bpm"], "stress": p["stress"], "sleep": p["sleep"], "spo2": p["spo2"], "mood": p["mood"].lower()}
+        is_crisis = p["crisis"]
+        border = "2px solid #ff4444" if is_crisis else "1px solid rgba(255,255,255,0.1)"
 
+        _crisis_icon = "\U0001f6a8 "
+        with st.expander(f"{_crisis_icon if is_crisis else ''}{pname} (@{patient})", expanded=is_crisis):
+            st.markdown(f"<div style='border:{border};border-radius:10px;padding:10px;'>", unsafe_allow_html=True)
+            cols = st.columns(5)
+            bio_metrics = [
+                ("BPM", f"{ring['bpm']}", "#ff6b6b"),
+                ("Stress", f"{ring['stress']}%", "#ffd93d"),
+                ("Sleep", f"{ring['sleep']}h", "#d8b4ba"),
+                ("SpO\u2082", f"{ring['spo2']}%", "#6bffb8"),
+                ("Mood", ring["mood"].title(), "#c49ea4"),
+            ]
+            for col, (label, val, color) in zip(cols, bio_metrics):
+                with col:
+                    _build_metric(label, val, "", color)
 
-def _render_priority_card(p: dict, username: str, crisis_state: dict):
-    patient = p["patient"]
-    pname = safe(get_patient_name, patient, patient)
-
-    tier_colors = {
-        "crisis": ("#ef4444", "rgba(239,68,68,0.1)", "1px solid rgba(239,68,68,0.4)"),
-        "high": ("#f59e0b", "rgba(245,158,11,0.08)", "1px solid rgba(245,158,11,0.3)"),
-        "attention": ("#60a5fa", "rgba(96,165,250,0.08)", "1px solid rgba(96,165,250,0.2)"),
-        "stable": ("#22c55e", "rgba(34,197,94,0.06)", "1px solid rgba(34,197,94,0.15)"),
-    }
-    accent, bg, border = tier_colors.get(p["tier"], tier_colors["stable"])
-
-    tier_badge = {"crisis": "\U0001f6a8 CRISIS", "high": "\U0001f7e1 HIGH", "attention": "\U0001f7e0 ATTENTION", "stable": "\U0001f7e2 STABLE"}
-
-    flags = []
-    if p["crisis"]:
-        flags.append(f"<span style='background:#ef444422;color:#ef4444;border:1px solid #ef4444;border-radius:4px;padding:1px 6px;font-size:0.65rem;'>\U0001f6a8 Active Crisis</span>")
-    if p["silent"]:
-        flags.append(f"<span style='background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b;border-radius:4px;padding:1px 6px;font-size:0.65rem;'>\U0001f50a Silent >48h</span>")
-    if p["ring_risk"] in ("high", "medium"):
-        flags.append(f"<span style='background:#ef444422;color:#ef4444;border:1px solid #ef4444;border-radius:4px;padding:1px 6px;font-size:0.65rem;'>\U0001f493 Ring: {p['ring_risk'].title()}</span>")
-    for f in p["ring_flags"]:
-        flags.append(f"<span style='background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b;border-radius:4px;padding:1px 6px;font-size:0.65rem;'>\u26a0\ufe0f {f.replace('_',' ').title()}</span>")
-    if p["pending"]:
-        flags.append(f"<span style='background:#60a5fa22;color:#60a5fa;border:1px solid #60a5fa;border-radius:4px;padding:1px 6px;font-size:0.65rem;'>\U0001f4c5 {p['pending']} Pending</span>")
-
-    flags_html = " ".join(flags) if flags else ""
-
-    with st.expander(f"{pname} (@{patient})  \u2014  <span style='color:{accent};font-weight:600;'>{tier_badge[p['tier']]} ({p['score']}pts)</span>", expanded=p["tier"] in ("crisis", "high")):
-        st.markdown(
-            f"<div style='background:{bg};border:{border};border-radius:10px;padding:12px;'>"
-            f"<div style='display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;'>"
-            f"<span style='color:#7a8aaa;font-size:0.75rem;'>&#x2764; {p['bpm']} bpm</span>"
-            f"<span style='color:#7a8aaa;font-size:0.75rem;'>\u26a1 {p['stress']}%</span>"
-            f"<span style='color:#7a8aaa;font-size:0.75rem;'>{p['mood']}</span>"
-            f"<span style='color:#7a8aaa;font-size:0.75rem;'>Last journal: {p['last_journal'] or 'never'}</span>"
-            f"</div>"
-            f"<div style='margin-bottom:4px;'>{flags_html}</div>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-
-        actions_cols = st.columns(3)
-        with actions_cols[0]:
-            if p["crisis"]:
-                if st.button("\u2705 Resolve Crisis", key=f"res_{patient}", use_container_width=True, type="primary"):
-                    safe(resolve_crisis, None, username)
+            _chart_toggle_key = f"triage_tab_{patient}"
+            if st.toggle("Show as table", key=_chart_toggle_key):
+                if pd is not None:
+                    chart_data = {}
+                    for m, lbl in [("bpm","HR"),("stress","Stress"),("sleep","Sleep"),("spo2","SpO\u2082")]:
+                        chart_data[lbl] = safe(get_seeded_history, [], patient, m, 24)
+                    df = pd.DataFrame(chart_data)
+                    st.dataframe(df, height=140, use_container_width=True)
             else:
-                if st.button("\U0001f6a8 Trigger Crisis", key=f"trig_{patient}", use_container_width=True):
-                    safe(trigger_crisis, None, patient, "psychologist")
-        with actions_cols[1]:
-            st.markdown(
-                f"<div style='text-align:center;font-size:0.75rem;color:#7a8aaa;padding:6px;'>"
-                f"<span style='color:#60a5fa;'>{pname}</span></div>",
-                unsafe_allow_html=True,
-            )
-        with actions_cols[2]:
-            st.markdown(
-                f"<div style='text-align:right;font-size:0.6875rem;color:#5a6a8a;padding:6px;'>"
-                f"Score: {p['score']} | {tier_badge[p['tier']]}</div>",
-                unsafe_allow_html=True,
-            )
+                chart_cols = st.columns(4)
+                trends = [("bpm","HR","#ff6b6b"),("stress","Stress","#ffd93d"),("sleep","Sleep","#d8b4ba"),("spo2","SpO\u2082","#6bffb8")]
+                for col, (m, lbl, c) in zip(chart_cols, trends):
+                    with col:
+                        st.caption(lbl)
+                        _build_mini_chart(patient, m, c)
+
+            ps = summaries.get(patient, [])
+            if ps:
+                st.markdown(f"**AI Clinical Insight**: {ps[-1]['summary']}")
+            else:
+                st.caption("No journal data yet.")
+
+            _pt_email = safe(get_contact_info, "", patient)
+            _pt_tc = safe(get_any_trusted_contact, "", patient)
+            if _pt_email or _pt_tc:
+                _email_icon = "\U0001f4e7"
+                _tc_icon = "\U0001f464"
+                _email_part = f"{_email_icon} Patient: {_pt_email}" if _pt_email else ""
+                _tc_part = f" &nbsp;|&nbsp; {_tc_icon} TC: {_pt_tc}" if _pt_tc else ""
+                st.markdown(
+                    f"<div style='font-size:0.6875rem;color:#6a6474;margin-top:6px;'>"
+                    f"{_email_part}{_tc_part}</div>",
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            actions_cols = st.columns(3)
+            with actions_cols[0]:
+                if is_crisis:
+                    if st.button("\u2705 Resolve Crisis", key=f"res_{patient}", use_container_width=True, type="primary"):
+                        safe(resolve_crisis, None, username)
+                else:
+                    if st.button("\U0001f6a8 Trigger Crisis", key=f"trig_{patient}", use_container_width=True):
+                        safe(trigger_crisis, None, patient, "psychologist")
+            with actions_cols[1]:
+                st.markdown(
+                    f"<div style='text-align:center;font-size:0.75rem;color:#6a6474;padding:6px;'>"
+                    f"<span style='color:#c49ea4;'>{pname}</span></div>",
+                    unsafe_allow_html=True,
+                )
+            with actions_cols[2]:
+                _tier_label = "\U0001f6a8 CRISIS" if is_crisis else "HIGH" if p['tier']=='high' else "ATTENTION" if p['tier']=='attention' else "STABLE"
+                st.markdown(
+                    f"<div style='text-align:right;font-size:0.6875rem;color:#5a4a5a;padding:6px;'>"
+                    f"Score: {p['score']} | {_tier_label}</div>",
+                    unsafe_allow_html=True,
+                )

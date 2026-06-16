@@ -135,13 +135,14 @@ with st.sidebar:
     if st.session_state.authenticated:
         st.markdown(f"### 🧠 Sentinel")
         st.markdown(f"**{st.session_state.role}**")
-        st.markdown(f"👤 {st.session_state.username}")
+        if st.button(f"👤 {st.session_state.username}", key="sidebar_profile_btn", use_container_width=True, help="View and edit your profile"):
+            st.session_state.show_profile = True
         st.markdown("---")
 
         if st.session_state.role == "Patient":
-            st.markdown(f'<div style="font-size:0.8125rem;color:#7a8aaa;font-style:italic;padding:6px 0 6px 12px;border-left:2px solid #3b82f6;line-height:1.5;">"{QUOTES[st.session_state.quote_index]}"</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:0.8125rem;color:#6a6474;font-style:italic;padding:6px 0 6px 12px;border-left:2px solid #c49ea4;line-height:1.5;">"{QUOTES[st.session_state.quote_index]}"</div>', unsafe_allow_html=True)
         else:
-            st.markdown(f'<div style="font-size:0.8125rem;color:#7a8aaa;font-style:italic;padding:6px 0 6px 12px;border-left:2px solid #3b82f6;line-height:1.5;">"{QUOTES[st.session_state.quote_index]}"</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:0.8125rem;color:#6a6474;font-style:italic;padding:6px 0 6px 12px;border-left:2px solid #c49ea4;line-height:1.5;">"{QUOTES[st.session_state.quote_index]}"</div>', unsafe_allow_html=True)
 
             st.markdown("---")
             st.markdown("#### 📋 Daily Ops")
@@ -225,7 +226,7 @@ with st.sidebar:
                         f"border:1px solid {'rgba(239,68,68,0.2)' if p['severity'] == 'critical' else 'rgba(234,179,8,0.15)'};"
                         f"border-radius:8px;margin:6px 0;font-size:0.8125rem;'>"
                         f"<span>{icon}</span>"
-                        f"<div><strong>{p['name']}</strong><br><span style='color:#7a8aaa;font-size:0.75rem;'>{p['reason']}</span></div>"
+                        f"<div><strong>{p['name']}</strong><br><span style='color:#6a6474;font-size:0.75rem;'>{p['reason']}</span></div>"
                         f"</div>",
                         unsafe_allow_html=True,
                     )
@@ -238,9 +239,76 @@ with st.sidebar:
         st.markdown(f"{status_color}")
         st.markdown(f"AI: {'Connected' if st.session_state.get('ai_cache') is not None else 'Ready'}")
 
-        if st.session_state.get("role") == "Psychologist":
+        st.markdown("---")
+        st.markdown("#### 📋 Recent Activity")
+        try:
+            from activity_feed_ import render_activity_feed
+            if st.session_state.role == "Patient":
+                render_activity_feed(st.session_state.username, 8)
+            else:
+                render_activity_feed(limit=8)
+        except Exception:
+            st.caption("Activity feed unavailable.")
+
+        if st.session_state.get("role") == "Psychologist" and not st.session_state.get("_psych_onboarding", True):
             st.markdown("---")
-            if st.button("🆘 Trigger Crisis Alert (Self)", key="psych_self_crisis", use_container_width=True):
+            st.markdown("#### 🤖 AI Insights")
+            import time as _time
+            _now = _time.time()
+            _ai_cache_ts = st.session_state.get("_ai_cache_ts", 0)
+            if _now - _ai_cache_ts > 120:
+                st.session_state["_ai_cache_ts"] = _now
+                try:
+                    from agent_ import pre_session_brief, cross_patient_patterns, compliance_radar, silent_period_watch, relapse_indicators
+                    from patient_profiles_ import get_assigned_patients, get_patient_name
+                    from psych_shared_ import safe as _ai_safe
+                    _all_p = _ai_safe(get_assigned_patients, [], st.session_state.get("username", ""))
+                    _briefs = []
+                    _warnings = []
+                    if _all_p:
+                        for _ap in _all_p[:5]:
+                            _b = _ai_safe(pre_session_brief, {"suggestion": ""}, _ap)
+                            _pn = _ai_safe(get_patient_name, _ap, _ap)
+                            _briefs.append({"patient": _pn, "text": _b.get("suggestion", "")})
+                            _si = _ai_safe(silent_period_watch, {"flag": False, "message": ""}, _ap)
+                            if _si and _si.get("flag"):
+                                _warnings.append(f"Silent: {_pn}")
+                            _ri = _ai_safe(relapse_indicators, {"flag": False, "message": ""}, _ap)
+                            if _ri and _ri.get("flag"):
+                                _warnings.append(f"Relapse: {_pn}")
+                        _cp = _ai_safe(cross_patient_patterns, {"suggestion": ""})
+                    else:
+                        _cp = {"suggestion": ""}
+                    st.session_state["_ai_cache_briefs"] = _briefs
+                    st.session_state["_ai_cache_warnings"] = _warnings
+                    st.session_state["_ai_cache_patterns"] = _cp.get("suggestion", "")
+                except Exception:
+                    st.session_state["_ai_cache_briefs"] = []
+                    st.session_state["_ai_cache_warnings"] = []
+                    st.session_state["_ai_cache_patterns"] = ""
+            _cached_briefs = st.session_state.get("_ai_cache_briefs", [])
+            _cached_warnings = st.session_state.get("_ai_cache_warnings", [])
+            _cached_patterns = st.session_state.get("_ai_cache_patterns", "")
+            if _cached_briefs:
+                _itabs = st.tabs(["Briefs", "Patterns", "Monitors"])
+                with _itabs[0]:
+                    for _cb in _cached_briefs:
+                        if _cb["text"]:
+                            st.markdown(f"**{_cb['patient']}**  \n{_cb['text']}")
+                            st.divider()
+                with _itabs[1]:
+                    if _cached_patterns:
+                        st.markdown(_cached_patterns)
+                    else:
+                        st.caption("No patterns yet.")
+                with _itabs[2]:
+                    for _w in _cached_warnings:
+                        st.warning(_w)
+                    if not _cached_warnings:
+                        st.caption("No flags.")
+
+        st.markdown("---")
+        if st.button("🆘 Trigger Crisis Alert (Self)", key="psych_self_crisis", use_container_width=True):
                 _u = st.session_state.get("username", "unknown_psych")
                 _n = st.session_state.get("psychologist_name", _u)
                 _ts = datetime.now().isoformat()
@@ -295,7 +363,7 @@ with st.sidebar:
                 st.markdown(
                     f"<div style='font-size:0.75rem;padding:4px 0;color:#c0d0e0;line-height:1.5;'>"
                     f"{icon} <strong>{label}</strong><br>"
-                    f"<span style='color:#5a6a8a;font-size:0.6875rem;'>{ts}</span></div>",
+                    f"<span style='color:#5a4a5a;font-size:0.6875rem;'>{ts}</span></div>",
                     unsafe_allow_html=True,
                 )
         else:

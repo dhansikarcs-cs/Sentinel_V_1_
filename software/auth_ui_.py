@@ -20,14 +20,14 @@ def render_login():
 
 def _header():
     st.markdown(
-        "<h1 style='text-align:center;font-size:2.5rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);"
+        "<h1 style='text-align:center;font-size:2.5rem;background:linear-gradient(135deg,#c49ea4,#d8b4ba);"
         "-webkit-background-clip:text;-webkit-text-fill-color:transparent;"
         "margin-bottom:0.25rem;'>"
         "\U0001f9e0 Sentinel</h1>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<p style='text-align:center;color:#7a8aaa;font-size:1rem;"
+        "<p style='text-align:center;color:#6a6474;font-size:1rem;"
         "margin-top:0;'>"
         "AI-Assisted Mental Health Ecosystem</p>",
         unsafe_allow_html=True,
@@ -71,15 +71,15 @@ def _register_tab():
 
     if role_choice == "Psychologist":
         st.markdown("""
-        <div style="background:#1a2238;border:1px solid #7c3aed;border-radius:10px;padding:14px;margin:8px 0;">
-            <div style="color:#a78bfa;font-size:0.8125rem;font-weight:600;margin-bottom:6px;">\U0001f9ec Psychologist Verification</div>
+        <div style="background:#1e2336;border:1px solid #5a3a4a;border-radius:10px;padding:14px;margin:8px 0;">
+            <div style="color:#d8b4ba;font-size:0.8125rem;font-weight:600;margin-bottom:6px;">\U0001f9ec Psychologist Verification</div>
         """, unsafe_allow_html=True)
         prof_code = st.text_input("Profession Code", key="reg_prof_code", help="Provided by your clinic for psychologist registration")
         st.markdown("</div>", unsafe_allow_html=True)
     elif role_choice == "Patient" and clinic_code.strip():
         st.markdown("""
-        <div style="background:#1a2238;border:1px solid #60a5fa;border-radius:10px;padding:14px;margin:8px 0;">
-            <div style="color:#60a5fa;font-size:0.8125rem;font-weight:600;margin-bottom:6px;">\U0001f465 Select Your Psychologist</div>
+        <div style="background:#1e2336;border:1px solid #c49ea4;border-radius:10px;padding:14px;margin:8px 0;">
+            <div style="color:#c49ea4;font-size:0.8125rem;font-weight:600;margin-bottom:6px;">\U0001f465 Select Your Psychologist</div>
         """, unsafe_allow_html=True)
         try:
             psychs = get_clinic_psychs_for_registration(clinic_code.strip())
@@ -89,7 +89,7 @@ def _register_tab():
             psych_options = {f"{p['name']} (@{p['username']})": p["username"] for p in psychs}
             st.selectbox("Psychologist", list(psych_options.keys()), key="reg_psych_sel", label_visibility="collapsed")
         else:
-            st.markdown("<div style='color:#7a8aaa;font-size:0.75rem;'>No psychologists found in this clinic yet.</div>", unsafe_allow_html=True)
+            st.markdown("<div style='color:#6a6474;font-size:0.75rem;'>No psychologists found in this clinic yet.</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with st.form("register_form"):

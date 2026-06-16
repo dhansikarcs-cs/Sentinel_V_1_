@@ -28,58 +28,30 @@ def render_patient_status(username: str):
     confirmed = [b for b in my_bookings if b["status"] in ("Accepted", "Pending")]
     proposals = [b for b in my_bookings if b["status"] == "Proposed"]
 
+    st.markdown("""
+    <style>
+    .stat-card {background:#1e2336;border:1px solid #2d2d44;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:12px;}
+    .stat-val {font-size:1.125rem;font-weight:700;}
+    .stat-label {color:#6a6474;font-size:0.6875rem;font-weight:500;}
+    </style>
+    """, unsafe_allow_html=True)
+
     cols = st.columns(4)
     with cols[0]:
-        st.markdown(
-            f"<div style='background:#1a2238;border:1px solid #1e2940;border-radius:10px;padding:10px;text-align:center;'>"
-            f"<div style='color:#7a8aaa;font-size:0.6875rem;font-weight:500;'>Heart</div>"
-            f"<div style='color:#ff6b6b;font-size:1.125rem;font-weight:700;'>{ring['bpm']}</div>"
-            f"<div style='color:#5a6a8a;font-size:0.625rem;'>bpm</div></div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown(f"<div class='stat-card'><div><div class='stat-label'>Heart</div><div class='stat-val' style='color:#ff6b6b;'>{ring['bpm']}</div></div><div style='color:#5a4a5a;font-size:0.625rem;'>bpm</div></div>", unsafe_allow_html=True)
     with cols[1]:
-        color = "#22c55e" if journaled_today else "#f59e0b"
-        icon = "\u2705" if journaled_today else "\u270f\ufe0f"
-        label = "Written today" if journaled_today else "Not yet today"
-        st.markdown(
-            f"<div style='background:#1a2238;border:1px solid {color}30;border-radius:10px;padding:10px;text-align:center;'>"
-            f"<div style='color:#7a8aaa;font-size:0.6875rem;font-weight:500;'>Journal</div>"
-            f"<div style='color:{color};font-size:1.125rem;font-weight:700;'>{icon}</div>"
-            f"<div style='color:{color};font-size:0.625rem;'>{label}</div></div>",
-            unsafe_allow_html=True,
-        )
+        c = "#22c55e" if journaled_today else "#f59e0b"
+        lbl = "Written today" if journaled_today else "Not yet today"
+        ico = chr(10003) if journaled_today else chr(9999)
+        st.markdown(f"<div class='stat-card'><div><div class='stat-label'>Journal</div><div class='stat-val' style='color:{c};'>{ico}</div></div><div style='color:{c};font-size:0.625rem;'>{lbl}</div></div>", unsafe_allow_html=True)
     with cols[2]:
         if confirmed:
             b = confirmed[-1]
-            st.markdown(
-                f"<div style='background:#1a2238;border:1px solid #60a5fa30;border-radius:10px;padding:10px;text-align:center;'>"
-                f"<div style='color:#7a8aaa;font-size:0.6875rem;font-weight:500;'>Next Session</div>"
-                f"<div style='color:#60a5fa;font-size:0.8125rem;font-weight:600;'>{b['date'][5:]}</div>"
-                f"<div style='color:#60a5fa;font-size:0.75rem;'>{b['time']}</div></div>",
-                unsafe_allow_html=True,
-            )
+            st.markdown(f"<div class='stat-card'><div><div class='stat-label'>Next Session</div><div class='stat-val' style='color:#c49ea4;font-size:0.8125rem;'>{b['date'][5:]} @ {b['time']}</div></div></div>", unsafe_allow_html=True)
         elif proposals:
-            st.markdown(
-                f"<div style='background:#1a2238;border:1px solid #f59e0b30;border-radius:10px;padding:10px;text-align:center;'>"
-                f"<div style='color:#7a8aaa;font-size:0.6875rem;font-weight:500;'>Proposals</div>"
-                f"<div style='color:#f59e0b;font-size:1.125rem;font-weight:700;'>{len(proposals)}</div>"
-                f"<div style='color:#f59e0b;font-size:0.625rem;'>pending</div></div>",
-                unsafe_allow_html=True,
-            )
+            st.markdown(f"<div class='stat-card'><div><div class='stat-label'>Proposals</div><div class='stat-val' style='color:#f59e0b;'>{len(proposals)}</div></div><div style='color:#f59e0b;font-size:0.625rem;'>pending</div></div>", unsafe_allow_html=True)
         else:
-            st.markdown(
-                f"<div style='background:#1a2238;border:1px solid #1e2940;border-radius:10px;padding:10px;text-align:center;'>"
-                f"<div style='color:#7a8aaa;font-size:0.6875rem;font-weight:500;'>Bookings</div>"
-                f"<div style='color:#7a8aaa;font-size:0.875rem;font-weight:600;'>\u2014</div>"
-                f"<div style='color:#5a6a8a;font-size:0.625rem;'>none</div></div>",
-                unsafe_allow_html=True,
-            )
+            st.markdown(f"<div class='stat-card'><div><div class='stat-label'>Bookings</div><div class='stat-val' style='color:#6a6474;'>\u2014</div></div><div style='color:#5a4a5a;font-size:0.625rem;'>none</div></div>", unsafe_allow_html=True)
     with cols[3]:
         mood = ring["mood"].title()
-        st.markdown(
-            f"<div style='background:#1a2238;border:1px solid #c97bff30;border-radius:10px;padding:10px;text-align:center;'>"
-            f"<div style='color:#7a8aaa;font-size:0.6875rem;font-weight:500;'>Mood</div>"
-            f"<div style='color:#c97bff;font-size:1.125rem;font-weight:700;'>{mood}</div>"
-            f"<div style='color:#5a6a8a;font-size:0.625rem;'>today</div></div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown(f"<div class='stat-card'><div><div class='stat-label'>Mood</div><div class='stat-val' style='color:#c49ea4;'>{mood}</div></div><div style='color:#5a4a5a;font-size:0.625rem;'>today</div></div>", unsafe_allow_html=True)

@@ -36,15 +36,15 @@ def render_activity_feed(actor: str = "", limit: int = 20):
 
         label = action.replace("_", " ").title()
         extra = f" \u2192 {detail}" if detail else ""
-        target_tag = f'<span style="color:#60a5fa;font-size:0.6875rem;">{target}</span>' if target else ""
+        target_tag = f'<span style="color:#c49ea4;font-size:0.6875rem;">{target}</span>' if target else ""
 
         st.markdown(
-            f"<div style='display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #1e2940;'>"
+            f"<div style='display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #2d2d44;'>"
             f"<span style='font-size:0.875rem;'>{icon}</span>"
-            f"<span style='color:#7a8aaa;font-size:0.6875rem;'>{ts}</span>"
+            f"<span style='color:#6a6474;font-size:0.6875rem;'>{ts}</span>"
             f"<span style='color:#c0d0e0;font-size:0.75rem;font-weight:500;'>{label}</span>"
             f"{target_tag}"
-            f"<span style='color:#5a6a8a;font-size:0.6875rem;margin-left:auto;'>{extra}</span>"
+            f"<span style='color:#5a4a5a;font-size:0.6875rem;margin-left:auto;'>{extra}</span>"
             f"</div>",
             unsafe_allow_html=True,
         )
