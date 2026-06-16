@@ -43,90 +43,22 @@ def render_booking_form(patient_name: str, clinic_psychs=None, patient_clinic=""
         _avail_date_objs = [datetime.strptime(d, "%Y-%m-%d").date() for d in _avail_strs]
         _avail_set = set(_avail_strs)
 
-    st.markdown("#### Step 2: Select Date")
-    today = date.today()
-    ym_key = f"bk_ym_{selected_psych}"
     sel_key = f"bk_sel_{selected_psych}"
-    if ym_key not in st.session_state:
-        st.session_state[ym_key] = (today.year, today.month)
-    cal_y, cal_m = st.session_state[ym_key]
-
-    cal_cols = st.columns([1, 4, 1])
-    with cal_cols[0]:
-        st.markdown(f"<div style='padding-top:6px;'>", unsafe_allow_html=True)
-        if st.button("◀", key=f"bk_prev_{selected_psych}"):
-            cal_m -= 1
-            if cal_m < 1:
-                cal_m = 12; cal_y -= 1
-            st.session_state[ym_key] = (cal_y, cal_m)
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    with cal_cols[1]:
-        st.markdown(f"<div style='color:#c0d0e0;font-weight:600;text-align:center;padding:4px 0;'>{calendar.month_name[cal_m]} {cal_y}</div>", unsafe_allow_html=True)
-    with cal_cols[2]:
-        st.markdown(f"<div style='padding-top:6px;'>", unsafe_allow_html=True)
-        if st.button("▶", key=f"bk_next_{selected_psych}"):
-            cal_m += 1
-            if cal_m > 12:
-                cal_m = 1; cal_y += 1
-            st.session_state[ym_key] = (cal_y, cal_m)
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    _, days_in_month = calendar.monthrange(cal_y, cal_m)
-    first_weekday = date(cal_y, cal_m, 1).weekday()
-
-    day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    dn_cols = st.columns(7)
-    for i, dn in enumerate(day_names):
-        dn_cols[i].markdown(f"<div style='color:#5a4a5a;font-size:0.65rem;text-align:center;'>{dn}</div>", unsafe_allow_html=True)
-
-    cal_days = []
-    row = [None] * first_weekday
-    for d in range(1, days_in_month + 1):
-        row.append(d)
-        if len(row) == 7:
-            cal_days.append(row)
-            row = []
-    if row:
-        while len(row) < 7:
-            row.append(None)
-        cal_days.append(row)
-
-    selected_date_str = st.session_state.get(sel_key, "")
-    for week in cal_days:
-        wk_cols = st.columns(7)
-        for i, d in enumerate(week):
-            with wk_cols[i]:
-                if d is None:
-                    st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
-                else:
-                    dt = date(cal_y, cal_m, d)
-                    ds = dt.isoformat()
-                    is_past = dt < today
-                    is_avail = ds in _avail_set
-                    is_selected = ds == selected_date_str
-
-                    if is_past or not is_avail:
-                        st.markdown(
-                            f"<div style='background:#1a1a2a;color:#2a2a3a;border-radius:6px;padding:5px 0;text-align:center;font-size:0.8rem;'>{d}</div>",
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        btn_style = "primary" if is_selected else "secondary"
-                        if st.button(str(d), key=f"bk_day_{selected_psych}_{ds}", use_container_width=True, type=btn_style):
-                            st.session_state[sel_key] = ds
-                            st.rerun()
-
+    avail_opts = []
+    avail_map = {}
     if _avail_date_objs:
-        remaining = [d for d in _avail_date_objs if d >= today]
-        if remaining:
-            st.markdown(
-                f"<div style='color:#4ade80;font-size:0.7rem;margin:4px 0;'>✅ {len(remaining)} date(s) available — click a green day above</div>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.caption("No available dates. Your psychologist hasn't opened slots yet.")
+        for d in sorted([d for d in _avail_date_objs if d >= date.today()]):
+            lbl = d.strftime("%a, %b %d %Y")
+            avail_opts.append(lbl)
+            avail_map[lbl] = d.isoformat()
+    if avail_opts:
+        st.markdown("#### Step 2: Select Date")
+        selected_label = st.selectbox("Available dates", avail_opts, key=f"bk_dd_{selected_psych}")
+        st.session_state[sel_key] = avail_map[selected_label]
+    else:
+        st.markdown("#### Step 2: Select Date")
+        st.caption("No available dates. Your psychologist hasn't opened slots yet.")
+        st.session_state.pop(sel_key, None)
 
     st.markdown("#### Step 3: Attendance")
     if "booking_member_count" not in st.session_state:
@@ -167,7 +99,7 @@ def render_booking_form(patient_name: str, clinic_psychs=None, patient_clinic=""
             if not selected_psych:
                 st.error("Please select a psychologist.")
             elif not bk_date:
-                st.error("Please select an available date from the calendar.")
+                st.error("Please select an available date from the list.")
             elif not contact.strip() or not explanation.strip():
                 st.error("Please complete the Contact and Context fields.")
             elif any(not name.strip() for name, _ in members):
