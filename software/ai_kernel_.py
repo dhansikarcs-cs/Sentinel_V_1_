@@ -3,7 +3,7 @@ import streamlit as st
 
 CACHE_SIZE = 20
 OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "mistral"
+OLLAMA_MODEL = "sentinel"
 
 
 def _query_groq(prompt: str) -> str:
@@ -12,7 +12,7 @@ def _query_groq(prompt: str) -> str:
         return ""
     try:
         from groq import Groq
-        client = Groq(api_key=key, timeout=3, max_retries=0)
+        client = Groq(api_key=key, timeout=30, max_retries=0)
         resp = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
@@ -34,7 +34,7 @@ def _ollama_running() -> bool:
         return False
 
 
-def _query_ollama(prompt: str, timeout: float = 3) -> str:
+def _query_ollama(prompt: str, timeout: float = 30) -> str:
     try:
         import requests
         resp = requests.post(
@@ -53,8 +53,8 @@ def is_ai_available() -> bool:
     return _ollama_running()
 
 
-def _query_ai(prompt: str) -> str:
-    result = _query_ollama(prompt)
+def _query_ai(prompt: str, timeout: float = 30) -> str:
+    result = _query_ollama(prompt, timeout=timeout)
     if result:
         return result
     result = _query_groq(prompt)
@@ -78,28 +78,76 @@ def _set_cache(key: str, value: str):
         del cache[oldest]
 
 
-def summarize_journal(raw_text: str) -> str:
+def _get_emotion_labels(text: str) -> str:
+    try:
+        from emotion_classifier import classify_text as _ct
+        return _ct(text)
+    except Exception as _e:
+        import sys; print(f"[ai_kernel] classifier error: {_e}", file=sys.stderr)
+        return ""
+
+
+def summarize_journal(raw_text: str, mode: str = "patient") -> str:
     if not raw_text.strip():
         return "No content to summarize."
 
-    cache_key = f"journal_{hash(raw_text) % 10**8}"
+    cache_key = f"journal_{mode}_{hash(raw_text) % 10**8}"
     cached = _check_cache(cache_key)
     if cached:
         return cached
 
-    prompt = (
-        "You are a clinical AI assistant. Summarize the following patient journal entry "
-        "in a brief, emotionally neutral, professional tone suitable for a psychologist's review. "
-        "Focus on emotional state, possible concerns, and wellbeing indicators.\n\n"
-        f"Journal Entry:\n{raw_text}\n\nSummary:"
-    )
+    emotions = _get_emotion_labels(raw_text)
+    emotion_hint = f"\nEmotions detected: {emotions}." if emotions else ""
 
-    result = _query_ai(prompt)
-    if not result:
-        result = _fallback_summary(raw_text)
+    if mode == "clinical":
+        prompt = (
+            "You are Sentinel, a clinical documentation AI. Read this journal entry "
+            "and write a brief clinical summary (2-4 sentences)."
+            f"{emotion_hint}"
+            " Use clinical tone, third person, past tense. Do not quote verbatim."
+            f"\n\nJournal Entry:\n{raw_text}"
+            f"\n\nClinical Summary:"
+        )
+    else:
+        prompt = (
+            "You are Sentinel, an emotionally intelligent assistant. Read this journal entry "
+            "and write a brief, warm reflection (2-4 sentences)."
+            f"{emotion_hint}"
+            " Acknowledge and validate their feelings. No advice whatsoever — "
+            "no suggestions, no 'try this', no 'consider that', no 'remember to', "
+            "no coping techniques, no deep breaths. Zero prescription. Just sit with them."
+            f"\n\nJournal Entry:\n{raw_text}"
+            f"\n\nReflection:"
+        )
+
+    result = _query_ollama(prompt, timeout=15)
+    if not result or _is_raw_echo(result, raw_text):
+        result = _query_groq(prompt)
+    if not result or _is_raw_echo(result, raw_text):
+        result = _fallback_summary(raw_text, emotions, mode)
 
     _set_cache(cache_key, result)
     return result
+
+
+def _is_raw_echo(output: str, original: str) -> bool:
+    cleaned = output.strip().lower()
+    orig_clean = original.strip().lower()
+    if not cleaned or not orig_clean:
+        return False
+    if cleaned == orig_clean:
+        return True
+    if cleaned in orig_clean:
+        return True
+    if orig_clean in cleaned:
+        return True
+    import re as _re
+    out_words = set(_re.findall(r'\w+', cleaned))
+    orig_words = set(_re.findall(r'\w+', orig_clean))
+    if not orig_words:
+        return False
+    overlap = len(out_words & orig_words) / len(orig_words)
+    return overlap > 0.85
 
 
 def synthesize_clinical_notes(raw_notes: str) -> str:
@@ -112,9 +160,9 @@ def synthesize_clinical_notes(raw_notes: str) -> str:
         return cached
 
     prompt = (
-        "You are a clinical documentation specialist. Convert the following psychologist "
-        "session notes into a structured, professional clinical note. Use clear sections "
-        "for Observations, Assessment, and Plan.\n\n"
+        "You are Sentinel. Convert these session notes into a structured clinical note "
+        "with Observations, Assessment, and Plan sections. Use precise emotion language "
+        "(from GoEmotions 28 labels) in the Assessment. Keep it professional but not cold.\n\n"
         f"Session Notes:\n{raw_notes}\n\nStructured Clinical Note:"
     )
 
@@ -134,13 +182,15 @@ def assess_crisis_risk(text: str) -> dict:
         return _fallback_risk_assessment(text)
 
     prompt = (
-        "System Alert: Biometric sensors detect an elevated stress state. "
-        "Analyze the following user journal entry for psychological sentiment, "
-        "anxiety markers, or crisis triggers.\n\n"
+        "You are Sentinel. Assess crisis risk in this journal entry. Use GoEmotions "
+        "28-label emotion language in your reasoning (admiration, amusement, anger, annoyance, "
+        "approval, caring, confusion, curiosity, desire, disappointment, disapproval, disgust, "
+        "embarrassment, excitement, fear, gratitude, grief, joy, love, nervousness, optimism, "
+        "pride, realization, relief, remorse, sadness, surprise, neutral).\n\n"
         f"Journal Entry:\n{text}\n\n"
         "Return ONLY a valid JSON object with two fields: "
         "\"risk_score\" (integer 1-10) and \"reasoning\" (string). "
-        "Example: {\"risk_score\": 7, \"reasoning\": \"High anxiety markers detected.\"}"
+        "Example: {\"risk_score\": 7, \"reasoning\": \"Fear and sadness detected with passive ideation.\"}"
     )
 
     raw = _query_ollama(prompt, timeout=15)
@@ -191,15 +241,19 @@ def _fallback_risk_assessment(text: str) -> dict:
     }
 
 
-def _fallback_summary(text: str) -> str:
-    lines = [l for l in text.split(". ") if l]
-    if len(lines) > 2:
+def _fallback_summary(text: str, emotions: str = "", mode: str = "patient") -> str:
+    if not text.strip():
+        return "No content to summarize."
+    if mode == "clinical":
         return (
-            "Patient expresses multiple emotional themes. "
-            f"Key topics include: {'; '.join(l.strip()[:60] for l in lines[:3])}. "
-            "Recommended: monitor mood trends and consider follow-up discussion."
+            "**Observations**: Patient reports emotional experiences "
+            f"consistent with {emotions if emotions else 'mixed affect'}.\n\n"
+            "**Assessment**: Emotional awareness present. Continue monitoring.\n\n"
+            "**Plan**: Follow-up within standard interval."
         )
-    return "Patient shared emotional content. Further exploration recommended during next session."
+    if emotions:
+        return f"Emotions detected: {emotions}. Brief entry noted."
+    return "Brief entry noted. Monitor mood trends."
 
 
 def _fallback_synthesis(text: str) -> str:

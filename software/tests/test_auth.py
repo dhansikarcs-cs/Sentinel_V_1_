@@ -32,7 +32,7 @@ class TestAuth:
         assert get_patient_name("test_patient_1") == "Noah Smith"
 
     def test_get_psychologist_name(self):
-        assert get_psychologist_name("test_psych_1") == "Dr. Sophia Davis"
+        assert get_psychologist_name("test_psych_1") == "Dr. Olivia Martin"
 
     def test_get_unknown_patient(self):
         assert get_patient_name("unknown") == "unknown"

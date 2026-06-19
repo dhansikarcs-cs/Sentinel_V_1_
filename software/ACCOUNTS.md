@@ -1,43 +1,45 @@
 # Sentinel — Account Reference
 
+All accounts share **CLINIC_ALPHA**. Psychologists are differentiated by profession code only.
+
 ## Seeded Test Patients (20)
 
 Password for all: `test123`
 
-| Username | Name | Age | Occupation |
-|---|---|---|---|
-| `test_patient_1` | Noah Smith | 65 | Student |
-| `test_patient_2` | Mason Davis | 26 | Researcher |
-| `test_patient_3` | Noah Moore | 23 | Analyst |
-| `test_patient_4` | James Johnson | 19 | Teacher |
-| `test_patient_5` | Sophia Davis | 50 | Analyst |
-| `test_patient_6` | Emma Moore | 30 | Researcher |
-| `test_patient_7` | Elijah Wilson | 32 | Nurse |
-| `test_patient_8` | Evelyn Rodriguez | 18 | Consultant |
-| `test_patient_9` | Ethan Wilson | 39 | Student |
-| `test_patient_10` | Ava Miller | 39 | Teacher |
-| `test_patient_11` | Olivia Gonzalez | 24 | Writer |
-| `test_patient_12` | Lucas Martin | 34 | Consultant |
-| `test_patient_13` | Liam Anderson | 52 | Teacher |
-| `test_patient_14` | Charlotte Williams | 53 | Student |
-| `test_patient_15` | Alexander Lopez | 54 | Doctor |
-| `test_patient_16` | Olivia Johnson | 60 | Doctor |
-| `test_patient_17` | Logan Williams | 32 | Chef |
-| `test_patient_18` | Noah Gonzalez | 35 | Nurse |
-| `test_patient_19` | Lucas Garcia | 41 | Writer |
-| `test_patient_20` | Sophia Rodriguez | 62 | Pilot |
+| Username | Name | Age | Occupation | Clinic | Assigned Psychologist |
+|---|---|---|---|---|---|
+| `test_patient_1` | Noah Smith | 65 | Student | CLINIC_ALPHA | Dr. Olivia Martin (@test_psych_1) |
+| `test_patient_2` | Mason Davis | 26 | Researcher | CLINIC_ALPHA | Dr. Ethan Moore (@test_psych_2) |
+| `test_patient_3` | Noah Moore | 23 | Analyst | CLINIC_ALPHA | Dr. Mason Garcia (@test_psych_3) |
+| `test_patient_4` | James Johnson | 19 | Teacher | CLINIC_ALPHA | Dr. Charlotte Rodriguez (@test_psych_4) |
+| `test_patient_5` | Sophia Davis | 50 | Analyst | CLINIC_ALPHA | Dr. Elijah Davis (@test_psych_5) |
+| `test_patient_6` | Emma Moore | 30 | Researcher | CLINIC_ALPHA | Dr. Olivia Martin (@test_psych_1) |
+| `test_patient_7` | Elijah Wilson | 32 | Nurse | CLINIC_ALPHA | Dr. Ethan Moore (@test_psych_2) |
+| `test_patient_8` | Evelyn Rodriguez | 18 | Consultant | CLINIC_ALPHA | Dr. Mason Garcia (@test_psych_3) |
+| `test_patient_9` | Ethan Wilson | 39 | Student | CLINIC_ALPHA | Dr. Charlotte Rodriguez (@test_psych_4) |
+| `test_patient_10` | Ava Miller | 39 | Teacher | CLINIC_ALPHA | Dr. Elijah Davis (@test_psych_5) |
+| `test_patient_11` | Olivia Gonzalez | 24 | Writer | CLINIC_ALPHA | Dr. Olivia Martin (@test_psych_1) |
+| `test_patient_12` | Lucas Martin | 34 | Consultant | CLINIC_ALPHA | Dr. Ethan Moore (@test_psych_2) |
+| `test_patient_13` | Liam Anderson | 52 | Teacher | CLINIC_ALPHA | Dr. Mason Garcia (@test_psych_3) |
+| `test_patient_14` | Charlotte Williams | 53 | Student | CLINIC_ALPHA | Dr. Charlotte Rodriguez (@test_psych_4) |
+| `test_patient_15` | Alexander Lopez | 54 | Doctor | CLINIC_ALPHA | Dr. Elijah Davis (@test_psych_5) |
+| `test_patient_16` | Olivia Johnson | 60 | Doctor | CLINIC_ALPHA | Dr. Olivia Martin (@test_psych_1) |
+| `test_patient_17` | Logan Williams | 32 | Chef | CLINIC_ALPHA | Dr. Ethan Moore (@test_psych_2) |
+| `test_patient_18` | Noah Gonzalez | 35 | Nurse | CLINIC_ALPHA | Dr. Mason Garcia (@test_psych_3) |
+| `test_patient_19` | Lucas Garcia | 41 | Writer | CLINIC_ALPHA | Dr. Charlotte Rodriguez (@test_psych_4) |
+| `test_patient_20` | Sophia Rodriguez | 62 | Pilot | CLINIC_ALPHA | Dr. Elijah Davis (@test_psych_5) |
 
 ## Seeded Test Psychologists (5)
 
 Password for all: `doc123`
 
-| Username | Name | Age |
-|---|---|---|
-| `test_psych_1` | Dr. Olivia Martin | 50 |
-| `test_psych_2` | Dr. Ethan Moore | 53 |
-| `test_psych_3` | Dr. Mason Garcia | 44 |
-| `test_psych_4` | Dr. Charlotte Rodriguez | 59 |
-| `test_psych_5` | Dr. Elijah Davis | 51 |
+| Username | Name | Age | Clinic | Profession Code |
+|---|---|---|---|---|
+| `test_psych_1` | Dr. Olivia Martin | 50 | CLINIC_ALPHA | PROF_PSYCH_001 |
+| `test_psych_2` | Dr. Ethan Moore | 53 | CLINIC_ALPHA | PROF_PSYCH_002 |
+| `test_psych_3` | Dr. Mason Garcia | 44 | CLINIC_ALPHA | PROF_PSYCH_003 |
+| `test_psych_4` | Dr. Charlotte Rodriguez | 59 | CLINIC_ALPHA | PROF_PSYCH_004 |
+| `test_psych_5` | Dr. Elijah Davis | 51 | CLINIC_ALPHA | PROF_PSYCH_005 |
 
 ## Extra Test Accounts (5)
 
@@ -53,28 +55,26 @@ Password for all: `extra123`
 
 ## Registration Codes
 
-Generated on first launch. Each clinic code can be used once. Psychologist registration requires both a clinic code and a profession code.
+Clinic codes are pre-seeded and reusable.
 
-### Clinic Codes (all unused)
+### Clinic Codes
 
-| Code | Used |
-|------|------|
-| `F2FMQF44` | No |
-| `ME77OFMD` | No |
-| `76DGWGR9` | No |
-| `E20093WJ` | No |
-| `9BQGH0JP` | No |
+| Code |
+|------|
+| CLINIC_ALPHA |
+| CLINIC_BETA |
+| CLINIC_GAMMA |
+| CLINIC_DELTA |
+| CLINIC_EPSILON |
 
-### Profession Codes
+### Profession Codes (for Psychologist registration)
 
-Pool of 7 generic codes — any unused one works for psychologist registration.
-
-| Code | Used |
-|------|------|
-| `FTMGRB9L4V` | No |
-| `Z7PT44ZWCR` | No |
-| `9BG7A1ZP01` | No |
-| `1X8UEOK3PU` | No |
-| `HTJZXHRNKI` | No |
-| `W8RAFKHVDT` | No |
-| `4R7OLAYSY7` | No |
+| Code |
+|------|
+| PROF_PSYCH_001 *(used)* |
+| PROF_PSYCH_002 *(used)* |
+| PROF_PSYCH_003 *(used)* |
+| PROF_PSYCH_004 *(used)* |
+| PROF_PSYCH_005 *(used)* |
+| PROF_COUNSELOR_001 |
+| PROF_THERAPIST_001 |

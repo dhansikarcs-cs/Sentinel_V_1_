@@ -2,14 +2,14 @@ import streamlit as st
 import traceback
 
 try:
-    from data_manager_ import get_all_patient_summaries, get_clinical_notes, get_patient_history, get_all_patients
+    from data_manager_ import get_all_patient_summaries, get_clinical_notes, get_patient_history
 except Exception:
-    get_all_patient_summaries = get_clinical_notes = get_patient_history = get_all_patients = None
+    get_all_patient_summaries = get_clinical_notes = get_patient_history = None
 
 try:
-    from patient_profiles_ import get_patient_name
+    from patient_profiles_ import get_patient_name, get_assigned_patients
 except Exception:
-    get_patient_name = None
+    get_patient_name = get_assigned_patients = None
 
 
 def _safe(func, default=None, *args, **kwargs):
@@ -39,7 +39,7 @@ def render_psych_export(username: str):
 def _patients_export(username: str):
     summaries = _safe(get_all_patient_summaries, {})
     notes = _safe(get_clinical_notes, [], username)
-    patient_usernames = _safe(get_all_patients, [])
+    patient_usernames = _safe(get_assigned_patients, [], username)
     has_data = any(p in summaries for p in patient_usernames)
     if not has_data:
         st.info("No patient data available.")

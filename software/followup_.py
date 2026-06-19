@@ -30,8 +30,8 @@ def _feedback_download_data(feedback_text, grade_label):
 def render_psychologist_followup(psychologist_username: str):
     st.markdown("### 📋 Follow-Up Tasks")
     try:
-        from patient_profiles_ import get_all_patients
-        patients = get_all_patients() or ["test_patient_1", "test_patient_2", "test_patient_3"]
+        from patient_profiles_ import get_assigned_patients
+        patients = get_assigned_patients(psychologist_username) or ["test_patient_1", "test_patient_2", "test_patient_3"]
     except Exception:
         patients = ["test_patient_1", "test_patient_2", "test_patient_3"]
 

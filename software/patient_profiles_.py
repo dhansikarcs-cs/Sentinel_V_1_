@@ -1,4 +1,4 @@
-﻿import hashlib
+import hashlib
 import os
 import string
 import random as _random
@@ -115,14 +115,15 @@ def _seed_test_accounts():
         ps = _random.Random(42)
         count = 0
         clinic_patient_map = {
-            "CLINIC_ALPHA":   {"psych": "test_psych_1", "patients": [1,2,3,4]},
-            "CLINIC_BETA":    {"psych": "test_psych_2", "patients": [5,6,7,8]},
-            "CLINIC_GAMMA":   {"psych": "test_psych_3", "patients": [9,10,11,12]},
-            "CLINIC_DELTA":   {"psych": "test_psych_4", "patients": [13,14,15,16]},
-            "CLINIC_EPSILON": {"psych": "test_psych_5", "patients": [17,18,19,20]},
+            "CLINIC_ALPHA": {
+                "psychs": ["test_psych_1", "test_psych_2", "test_psych_3", "test_psych_4", "test_psych_5"],
+                "patients": list(range(1, 21)),
+            },
         }
+        psych_prof_codes = ["PROF_PSYCH_001", "PROF_PSYCH_002", "PROF_PSYCH_003", "PROF_PSYCH_004", "PROF_PSYCH_005"]
         for cc, mapping in clinic_patient_map.items():
-            for pnum in mapping["patients"]:
+            psych_usernames = list(mapping["psychs"])
+            for idx, pnum in enumerate(mapping["patients"]):
                 uname = f"test_patient_{pnum}"
                 pw = "test123"
                 fname = ps.choice(TEST_FIRST_NAMES)
@@ -131,24 +132,27 @@ def _seed_test_accounts():
                 age = ps.randint(18, 65)
                 occ = ps.choice(OCCUPATIONS)
                 h = _hash_password(pw)
+                assigned = psych_usernames[idx % len(psych_usernames)]
                 db.execute(
-                    "INSERT INTO patient_profiles (username, password_hash, name, role, age, occupation, clinic_code) VALUES (?, ?, ?, 'patient', ?, ?, ?)",
-                    (uname, h, name, age, occ, cc)
+                    "INSERT INTO patient_profiles (username, password_hash, name, role, age, occupation, clinic_code, assigned_psych) VALUES (?, ?, ?, 'patient', ?, ?, ?, ?)",
+                    (uname, h, name, age, occ, cc, assigned)
                 )
                 count += 1
-            psych_uname = mapping["psych"]
-            pw = "doc123"
-            fname = ps.choice(TEST_FIRST_NAMES)
-            lname = ps.choice(TEST_LAST_NAMES)
-            name = f"Dr. {fname} {lname}"
-            age = ps.randint(30, 60)
-            occ = "Psychologist"
-            h = _hash_password(pw)
-            db.execute(
-                "INSERT INTO patient_profiles (username, password_hash, name, role, age, occupation, clinic_code) VALUES (?, ?, ?, 'psychologist', ?, ?, ?)",
-                (psych_uname, h, name, age, occ, cc)
-            )
-            count += 1
+            for psych_idx, psych_uname in enumerate(mapping["psychs"]):
+                pw = "doc123"
+                fname = ps.choice(TEST_FIRST_NAMES)
+                lname = ps.choice(TEST_LAST_NAMES)
+                name = f"Dr. {fname} {lname}"
+                age = ps.randint(30, 60)
+                occ = "Psychologist"
+                h = _hash_password(pw)
+                db.execute(
+                    "INSERT INTO patient_profiles (username, password_hash, name, role, age, occupation, clinic_code) VALUES (?, ?, ?, 'psychologist', ?, ?, ?)",
+                    (psych_uname, h, name, age, occ, cc)
+                )
+                if psych_idx < len(psych_prof_codes):
+                    db.execute("UPDATE profession_codes SET used = 1 WHERE code = ?", (psych_prof_codes[psych_idx],))
+                count += 1
         for i in range(5):
             uname = f"test_extra_{i+1}"
             pw = "extra123"
@@ -167,22 +171,27 @@ def _seed_test_accounts():
             count += 1
         print(f"[sentinel] Seeded {count} test accounts (20 patients + 5 psychologists + 5 extra)", flush=True)
         for cc, mapping in clinic_patient_map.items():
-            psych_name = None
-            row = db.execute("SELECT name FROM patient_profiles WHERE username = ?", (mapping["psych"],)).fetchone()
-            if row:
-                psych_name = row["name"]
+            psych_names = []
+            for psych_uname in mapping["psychs"]:
+                row = db.execute("SELECT name FROM patient_profiles WHERE username = ?", (psych_uname,)).fetchone()
+                if row:
+                    psych_names.append(row["name"])
             pnames = []
             for pnum in mapping["patients"]:
                 row = db.execute("SELECT name FROM patient_profiles WHERE username = ?", (f"test_patient_{pnum}",)).fetchone()
                 if row:
                     pnames.append(row["name"])
-            print(f"  {cc}: {psych_name} - {', '.join(pnames)}", flush=True)
+            print(f"  {cc}: {', '.join(psych_names)} - {', '.join(pnames)}", flush=True)
+            for psych_uname in mapping["psychs"]:
+                row = db.execute("SELECT name FROM patient_profiles WHERE username = ?", (psych_uname,)).fetchone()
+                if row:
+                    print(f"    {psych_uname} -> {row['name']}", flush=True)
 
 
 def validate_clinic_code(code: str) -> bool:
     with get_db() as db:
-        row = db.execute("SELECT used FROM clinic_codes WHERE code = ?", (code,)).fetchone()
-        return bool(row and row["used"] == 0)
+        row = db.execute("SELECT 1 FROM clinic_codes WHERE code = ?", (code,)).fetchone()
+        return bool(row)
 
 
 def validate_profession_code(code: str) -> bool:
@@ -191,26 +200,33 @@ def validate_profession_code(code: str) -> bool:
         return bool(row and row["used"] == 0)
 
 
-def register_user(username, password, name, age, occupation, role, clinic_code, profession_code=None):
+def register_user(username, password, name, age, occupation, role, clinic_code, profession_code=None, assigned_psych=""):
     if len(username) < 3:
         return False, "Username must be at least 3 characters."
     if len(password) < 6:
         return False, "Password must be at least 6 characters."
     if not validate_clinic_code(clinic_code):
-        return False, "Invalid or already used clinic code."
+        return False, "Invalid clinic code."
     if role == "psychologist":
         if not profession_code or not validate_profession_code(profession_code):
             return False, "Invalid or already used profession code."
+    elif role == "patient" and not assigned_psych:
+        return False, "Please select a psychologist."
     with get_db() as db:
         existing = db.execute("SELECT username FROM patient_profiles WHERE username = ?", (username,)).fetchone()
         if existing:
             return False, "Username already taken."
         h = _hash_password(password)
-        db.execute(
-            "INSERT INTO patient_profiles (username, password_hash, name, role, age, occupation, clinic_code) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (username, h, name, role, age, occupation, clinic_code)
-        )
-        db.execute("UPDATE clinic_codes SET used = 1 WHERE code = ?", (clinic_code,))
+        if role == "patient":
+            db.execute(
+                "INSERT INTO patient_profiles (username, password_hash, name, role, age, occupation, clinic_code, assigned_psych) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (username, h, name, role, age, occupation, clinic_code, assigned_psych)
+            )
+        else:
+            db.execute(
+                "INSERT INTO patient_profiles (username, password_hash, name, role, age, occupation, clinic_code) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (username, h, name, role, age, occupation, clinic_code)
+            )
         if role == "psychologist" and profession_code:
             db.execute("UPDATE profession_codes SET used = 1 WHERE code = ?", (profession_code,))
     return True, "Registration successful! You can now sign in."
@@ -270,9 +286,31 @@ def get_trusted_contact(patient_username: str) -> str:
         return row["trusted_contact"] if row else ""
 
 
+def set_trusted_contact(username: str, contact: str):
+    with get_db() as db:
+        db.execute("UPDATE patient_profiles SET trusted_contact = ? WHERE username = ? AND role = 'patient'", (contact, username))
+
+
+def get_any_trusted_contact(username: str) -> str:
+    with get_db() as db:
+        row = db.execute("SELECT trusted_contact FROM patient_profiles WHERE username = ?", (username,)).fetchone()
+        return row["trusted_contact"] if row else ""
+
+
+def set_any_trusted_contact(username: str, contact: str):
+    with get_db() as db:
+        db.execute("UPDATE patient_profiles SET trusted_contact = ? WHERE username = ?", (contact, username))
+
+
 def get_all_patients():
     with get_db() as db:
         rows = db.execute("SELECT username FROM patient_profiles WHERE role = 'patient'").fetchall()
+        return [r["username"] for r in rows]
+
+
+def get_assigned_patients(psych_username: str):
+    with get_db() as db:
+        rows = db.execute("SELECT username FROM patient_profiles WHERE role = 'patient' AND assigned_psych = ?", (psych_username,)).fetchall()
         return [r["username"] for r in rows]
 
 
@@ -292,6 +330,51 @@ def get_all_psychologists():
     with get_db() as db:
         rows = db.execute("SELECT username, name, clinic_code FROM patient_profiles WHERE role = 'psychologist'").fetchall()
         return [{"username": r["username"], "name": r["name"], "clinic_code": r["clinic_code"] if r["clinic_code"] else ""} for r in rows]
+
+
+def get_clinic_psychs_for_registration(clinic_code: str):
+    with get_db() as db:
+        rows = db.execute("SELECT username, name FROM patient_profiles WHERE role = 'psychologist' AND clinic_code = ?", (clinic_code,)).fetchall()
+        return [{"username": r["username"], "name": r["name"]} for r in rows]
+
+
+def get_assigned_psych(username: str) -> str:
+    with get_db() as db:
+        row = db.execute("SELECT assigned_psych FROM patient_profiles WHERE username = ? AND role = 'patient'", (username,)).fetchone()
+        return row["assigned_psych"] if row else ""
+
+
+def get_onboarding_step(username: str) -> int:
+    with get_db() as db:
+        row = db.execute("SELECT onboarding_step FROM patient_profiles WHERE username = ?", (username,)).fetchone()
+        return row["onboarding_step"] if row else 0
+
+
+def set_onboarding_step(username: str, step: int):
+    with get_db() as db:
+        db.execute("UPDATE patient_profiles SET onboarding_step = ? WHERE username = ?", (step, username))
+
+
+def get_contact_info(username: str) -> str:
+    with get_db() as db:
+        row = db.execute("SELECT contact_info FROM patient_profiles WHERE username = ?", (username,)).fetchone()
+        return row["contact_info"] if row else ""
+
+
+def set_contact_info(username: str, contact: str):
+    with get_db() as db:
+        db.execute("UPDATE patient_profiles SET contact_info = ? WHERE username = ?", (contact, username))
+
+
+def get_psych_trusted_contact(username: str) -> str:
+    with get_db() as db:
+        row = db.execute("SELECT psych_trusted_contact FROM patient_profiles WHERE username = ?", (username,)).fetchone()
+        return row["psych_trusted_contact"] if row else ""
+
+
+def set_psych_trusted_contact(username: str, contact: str):
+    with get_db() as db:
+        db.execute("UPDATE patient_profiles SET psych_trusted_contact = ? WHERE username = ?", (contact, username))
 
 
 _load_profiles()
