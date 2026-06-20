@@ -122,8 +122,8 @@ Resolve: Psychologist acknowledges → debrief logged
 ### Active Users (production)
 | Role | Username | Password |
 |------|----------|----------|
-| Patient | `cel` | `test123` |
-| Psychologist | `alaya` | `doc123` |
+| Patient | `cel` | `123456` |
+| Psychologist | `alaya` | `654321` |
 
 ### Seeded Test Accounts (20 patients, 5 psychs, 5 extra)
 All under `CLINIC_ALPHA`. Password for patients: `test123`, psychs: `doc123`, extra: `extra123`.

@@ -72,12 +72,10 @@ All journal entries and clinical notes are encrypted at rest with this key.
 
 ### Demo Credentials
 
-**Active users:** cel / test123 (patient), alaya / doc123 (psychologist)
+**Active users:** cel / 123456 (patient), alaya / 654321 (psychologist)
 
 **Seeded test accounts (20 patients, 5 psychologists, 5 extra):**
-- Patients: test_patient_1 through test_patient_20 / test123
-- Psychologists: test_psych_1 through test_psych_5 / doc123
-- Extra: test_extra_1 through test_extra_5 / extra123
+- All passwords shown on login screen or in ACCOUNTS.md
 
 ## AI Backend (Optional)
 
