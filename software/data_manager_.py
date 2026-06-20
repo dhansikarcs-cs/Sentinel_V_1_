@@ -431,3 +431,16 @@ def get_today_mood(patient_username: str):
             return dict(row) if row else None
     except Exception:
         return None
+
+
+def get_mood_history(patient_username: str, days: int = 7):
+    _ensure_migrated()
+    try:
+        with get_db() as db:
+            rows = db.execute(
+                "SELECT date, emoji, label FROM mood_log WHERE patient_username = ? ORDER BY date DESC LIMIT ?",
+                (patient_username, days)
+            ).fetchall()
+            return [dict(r) for r in rows]
+    except Exception:
+        return []

@@ -1,9 +1,14 @@
 import streamlit as st
 
 try:
-    from data_manager_ import save_journal_entry, get_patient_history, save_mood, get_today_mood
+    from data_manager_ import save_journal_entry, get_patient_history, save_mood, get_today_mood, get_mood_history
 except Exception:
-    save_journal_entry = get_patient_history = save_mood = get_today_mood = None
+    save_journal_entry = get_patient_history = save_mood = get_today_mood = get_mood_history = None
+
+try:
+    import plotly.graph_objects as go
+except Exception:
+    go = None
 
 try:
     from ai_kernel_ import summarize_journal
@@ -66,6 +71,31 @@ def render_patient_journal(username: str):
                     if st.button(emoji, key=f"mood_{i}", help=label, use_container_width=True):
                         safe(save_mood, None, username, emoji, label)
                         st.rerun()
+
+        _mood_history = safe(get_mood_history, [], username, 7)
+        if _mood_history and go is not None:
+            MOOD_SCORE = {"Sad": 1, "Down": 2, "Okay": 3, "Good": 4, "Great": 5}
+            MOOD_COLORS = {"Sad": "#ef4444", "Down": "#f59e0b", "Okay": "#eab308", "Good": "#22c55e", "Great": "#16a34a"}
+            _mh = sorted(_mood_history, key=lambda x: x["date"])
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=[m["date"][-5:] for m in _mh],
+                y=[MOOD_SCORE.get(m["label"], 3) for m in _mh],
+                mode="lines+markers",
+                marker=dict(size=8, color=[MOOD_COLORS.get(m["label"], "#888") for m in _mh], line=dict(width=1, color="#fff")),
+                line=dict(color="#c06a8b88", width=2, shape="spline"),
+                fill="tozeroy", fillcolor="rgba(192,106,139,0.08)",
+                hovertemplate="%{x}<br>%{text}<extra></extra>",
+                text=[m["label"] for m in _mh],
+            ))
+            fig.update_layout(
+                margin=dict(l=0, r=0, t=4, b=0), height=100,
+                showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                xaxis=dict(visible=False), yaxis=dict(visible=False, range=[0.5, 5.5]),
+                hovermode="x unified", dragmode=False,
+            )
+            st.caption("Mood trend — last 7 days")
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "displaylogo": False})
 
         with st.form("journal_form", clear_on_submit=True):
             raw_text = st.text_area(

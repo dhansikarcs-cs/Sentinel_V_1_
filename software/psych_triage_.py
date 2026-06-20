@@ -8,9 +8,9 @@ except Exception:
     get_ring_data = get_seeded_history = None
 
 try:
-    from data_manager_ import get_patient_history, load_bookings
+    from data_manager_ import get_patient_history, load_bookings, get_mood_history
 except Exception:
-    get_patient_history = load_bookings = None
+    get_patient_history = load_bookings = get_mood_history = None
 
 try:
     from crisis_ import trigger_crisis, resolve_crisis, get_crisis_status
@@ -230,6 +230,45 @@ def render_psych_triage(username: str):
                 st.markdown(f"**AI Clinical Insight**: {ps[-1]['summary']}")
             else:
                 st.caption("No journal data yet.")
+
+            _mh = safe(get_mood_history, [], patient, 7)
+            if _mh and go is not None:
+                MOOD_SCORE = {"Sad": 1, "Down": 2, "Okay": 3, "Good": 4, "Great": 5}
+                MOOD_COLORS = {"Sad": "#ef4444", "Down": "#f59e0b", "Okay": "#eab308", "Good": "#22c55e", "Great": "#16a34a"}
+                _mh_sorted = sorted(_mh, key=lambda x: x["date"])
+                _last3 = [m["label"] for m in _mh_sorted[-3:]]
+                _bad_streak = all(l in ("Sad", "Down") for l in _last3)
+                fig_mood = go.Figure()
+                fig_mood.add_trace(go.Scatter(
+                    x=[m["date"][-5:] for m in _mh_sorted],
+                    y=[MOOD_SCORE.get(m["label"], 3) for m in _mh_sorted],
+                    mode="lines+markers",
+                    marker=dict(size=6, color=[MOOD_COLORS.get(m["label"], "#888") for m in _mh_sorted], line=dict(width=1, color="#fff")),
+                    line=dict(color="#c06a8b88", width=2, shape="spline"),
+                    fill="tozeroy", fillcolor="rgba(192,106,139,0.08)",
+                    hovertemplate="%{x}<br>%{text}<extra></extra>",
+                    text=[m["label"] for m in _mh_sorted],
+                ))
+                fig_mood.update_layout(
+                    margin=dict(l=0, r=0, t=2, b=0), height=60,
+                    showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    xaxis=dict(visible=False), yaxis=dict(visible=False, range=[0.5, 5.5]),
+                    hovermode="x unified", dragmode=False,
+                )
+                mcols = st.columns([1, 8])
+                with mcols[0]:
+                    if _bad_streak:
+                        st.markdown(
+                            "<div style='background:#ef444420;border:1px solid #ef4444;border-radius:8px;padding:4px 8px;text-align:center;font-size:0.7rem;color:#ef4444;font-weight:600;'>\u26a0\ufe0f</div>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.markdown(
+                            "<div style='color:#5a6a8a;font-size:0.65rem;'>Mood</div>",
+                            unsafe_allow_html=True,
+                        )
+                with mcols[1]:
+                    st.plotly_chart(fig_mood, use_container_width=True, config={"displayModeBar": False, "displaylogo": False})
 
             _pt_email = safe(get_contact_info, "", patient)
             _pt_tc = safe(get_any_trusted_contact, "", patient)
