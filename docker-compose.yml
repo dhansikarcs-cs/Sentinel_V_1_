@@ -1,5 +1,5 @@
 services:
-  backend:
+  sentinel-backend:
     build: ./backend
     ports:
       - "8000:8000"
@@ -11,12 +11,12 @@ services:
       - sentinel_data:/app/data
     restart: unless-stopped
 
-  frontend:
+  sentinel-frontend:
     build: ./frontend
     ports:
       - "5173:5173"
     depends_on:
-      - backend
+      - sentinel-backend
     restart: unless-stopped
 
 volumes:

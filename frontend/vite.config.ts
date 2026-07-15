@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: 'http://backend:8000', changeOrigin: true },
+      '/api': { target: 'http://sentinel-backend:8000', changeOrigin: true },
     },
   },
 })
