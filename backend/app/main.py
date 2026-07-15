@@ -13,6 +13,7 @@ logger = logging.getLogger("sentinel")
 
 
 def _init_db():
+    os.makedirs("data", exist_ok=True)
     Base.metadata.create_all(bind=engine)
 
 
