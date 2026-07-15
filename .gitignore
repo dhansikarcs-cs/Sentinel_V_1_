@@ -13,3 +13,12 @@ data/
 hardware/
 sentinel3_backup.zip
 icons/
+streamlit_*.log
+*.db
+*.db-shm
+*.db-wal
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+frontend/node_modules/
+frontend/dist/

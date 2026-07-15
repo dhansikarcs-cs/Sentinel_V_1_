@@ -1,9 +1,9 @@
 import streamlit as st
 
 try:
-    from crisis_ import get_crisis_state, get_crisis_status, trigger_crisis
+    from crisis_ import get_crisis_state, get_crisis_status, trigger_crisis, cancel_crisis
 except Exception:
-    get_crisis_state = get_crisis_status = trigger_crisis = None
+    get_crisis_state = get_crisis_status = trigger_crisis = cancel_crisis = None
 
 try:
     from patient_shared_ import safe
@@ -12,19 +12,21 @@ except Exception:
 
 
 def _pt_emergency_buttons(username: str):
+    _cs = safe(get_crisis_state, {})
+    _active = _cs.get("active", False)
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("\U0001f525 Crisis? I need help now", type="primary", use_container_width=True):
-            safe(trigger_crisis, None, username, "patient")
-    with c2:
-        _cs = safe(get_crisis_state, {})
-        if _cs.get("active"):
-            if st.button("\u2705 Stop Crisis", use_container_width=True):
+        if not _active:
+            if st.button("\U0001f525 Crisis? I need help now", type="primary", use_container_width=True):
                 safe(trigger_crisis, None, username, "patient")
+    with c2:
+        if _active:
+            if st.button("\u2705 Stop Crisis", use_container_width=True):
+                safe(cancel_crisis, None, username)
 
 
 def render_patient_emergency(username: str):
-    st.markdown("### \U0001f6ae Emergency")
+    st.markdown("### \U0001f6a8 Emergency")
     crisis_active = st.session_state.get("crisis_active", False)
     if crisis_active:
         _cs = safe(get_crisis_state, {})

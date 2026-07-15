@@ -281,14 +281,26 @@ def get_psychologist_name(username: str) -> str:
 
 
 def get_trusted_contact(patient_username: str) -> str:
+    try:
+        from database import decrypt_pii
+    except Exception:
+        decrypt_pii = None
     with get_db() as db:
         row = db.execute("SELECT trusted_contact FROM patient_profiles WHERE username = ? AND role = 'patient'", (patient_username,)).fetchone()
-        return row["trusted_contact"] if row else ""
+        val = row["trusted_contact"] if row else ""
+        if val and decrypt_pii:
+            return decrypt_pii(val, patient_username)
+        return val
 
 
 def set_trusted_contact(username: str, contact: str):
+    try:
+        from database import encrypt_pii
+    except Exception:
+        encrypt_pii = None
     with get_db() as db:
-        db.execute("UPDATE patient_profiles SET trusted_contact = ? WHERE username = ? AND role = 'patient'", (contact, username))
+        enc = encrypt_pii(contact, username) if encrypt_pii else contact
+        db.execute("UPDATE patient_profiles SET trusted_contact = ? WHERE username = ? AND role = 'patient'", (enc, username))
 
 
 def get_any_trusted_contact(username: str) -> str:
@@ -356,14 +368,26 @@ def set_onboarding_step(username: str, step: int):
 
 
 def get_contact_info(username: str) -> str:
+    try:
+        from database import decrypt_pii
+    except Exception:
+        decrypt_pii = None
     with get_db() as db:
         row = db.execute("SELECT contact_info FROM patient_profiles WHERE username = ?", (username,)).fetchone()
-        return row["contact_info"] if row else ""
+        val = row["contact_info"] if row else ""
+        if val and decrypt_pii:
+            return decrypt_pii(val, username)
+        return val
 
 
 def set_contact_info(username: str, contact: str):
+    try:
+        from database import encrypt_pii
+    except Exception:
+        encrypt_pii = None
     with get_db() as db:
-        db.execute("UPDATE patient_profiles SET contact_info = ? WHERE username = ?", (contact, username))
+        enc = encrypt_pii(contact, username) if encrypt_pii else contact
+        db.execute("UPDATE patient_profiles SET contact_info = ? WHERE username = ?", (enc, username))
 
 
 def get_psych_trusted_contact(username: str) -> str:

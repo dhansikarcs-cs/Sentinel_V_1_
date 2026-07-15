@@ -41,9 +41,9 @@ _PATIENT_STEPS = [
      "desc": "The sidebar on the left gives you quick access to your status overview, profile settings, recent activity, and AI-powered insights from your psychologist.",
      "tip": "Click your username at the top of the sidebar to edit your profile, contact info, and trusted contact anytime.",
      "color": "#c49ea4"},
-    {"icon": "\U0001f504", "title": "Availability Checkbox",
-     "desc": "In the Booking tab, check 'Show available dates' to see green-highlighted dates your psychologist is free. Book with confidence!",
-     "tip": "Availability updates in real-time \u2014 if your psych adds new slots, they appear instantly.",
+    {"icon": "\U0001f504", "title": "Booking Flow",
+     "desc": "In the Booking tab, select your psychologist, then pick an available date highlighted in green. Fill in session details and submit your request.",
+     "tip": "When your psych proposes a slot, it appears in the Psych Suggested sub-tab. You can accept or decline there.",
      "color": "#34d399"},
 ]
 

@@ -78,7 +78,7 @@ def _set_cache(key: str, value: str):
         del cache[oldest]
 
 
-def _get_emotion_labels(text: str) -> str:
+def get_emotion_labels(text: str) -> str:
     try:
         from emotion_classifier import classify_text as _ct
         return _ct(text)
@@ -87,16 +87,16 @@ def _get_emotion_labels(text: str) -> str:
         return ""
 
 
-def summarize_journal(raw_text: str, mode: str = "patient") -> str:
+def summarize_journal(raw_text: str, mode: str = "patient") -> dict:
     if not raw_text.strip():
-        return "No content to summarize."
+        return {"text": "No content to summarize.", "source": "", "emotions": ""}
 
-    cache_key = f"journal_{mode}_{hash(raw_text) % 10**8}"
+    cache_key = f"journal_v2_{mode}_{hash(raw_text) % 10**8}"
     cached = _check_cache(cache_key)
     if cached:
         return cached
 
-    emotions = _get_emotion_labels(raw_text)
+    emotions = get_emotion_labels(raw_text)
     emotion_hint = f"\nEmotions detected: {emotions}." if emotions else ""
 
     if mode == "clinical":
@@ -120,14 +120,18 @@ def summarize_journal(raw_text: str, mode: str = "patient") -> str:
             f"\n\nReflection:"
         )
 
-    result = _query_ollama(prompt, timeout=15)
-    if not result or _is_raw_echo(result, raw_text):
-        result = _query_groq(prompt)
-    if not result or _is_raw_echo(result, raw_text):
-        result = _fallback_summary(raw_text, emotions, mode)
+    text = _query_ollama(prompt, timeout=15)
+    source = "ollama"
+    if not text or _is_raw_echo(text, raw_text):
+        text = _query_groq(prompt)
+        source = "groq"
+    if not text or _is_raw_echo(text, raw_text):
+        text = _fallback_summary(raw_text, emotions, mode)
+        source = "rule"
 
-    _set_cache(cache_key, result)
-    return result
+    output = {"text": text, "source": source, "emotions": emotions}
+    _set_cache(cache_key, output)
+    return output
 
 
 def _is_raw_echo(output: str, original: str) -> bool:
@@ -174,12 +178,33 @@ def synthesize_clinical_notes(raw_notes: str) -> str:
     return result
 
 
+def _compute_contributing_factors(text: str) -> dict:
+    lower = text.lower()
+    crisis_kw = ["suicide", "kill myself", "end my life", "want to die", "not worth living", "self-harm", "hurt myself", "emergency", "can't take it", "overdose"]
+    high_kw = ["panic", "hopeless", "desperate", "terrified", "screaming", "can't breathe", "alone", "scared", "anxiety", "afraid", "worthless", "numb"]
+    medium_kw = ["sad", "worried", "tired", "stress", "overwhelmed", "frustrated", "angry", "upset", "crying", "lost"]
+    social_kw = ["friends", "family", "people", "nobody", "alone", "isolated", "no one", "lonely", "withdrew"]
+    sleep_kw = ["sleep", "insomnia", "tired", "exhausted", "can't sleep", "wake up", "nightmare"]
+    activity_kw = ["nothing", "didn't do", "stay in bed", "no energy", "can't", "avoid", "skipped"]
+
+    return {
+        "crisis_keywords": [kw for kw in crisis_kw if kw in lower],
+        "high_risk_keywords": [kw for kw in high_kw if kw in lower],
+        "moderate_keywords": [kw for kw in medium_kw if kw in lower],
+        "social_withdrawal": sum(1 for kw in social_kw if kw in lower),
+        "sleep_disturbance": sum(1 for kw in sleep_kw if kw in lower),
+        "activity_decline": sum(1 for kw in activity_kw if kw in lower),
+    }
+
+
 def assess_crisis_risk(text: str) -> dict:
     if not text.strip():
-        return {"risk_score": 1, "reasoning": "No content to assess.", "triggered": False}
+        return {"risk_score": 1, "reasoning": "No content to assess.", "triggered": False, "contributing_factors": {}}
+
+    factors = _compute_contributing_factors(text)
 
     if not _ollama_running():
-        return _fallback_risk_assessment(text)
+        return _fallback_risk_assessment(text, factors)
 
     prompt = (
         "You are Sentinel. Assess crisis risk in this journal entry. Use GoEmotions "
@@ -188,56 +213,71 @@ def assess_crisis_risk(text: str) -> dict:
         "embarrassment, excitement, fear, gratitude, grief, joy, love, nervousness, optimism, "
         "pride, realization, relief, remorse, sadness, surprise, neutral).\n\n"
         f"Journal Entry:\n{text}\n\n"
-        "Return ONLY a valid JSON object with two fields: "
-        "\"risk_score\" (integer 1-10) and \"reasoning\" (string). "
-        "Example: {\"risk_score\": 7, \"reasoning\": \"Fear and sadness detected with passive ideation.\"}"
+        "Return ONLY a valid JSON object with three fields: "
+        "\"risk_score\" (integer 1-10), \"reasoning\" (string explaining why in clinical terms), "
+        "and \"contributing_factors\" (object with keys like sentiment, emotions_detected, key_triggers). "
+        "Example: {\"risk_score\": 7, \"reasoning\": \"Fear and sadness detected with passive ideation. Social withdrawal and sleep disturbance present.\", \"contributing_factors\": {\"sentiment\": \"negative\", \"emotions_detected\": [\"fear\", \"sadness\"], \"key_triggers\": [\"hopelessness\", \"social_isolation\"]}}"
     )
 
     raw = _query_ollama(prompt, timeout=15)
     if raw:
         import re, json as _json
-        match = re.search(r'\{[^{}]*"risk_score"[^{}]*\}', raw, re.DOTALL)
+        match = re.search(r'\{[^{}]*"risk_score"[^{}]*"reasoning"[^{}]*\}', raw, re.DOTALL)
         if match:
             try:
                 result = _json.loads(match.group())
                 if isinstance(result.get("risk_score"), (int, float)):
                     result["risk_score"] = int(result["risk_score"])
                     result["triggered"] = result["risk_score"] >= 8
+                    if "contributing_factors" not in result:
+                        result["contributing_factors"] = factors
                     return result
             except Exception:
                 pass
 
-    return _fallback_risk_assessment(text)
+    return _fallback_risk_assessment(text, factors)
 
 
-def _fallback_risk_assessment(text: str) -> dict:
-    crisis_keywords = [
-        "suicide", "kill myself", "end my life", "want to die", "not worth living",
-        "self-harm", "hurt myself", "emergency", "can't take it", "overdose",
-    ]
-    high_keywords = [
-        "panic", "hopeless", "desperate", "terrified", "screaming", "can't breathe",
-        "alone", "scared", "anxiety", "afraid", "worthless", "numb",
-    ]
-    medium_keywords = [
-        "sad", "worried", "tired", "stress", "overwhelmed", "frustrated",
-        "angry", "upset", "crying", "lost",
-    ]
+def _fallback_risk_assessment(text: str, factors: dict = None) -> dict:
+    if factors is None:
+        factors = _compute_contributing_factors(text)
+    crisis_keywords = factors.get("crisis_keywords", [])
+    high_keywords = factors.get("high_risk_keywords", [])
+    medium_keywords = factors.get("moderate_keywords", [])
+    social = factors.get("social_withdrawal", 0)
+    sleep = factors.get("sleep_disturbance", 0)
+    activity = factors.get("activity_decline", 0)
 
-    lower = text.lower()
     score = 1
-
-    if any(kw in lower for kw in crisis_keywords):
+    if crisis_keywords:
         score = 10
-    elif any(kw in lower for kw in high_keywords):
+    elif high_keywords:
         score = 7
-    elif any(kw in lower for kw in medium_keywords):
+    elif medium_keywords:
         score = 4
+    if social >= 2 or sleep >= 2 or activity >= 2:
+        score = max(score, 5)
+
+    factor_lines = []
+    if crisis_keywords:
+        factor_lines.append(f"CRISIS keywords detected: {', '.join(crisis_keywords)}")
+    if high_keywords:
+        factor_lines.append(f"High-risk indicators: {', '.join(high_keywords[:3])}")
+    if medium_keywords:
+        factor_lines.append(f"Moderate concerns: {', '.join(medium_keywords[:3])}")
+    if social >= 2:
+        factor_lines.append(f"Social withdrawal signals ({social}x)")
+    if sleep >= 2:
+        factor_lines.append(f"Sleep disturbance signals ({sleep}x)")
+    if activity >= 2:
+        factor_lines.append(f"Activity decline signals ({activity}x)")
+    reasoning = "; ".join(factor_lines) if factor_lines else "No significant risk indicators detected."
 
     return {
         "risk_score": score,
-        "reasoning": f"Keyword-based fallback analysis. Score {score}/10.",
+        "reasoning": f"Keyword-based analysis. Score {score}/10. {reasoning}",
         "triggered": score >= 8,
+        "contributing_factors": factors,
     }
 
 

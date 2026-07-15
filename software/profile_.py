@@ -1,9 +1,9 @@
 import streamlit as st
 
 try:
-    from patient_profiles_ import authenticate, get_patient_name, get_patient_clinic, get_contact_info, set_contact_info, get_any_trusted_contact, set_any_trusted_contact, get_psych_trusted_contact, set_psych_trusted_contact
+    from patient_profiles_ import authenticate, get_patient_name, get_patient_clinic, get_contact_info, set_contact_info, get_any_trusted_contact, get_psych_trusted_contact
 except Exception:
-    authenticate = get_patient_name = get_patient_clinic = get_contact_info = set_contact_info = get_any_trusted_contact = set_any_trusted_contact = get_psych_trusted_contact = set_psych_trusted_contact = None
+    authenticate = get_patient_name = get_patient_clinic = get_contact_info = set_contact_info = get_any_trusted_contact = get_psych_trusted_contact = None
 
 try:
     from psych_shared_ import safe

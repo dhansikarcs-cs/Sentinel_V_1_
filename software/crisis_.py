@@ -151,6 +151,26 @@ def trigger_crisis(patient_username: str, source: str = "patient"):
     st.session_state.helpline_called = False
 
 
+def cancel_crisis(patient_username: str):
+    state = _safe(get_crisis_state, {})
+    if not state.get("active"):
+        return
+    if state.get("patient") != patient_username:
+        return
+    now = datetime.now().isoformat()
+    _safe(append_crisis_log, None, {"event": "cancelled", "patient": patient_username, "timestamp": now, "details": "cancelled by patient", "source": "patient"})
+    _safe(set_crisis_state, None, {"active": False, "patient": "", "triggered_at": "", "triggered_by": "", "acknowledged": False, "acknowledged_by": "", "acknowledged_at": "", "helpline_escalated": False, "trusted_contact_notified": False, "trustee_acknowledged": False, "trustee_clicked": False, "tc_ack_emailed": False, "helpline_ack_emailed": False})
+    try:
+        from data_manager_ import log_activity
+        log_activity(patient_username, "crisis_cancelled", patient_username, "cancelled by patient")
+    except Exception:
+        pass
+    st.session_state.crisis_active = False
+    st.session_state.crisis_acknowledged = False
+    st.session_state.trusted_notified = False
+    st.session_state.helpline_called = False
+
+
 def resolve_crisis(psychologist_username: str):
     state = _safe(get_crisis_state, {})
     if not state.get("active"):
@@ -306,7 +326,7 @@ def handle_escalation():
         display = _get_patient_display(state["patient"])
         _safe(append_crisis_log, None, {"event": "trustee_notified", "patient": state["patient"], "timestamp": datetime.now().isoformat()})
         send_email(
-            f"📧 {display}'s trusted contact notified (30s)",
+            f"\U0001f4e7 {display}'s trusted contact notified (30s)",
             f"The trusted contact for {display} has been emailed.\n"
             f"Trustee page: {_get_ack_link()}\n\n"
             f"Triggered at: {state['triggered_at']}\n\nSentinel"

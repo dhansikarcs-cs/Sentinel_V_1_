@@ -54,8 +54,11 @@ def render_psych_journal(username: str):
         if submitted:
             if raw_text.strip():
                 with st.spinner("Reflecting..."):
-                    summary = safe(summarize_journal, "Summary unavailable", raw_text)
-                safe(save_journal_entry, None, username, raw_text, summary)
+                    _result = safe(summarize_journal, {"text": "Summary unavailable", "source": "", "emotions": ""}, raw_text)
+                summary_text = _result.get("text", "Summary unavailable") if isinstance(_result, dict) else "Summary unavailable"
+                ai_source = _result.get("source", "") if isinstance(_result, dict) else ""
+                emotions = _result.get("emotions", "") if isinstance(_result, dict) else ""
+                safe(save_journal_entry, None, username, raw_text, summary_text, ai_source, emotions)
                 st.success("Journal entry saved.")
                 st.rerun()
             else:
@@ -78,9 +81,19 @@ def render_psych_journal(username: str):
 
                 if st.session_state.get(key + "_open", False):
                     with st.container():
+                        _emotions = e.get("emotions", "") or ""
+                        _ai_source = e.get("ai_source", "") or ""
+                        _badges = ""
+                        if _ai_source:
+                            _sc = {"ollama": "#c49ea4", "groq": "#22c55e", "rule": "#f59e0b"}.get(_ai_source, "#888")
+                            _badges += f"<span style='background:{_sc}22;color:{_sc};font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:600;border:1px solid {_sc}44;margin-right:6px;'>{_ai_source.title()}</span>"
+                        if _emotions:
+                            _badges += f"<span style='color:#9aa8c0;font-size:0.65rem;'>Emotions: {_emotions}</span>"
+                        _badges_html = '<div style="margin-bottom:6px;">' + _badges + '</div>' if _badges else ''
                         st.markdown(
                             f"<div style='background:linear-gradient(135deg,#1a2238,#1e2a45);border:1px solid #1e3a5a;border-radius:10px;padding:16px;margin:2px 0 8px 0;'>"
                             f"<div style='color:#5a6a8a;font-size:0.7rem;margin-bottom:6px;'>{ts}</div>"
+                            f"{_badges_html}"
                             f"<div style='color:#9aa8c0;font-size:0.8125rem;line-height:1.5;'>{e['summary']}</div>"
                             f"</div>",
                             unsafe_allow_html=True,

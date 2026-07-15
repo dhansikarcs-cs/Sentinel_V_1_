@@ -187,7 +187,7 @@ def _psych_crisis_alert(username):
     except Exception:
         play_alert = None
     try:
-        from data_manager_ import acknowledge_crisis
+        from crisis_ import acknowledge_crisis
     except Exception:
         acknowledge_crisis = None
     try:
@@ -323,13 +323,19 @@ def _cn_ai_panel(username):
         st.caption("No journal entries yet.")
         return
     _cnj_raw = _cnj[-1].get("raw_content", "")
-    _cnj_clinical = _safe(summarize_journal, "Clinical summary unavailable", _cnj_raw, "clinical")
+    _cnj_result = _safe(summarize_journal, {"text": "Clinical summary unavailable", "source": "", "emotions": ""}, _cnj_raw, "clinical")
+    _cnj_clinical = _cnj_result.get("text", "Clinical summary unavailable") if isinstance(_cnj_result, dict) else "Clinical summary unavailable"
+    _cnj_source = _cnj_result.get("source", "") if isinstance(_cnj_result, dict) else ""
+    _cnj_badge = ""
+    if _cnj_source:
+        _sc = {"ollama": "#c49ea4", "groq": "#22c55e", "rule": "#f59e0b"}.get(_cnj_source, "#888")
+        _cnj_badge = f"<span style='background:{_sc}22;color:{_sc};font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:600;border:1px solid {_sc}44;margin-left:6px;'>{_cnj_source.title()}</span>"
     st.markdown(
         f"<div style='background:linear-gradient(135deg,#1e2336,#1e2a45);border:1px solid #2d2d44;border-radius:10px;padding:14px;margin:8px 0;'>"
         f"<div style='display:flex;align-items:center;gap:6px;margin-bottom:6px;'>"
         f"<span style='color:#6a6474;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;'>"
         f"Latest journal ({_cnj[-1].get('timestamp','')[:10]})</span>"
-        f"<span style='background:#2a2040;color:#c49ea4;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:600;'>CLINICAL</span>"
+        f"<span style='background:#2a2040;color:#c49ea4;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:600;'>CLINICAL</span>{_cnj_badge}"
         f"</div>"
         f"<div style='color:#9a92a2;font-size:0.75rem;line-height:1.5;'>{_cnj_clinical[:300]}{'...' if len(_cnj_clinical)>300 else ''}</div>"
         f"</div>",
@@ -504,7 +510,7 @@ def render_psychologist_portal():
             from psych_journal_ import render_psych_journal
             render_psych_journal(username)
         except Exception as e:
-            st.error(f"Journal & Wellness tab unavailable:\n{traceback.format_exc()}")
+            st.error(f"Journal & Wellness tab unavailable.\n{traceback.format_exc()}")
 
     def _render_bookings_tab():
         try:
@@ -532,6 +538,13 @@ def render_psychologist_portal():
         except Exception as e:
             st.error(f"Follow-Up unavailable:\n{traceback.format_exc()}")
 
+    def _render_timeline_tab():
+        try:
+            from behavioral_timeline_ import render_psych_timeline_tab
+            render_psych_timeline_tab(username)
+        except Exception as e:
+            st.error(f"Behavioral Timeline unavailable:\n{traceback.format_exc()}")
+
     def _render_smart_room_tab():
         try:
             head_col1, head_col2 = st.columns([3, 1])
@@ -553,8 +566,8 @@ def render_psychologist_portal():
             st.error(f"Export Center unavailable:\n{traceback.format_exc()}")
 
     # ── Tab selector (segmented control works with tour) ──
-    _psych_tab_names = ["\U0001f4cb Patient Triage", "\U0001f4dd Clinical Notes", "\U0001f4d3 Journal & Wellness", "\U0001f4c5 Bookings", "\U0001f4cb Follow-Up", "\U0001f9e0 Smart Room", "\U0001f4e6 Export Center"]
-    _psych_renderers = [_render_triage_tab, _render_clinical_notes_tab, _render_journal_wellness_tab, _render_bookings_tab, _render_followup_tab, _render_smart_room_tab, _render_export_tab]
+    _psych_tab_names = ["\U0001f4cb Patient Triage", "\U0001f4dd Clinical Notes", "\U0001f4d3 Journal & Wellness", "\U0001f4c5 Bookings", "\U0001f4cb Follow-Up", "\U0001f50d Timeline", "\U0001f9e0 Smart Room", "\U0001f4e6 Export Center"]
+    _psych_renderers = [_render_triage_tab, _render_clinical_notes_tab, _render_journal_wellness_tab, _render_bookings_tab, _render_followup_tab, _render_timeline_tab, _render_smart_room_tab, _render_export_tab]
 
     _tour_tab = render_dashboard_tour("Psychologist") if render_dashboard_tour else ""
     if _tour_tab:

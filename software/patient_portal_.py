@@ -58,11 +58,6 @@ except Exception:
     render_patient_status = None
 
 try:
-    from activity_feed_ import render_activity_feed
-except Exception:
-    render_activity_feed = None
-
-try:
     from patient_onboarding_ import render_patient_onboarding
 except Exception:
     render_patient_onboarding = None
@@ -263,8 +258,10 @@ def render_patient_portal():
     def _render_journal_tab():
         try:
             render_patient_journal(username)
-        except Exception:
-            st.error("Journal tab unavailable.")
+        except Exception as _je:
+            import traceback
+            _tb = traceback.format_exc()
+            st.error(f"Journal tab unavailable.\n{_tb}")
 
     def _render_booking_tab():
         try:
@@ -327,6 +324,13 @@ def render_patient_portal():
         except Exception:
             st.error("Follow-Up unavailable.")
 
+    def _render_timeline_tab():
+        try:
+            from behavioral_timeline_ import render_timeline
+            render_timeline(username)
+        except Exception:
+            st.error("Timeline unavailable.")
+
     def _render_smart_room_tab():
         try:
             head_col1, head_col2 = st.columns([3, 1])
@@ -346,8 +350,8 @@ def render_patient_portal():
             st.error("Emergency section unavailable.")
 
     # ── Tab selector (segmented control works with tour) ──
-    _pt_tab_names = ["\U0001f4ca Wellness", "\U0001f4dd Journal", "\U0001f4c5 Booking", "\U0001f4cb Follow-Up", "\U0001f9e0 Smart Room", "\U0001f6ae Emergency"]
-    _pt_renderers = [_render_wellness_tab, _render_journal_tab, _render_booking_tab, _render_followup_tab, _render_smart_room_tab, _render_emergency_tab]
+    _pt_tab_names = ["\U0001f4ca Wellness", "\U0001f4dd Journal", "\U0001f4c5 Booking", "\U0001f4cb Follow-Up", "\U0001f50d Timeline", "\U0001f9e0 Smart Room", "\U0001f6a8 Emergency"]
+    _pt_renderers = [_render_wellness_tab, _render_journal_tab, _render_booking_tab, _render_followup_tab, _render_timeline_tab, _render_smart_room_tab, _render_emergency_tab]
 
     _tour_tab = render_dashboard_tour("Patient") if render_dashboard_tour else ""
     if _tour_tab:

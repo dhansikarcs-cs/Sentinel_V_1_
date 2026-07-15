@@ -111,6 +111,51 @@ if "psych_room_intense" not in st.session_state:
     st.session_state.psych_room_intense = False
 if "patient_room_intense" not in st.session_state:
     st.session_state.patient_room_intense = False
+# ── Encryption Initialisation (master passphrase) ─────────
+from database import initialize_encryption, is_encryption_ready
+
+if "encryption_ready" not in st.session_state:
+    st.session_state.encryption_ready = is_encryption_ready()
+
+if not st.session_state.encryption_ready:
+    st.markdown("""
+    <div style="display:flex;align-items:center;justify-content:center;min-height:80vh;">
+        <div style="background:linear-gradient(135deg,#1a2238,#1e2a45);border:1px solid #1e3a5a;border-radius:16px;padding:48px 40px;max-width:500px;width:100%;text-align:center;">
+            <div style="font-size:3rem;margin-bottom:12px;">&#x1f510;</div>
+            <div style="font-size:1.5rem;font-weight:700;color:#e0e8f0;margin-bottom:8px;">Security Passphrase Required</div>
+            <div style="color:#6a6474;font-size:0.85rem;margin-bottom:24px;line-height:1.5;">
+            The clinic admin or lead psychologist must enter the master encryption passphrase.<br>
+            This passphrase is <strong>never stored on disk</strong> — it exists only in memory for this session.
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _pp = st.text_input(
+        "Master Passphrase",
+        type="password",
+        placeholder="Enter the clinic's master passphrase...",
+        key="master_passphrase_input",
+    )
+    if st.button("🔓 Unlock Platform", type="primary", use_container_width=True):
+        if _pp and len(_pp) >= 8:
+            try:
+                initialize_encryption(_pp)
+                st.session_state.encryption_ready = is_encryption_ready()
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to initialise encryption: {e}")
+        else:
+            st.error("Passphrase must be at least 8 characters.")
+
+    st.markdown(
+        "<div style='text-align:center;color:#4a5a6a;font-size:0.7rem;margin-top:20px;'>"
+        "This is a one-time entry per session. Closing the app clears the key from memory.</div>",
+        unsafe_allow_html=True,
+    )
+    st.stop()
+
+
 # Sync crisis state from disk on each load
 def _safe(func, default=None, *args, **kwargs):
     try:
@@ -290,18 +335,15 @@ with st.sidebar:
             _cached_warnings = st.session_state.get("_ai_cache_warnings", [])
             _cached_patterns = st.session_state.get("_ai_cache_patterns", "")
             if _cached_briefs:
-                _itabs = st.tabs(["Briefs", "Patterns", "Monitors"])
-                with _itabs[0]:
+                with st.expander("\U0001f4cb Briefs", expanded=True):
                     for _cb in _cached_briefs:
                         if _cb["text"]:
                             st.markdown(f"**{_cb['patient']}**  \n{_cb['text']}")
                             st.divider()
-                with _itabs[1]:
-                    if _cached_patterns:
+                if _cached_patterns:
+                    with st.expander("\U0001f52d Patterns"):
                         st.markdown(_cached_patterns)
-                    else:
-                        st.caption("No patterns yet.")
-                with _itabs[2]:
+                with st.expander("\U0001f6a8 Monitors"):
                     for _w in _cached_warnings:
                         st.warning(_w)
                     if not _cached_warnings:

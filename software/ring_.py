@@ -212,3 +212,161 @@ def get_ring_data_source() -> RingDataSource:
 def set_ring_data_source(source: RingDataSource):
     global _default_ring
     _default_ring = source
+
+
+# ── Hardware SDK / API Connectivity Layer ──────────────
+#
+# To connect a real ring device, either:
+#   1. Implement RingDataSource and call set_ring_data_source()
+#   2. Or run the HTTP API server and push data via POST
+#
+# Example: from your hardware's SDK, call:
+#   POST http://localhost:9090/api/ring-data
+#   {"bpm": 85, "stress": 45, "spo2": 97, "sleep": 6.5, "mood": "calm", ...}
+
+if not hasattr(SensorData, "from_dict"):
+    def _from_dict(cls, data: dict):
+        ts = data.get("timestamp", datetime.now().isoformat())
+        imu_data = data.get("imu", {})
+        imu = IMUData(
+            accel_x=imu_data.get("accel_x", 0.0),
+            accel_y=imu_data.get("accel_y", 0.0),
+            accel_z=imu_data.get("accel_z", 0.0),
+            gyro_x=imu_data.get("gyro_x", 0.0),
+            gyro_y=imu_data.get("gyro_y", 0.0),
+            gyro_z=imu_data.get("gyro_z", 0.0),
+            mag_x=imu_data.get("mag_x", 0.0),
+            mag_y=imu_data.get("mag_y", 0.0),
+            mag_z=imu_data.get("mag_z", 0.0),
+        )
+        return SensorData(
+            timestamp=ts,
+            bpm=data.get("bpm", 72),
+            stress=data.get("stress", 35),
+            sleep=data.get("sleep", 7.0),
+            spo2=data.get("spo2", 97.0),
+            mood=data.get("mood", "neutral"),
+            imu=imu,
+            temperature=data.get("temperature", 36.5),
+        )
+    SensorData.from_dict = classmethod(_from_dict)
+
+
+_HARDWARE_BUFFER: dict[str, SensorData] = {}
+_HARDWARE_LOCK = __import__("threading").Lock()
+
+
+def push_hardware_data(device_id: str, data: dict):
+    """Thread-safe push of ring data from external hardware SDK/API.
+
+    Call this from your hardware SDK callback or HTTP endpoint
+    to inject live sensor readings into the app.
+    """
+    sd = SensorData.from_dict(data)
+    with _HARDWARE_LOCK:
+        _HARDWARE_BUFFER[device_id] = sd
+
+
+class HardwareRingDataSource(RingDataSource):
+    """RingDataSource that reads from the hardware buffer.
+
+    Swap this in with set_ring_data_source(HardwareRingDataSource())
+    to pipe real device data through the existing app.
+    """
+    def __init__(self):
+        self.device_id = ""
+        self.streaming = False
+        self._fallback = SimulatedRing()
+
+    def connect(self, device_id: str) -> bool:
+        self.device_id = device_id
+        return True
+
+    def disconnect(self):
+        self.streaming = False
+
+    def read_sensors(self, intensity: float = 1.0) -> SensorData:
+        with _HARDWARE_LOCK:
+            sd = _HARDWARE_BUFFER.get(self.device_id)
+        if sd is not None:
+            return sd
+        return self._fallback.read_sensors(intensity)
+
+    def start_streaming(self, callback: Callable[[SensorData], None]):
+        self.streaming = True
+        while self.streaming:
+            data = self.read_sensors()
+            callback(data)
+            time.sleep(1.0)
+
+    def stop_streaming(self):
+        self.streaming = False
+
+
+# ── HTTP API Server for Hardware Data (standalone) ─────
+
+def run_ring_api_server(host: str = "0.0.0.0", port: int = 9090):
+    """Start an HTTP server that accepts hardware data via POST.
+
+    Your ring device (or its SDK) can call:
+        POST http://<host>:<port>/api/ring-data
+        Content-Type: application/json
+        {"device_id": "cel", "bpm": 85, "stress": 45, ...}
+
+    This is a lightweight thread-per-request server. For production,
+    use a proper WSGI server or integrate with the main app.
+    """
+    try:
+        from http.server import HTTPServer, BaseHTTPRequestHandler
+        import json as _json
+    except ImportError:
+        print("http.server not available — cannot start API server")
+        return
+
+    class _RingAPIHandler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length) if length else b"{}"
+            try:
+                payload = _json.loads(body)
+                device_id = payload.pop("device_id", "default")
+                push_hardware_data(device_id, payload)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(_json.dumps({"status": "ok", "device_id": device_id}).encode())
+            except Exception as e:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(_json.dumps({"status": "error", "error": str(e)}).encode())
+
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            with _HARDWARE_LOCK:
+                devices = list(_HARDWARE_BUFFER.keys())
+            self.wfile.write(__import__("json").dumps({
+                "status": "ok",
+                "devices": devices,
+                "endpoints": {
+                    "POST /api/ring-data": "Push sensor data",
+                    "GET /api/health": "Health check",
+                },
+                "notes": "Send POST with device_id + sensor fields. See SensorData dataclass for all fields."
+            }).encode())
+
+        def log_message(self, fmt, *args):
+            print(f"[RingAPI] {args[0]} {args[1]} {args[2]}")
+
+    server = HTTPServer((host, port), _RingAPIHandler)
+    print(f"[RingAPI] Server listening on http://{host}:{port}")
+    print(f"[RingAPI] POST /api/ring-data — push hardware sensor data")
+    print(f"[RingAPI] GET  /api/health   — health check")
+    print(f"[RingAPI] To use: from your ring SDK, send JSON to /api/ring-data")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\n[RingAPI] Shutting down.")
+        server.server_close()

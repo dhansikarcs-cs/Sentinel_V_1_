@@ -40,12 +40,7 @@ def render_patient_wellness(username: str):
             all_data[lbl] = safe(get_seeded_history, [], username, m, 24)
         st.dataframe(pd.DataFrame(all_data), height=180, use_container_width=True)
     else:
-        hcols = st.columns([10, 1])
-        with hcols[0]:
-            st.markdown("#### 24h Trends")
-        with hcols[1]:
-            if st.button("\u21ba", key="reset_trends_patient", help="Reset chart zoom"):
-                pass
+        st.markdown("#### 24h Trends")
         trend_cols = st.columns(4)
         trends = [("bpm", "Heart Rate", "#ff6b6b"), ("stress", "Stress", "#ffd93d"), ("sleep", "Sleep", "#6bcbff"), ("spo2", "SpO\u2082", "#6bffb8")]
         for col, (metric, label, color) in zip(trend_cols, trends):

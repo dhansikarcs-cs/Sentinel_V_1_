@@ -55,14 +55,14 @@ def _ensure_migrated():
 
 # ── Patient History Archive ──────────────────────────────
 
-def save_journal_entry(username: str, raw_content: str, summary: str):
+def save_journal_entry(username: str, raw_content: str, summary: str, ai_source: str = "", emotions: str = ""):
     _ensure_migrated()
     encrypted = encrypt_text(raw_content)
     hmac_val = compute_hmac(raw_content)
     with get_db() as db:
         db.execute(
-            "INSERT INTO journal_entries (patient_username, raw_content, summary, hmac, timestamp) VALUES (?, ?, ?, ?, ?)",
-            (username, encrypted, summary, hmac_val, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            "INSERT INTO journal_entries (patient_username, raw_content, summary, hmac, ai_source, emotions, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (username, encrypted, summary, hmac_val, ai_source, emotions, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         )
     log_activity(username, "journal_entry")
 
@@ -71,7 +71,7 @@ def get_patient_history(username: str):
     _ensure_migrated()
     with get_db() as db:
         rows = db.execute(
-            "SELECT raw_content, summary, hmac, timestamp FROM journal_entries WHERE patient_username = ? ORDER BY timestamp ASC",
+            "SELECT raw_content, summary, hmac, ai_source, emotions, timestamp FROM journal_entries WHERE patient_username = ? ORDER BY timestamp ASC",
             (username,)
         ).fetchall()
         result = []
@@ -91,7 +91,7 @@ def get_all_patient_summaries():
     _ensure_migrated()
     with get_db() as db:
         rows = db.execute(
-            "SELECT patient_username, summary, timestamp FROM journal_entries ORDER BY timestamp ASC"
+            "SELECT patient_username, summary, ai_source, emotions, timestamp FROM journal_entries ORDER BY timestamp ASC"
         ).fetchall()
         result = {}
         for r in rows:
@@ -99,7 +99,7 @@ def get_all_patient_summaries():
             patient = d["patient_username"]
             if patient not in result:
                 result[patient] = []
-            result[patient].append({"summary": d["summary"], "timestamp": d["timestamp"]})
+            result[patient].append({"summary": d["summary"], "ai_source": d.get("ai_source", ""), "emotions": d.get("emotions", ""), "timestamp": d["timestamp"]})
         return result
 
 
