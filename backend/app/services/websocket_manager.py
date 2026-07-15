@@ -1,14 +1,11 @@
-"""
-WebSocket manager for real-time dashboard updates.
-Broadcasts crisis alerts, discrepancy flags, and queue reorder events
-to connected psychologist and admin clients.
-"""
+"""WS broadcast for crisis/discrepancy alerts to dashboard clients."""
 
 import json
 from typing import Set
 from fastapi import WebSocket
 
 
+# TODO: replace with Redis pub/sub if we ever go multi-process behind nginx
 class ConnectionManager:
     def __init__(self):
         self._psych_clients: Set[WebSocket] = set()

@@ -1,30 +1,34 @@
 Run ID,Component Tested,Concurrency Load,AI Mode,Input Size (Words/Bytes),Latency (ms),CPU/RAM Peak,Pass/Fail,Notes / Error Caught
-#0001,Discrepancy Detection,1,N/A (rule-based),50 profiles,0.0,86.0% acc,PASS,TP=24 FP=7 TN=19 FN=0 Prec=77% Rec=100%
-#0002,Discrepancy #17,1,N/A,6 words,0.0,N/A,PASS,text='I'm losing my mind with worry...' bpm=69 hrv=71 expected=True got=True
-#0003,Discrepancy #6,1,N/A,6 words,0.0,N/A,PASS,text='What a great morning! So refre...' bpm=128 hrv=16 expected=True got=True
-#0004,Discrepancy #28,1,N/A,5 words,0.0,N/A,PASS,text='Had a good therapy session...' bpm=72 hrv=71 expected=False got=False
-#0005,Crisis Engine,1,N/A,1 concurrent,101.3,0 dropped threads,PASS,Stage2 fired=0/1 (none expected before ack)
-#0006,Crisis Engine,5,N/A,5 concurrent,101.9,0 dropped threads,PASS,Stage2 fired=0/5 (none expected before ack)
-#0007,Crisis Engine,10,N/A,10 concurrent,103.2,0 dropped threads,PASS,Stage2 fired=0/10 (none expected before ack)
-#0008,Crisis Engine,25,N/A,25 concurrent,106.9,0 dropped threads,PASS,Stage2 fired=0/25 (none expected before ack)
-#0009,Halt Protocol,1,N/A (compressed),ack @ 15 sim-s,750.0,s2=n s3=n,PASS,halt_sim_elapsed=15.0s
-#0010,Halt Protocol,1,N/A (compressed),ack @ 45 sim-s,2250.0,s2=y s3=n,PASS,halt_sim_elapsed=45.0s
-#0011,Halt Protocol,1,N/A (compressed),ack @ 65 sim-s,3250.0,s2=y s3=y,PASS,halt_sim_elapsed=65.0s
-#0012,JSON Storage (unencrypted),1,N/A,10 profiles | 2.7KB,22.0,2.7KB,PASS,write=4.4ms read=17.7ms
-#0013,JSON Storage (encrypted),1,N/A,10 profiles | 3.5KB,20.5,3.5KB,PASS,write=5.1ms read=15.4ms overhead=100%
-#0014,SQLite Storage,1,N/A,10 profiles | 12.0KB,39.1,12.0KB,PASS,write=26.6ms read=12.4ms
-#0015,JSON Storage (unencrypted),1,N/A,50 profiles | 13.5KB,32.4,13.5KB,PASS,write=11.3ms read=21.2ms
-#0016,JSON Storage (encrypted),1,N/A,50 profiles | 17.3KB,34.0,17.3KB,PASS,write=12.3ms read=21.6ms overhead=100%
-#0017,SQLite Storage,1,N/A,50 profiles | 12.0KB,50.6,12.0KB,PASS,write=38.1ms read=12.5ms
-#0018,JSON Storage (unencrypted),1,N/A,100 profiles | 27.0KB,36.8,27.0KB,PASS,write=21.2ms read=15.6ms
-#0019,JSON Storage (encrypted),1,N/A,100 profiles | 34.5KB,45.2,34.5KB,PASS,write=20.4ms read=24.8ms overhead=100%
-#0020,SQLite Storage,1,N/A,100 profiles | 20.0KB,61.7,20.0KB,PASS,write=48.8ms read=13.0ms
-#0021,JSON Storage (unencrypted),1,N/A,500 profiles | 135.0KB,119.0,135.0KB,PASS,write=95.5ms read=23.5ms
-#0022,JSON Storage (encrypted),1,N/A,500 profiles | 172.3KB,127.0,172.3KB,PASS,write=96.6ms read=30.4ms overhead=100%
-#0023,SQLite Storage,1,N/A,500 profiles | 64.0KB,202.3,64.0KB,PASS,write=176.1ms read=26.2ms
-#0024,JSON Concurrent Writes,10,N/A,100 profiles (10 threads x 10 each),45.6,0 errors,PASS,"10 threads, 45.6ms total"
-#0025,AI Summarizer,1,Mock,100w (40 entries),50.3,N/A,PASS,avg 50.3ms/100w
-#0026,AI Summarizer,1,Mock,250w (5 entries),50.8,N/A,PASS,avg 50.8ms/250w
-#0027,AI Summarizer,1,Mock,500w (5 entries),51.1,N/A,PASS,avg 51.1ms/500w
-#0028,AI Summarizer,1,Ollama (Mistral),N/A (not running),0.0,N/A,FAIL,Ollama not available on this host
-#0029,AI Summarizer,1,Groq Cloud,N/A (no key),0.0,N/A,FAIL,Set GROQ_API_KEY env var to enable
+#0001,Discrepancy Detection,1,N/A (rule-based),10 profiles,0.0,100.0% acc,PASS,TP=10 FP=0 TN=0 FN=0 Prec=100% Rec=100%
+#0002,Discrepancy #1,1,N/A,4 words,0.0,N/A,PASS,text='I feel great today...' bpm=130 hrv=15 expected=True got=True
+#0003,Discrepancy #7,1,N/A,8 words,0.0,N/A,PASS,text='I'm so happy I could dance all...' bpm=142 hrv=11 expected=True got=True
+#0004,Discrepancy #5,1,N/A,6 words,0.0,N/A,PASS,text='Feeling fantastic and full of ...' bpm=135 hrv=14 expected=True got=True
+#0005,Crisis Engine,1,N/A,1 concurrent,101.6,0 dropped threads,PASS,Stage2 fired=0/1 (none expected before ack)
+#0006,Crisis Engine,5,N/A,5 concurrent,102.1,0 dropped threads,PASS,Stage2 fired=0/5 (none expected before ack)
+#0007,Halt Protocol,1,N/A (compressed),ack @ 15 sim-s,750.0,s2=n s3=n,PASS,halt_sim_elapsed=15.0s
+#0008,Halt Protocol,1,N/A (compressed),ack @ 45 sim-s,2250.0,s2=y s3=n,PASS,halt_sim_elapsed=45.0s
+#0009,Halt Protocol,1,N/A (compressed),ack @ 65 sim-s,3250.0,s2=y s3=y,PASS,halt_sim_elapsed=65.0s
+#0010,JSON Storage (unencrypted),1,N/A,10 profiles | 2.7KB,16.4,2.7KB,PASS,write=2.5ms read=14.0ms
+#0011,JSON Storage (encrypted),1,N/A,10 profiles | 3.5KB,36.2,3.5KB,PASS,write=5.5ms read=30.7ms overhead=100%
+#0012,SQLite Storage,1,N/A,10 profiles | 12.0KB,48.2,12.0KB,PASS,write=30.8ms read=17.3ms
+#0013,JSON Storage (unencrypted),1,N/A,50 profiles | 13.5KB,27.2,13.5KB,PASS,write=10.1ms read=17.0ms
+#0014,JSON Storage (encrypted),1,N/A,50 profiles | 17.3KB,33.2,17.3KB,PASS,write=11.2ms read=22.0ms overhead=100%
+#0015,SQLite Storage,1,N/A,50 profiles | 12.0KB,48.0,12.0KB,PASS,write=37.3ms read=10.7ms
+#0016,JSON Concurrent Writes,10,N/A,100 profiles (10 threads x 10 each),56.1,0 errors,PASS,"10 threads, 56.1ms total"
+#0017,AI Summarizer,1,Mock,100w (6 entries),50.5,N/A,PASS,avg 50.5ms/100w
+#0018,AI Summarizer,1,Mock,250w (2 entries),51.1,N/A,PASS,avg 51.1ms/250w
+#0019,AI Summarizer,1,Mock,500w (2 entries),51.4,N/A,PASS,avg 51.4ms/500w
+#0020,AI Summarizer,1,Ollama (Mistral),N/A (not running),0.0,N/A,FAIL,Ollama not available on this host
+#0021,AI Summarizer,1,Groq Cloud,N/A (no key),0.0,N/A,FAIL,Set GROQ_API_KEY env var to enable
+#0022,PBKDF2 Key Derivation,1,N/A,100000 iterations,27.1,N/A,PASS,derive=27.1ms encrypt=0.3ms decrypt=0.2ms
+#0023,PBKDF2 Key Derivation,1,N/A,600000 iterations,167.9,N/A,PASS,derive=167.9ms encrypt=0.2ms decrypt=0.2ms
+#0024,Fernet Crypto Overhead,1,N/A,100B to 228B,0.4,+128B,PASS,enc=0.160ms dec=0.224ms overhead=128B
+#0025,Fernet Crypto Overhead,1,N/A,1000B to 1420B,0.4,+420B,PASS,enc=0.171ms dec=0.182ms overhead=420B
+#0026,Fernet Crypto Overhead,1,N/A,10000B to 13432B,0.5,+3432B,PASS,enc=0.241ms dec=0.229ms overhead=3432B
+#0027,JWT Auth Handshake,1,N/A,64B claims payload,16.2,287B token,PASS,encode=15.646ms decode=0.521ms token=287B
+#0028,JWT Auth Handshake,1,N/A,256B claims payload,0.5,543B token,PASS,encode=0.214ms decode=0.278ms token=543B
+#0029,JWT Auth Handshake,1,N/A,1024B claims payload,0.5,1567B token,PASS,encode=0.231ms decode=0.315ms token=1567B
+#0030,Full Crypto Round-Trip (600K iter),1,N/A,derive+enc+dec,167.6,N/A,PASS,derive=167.1ms encrypt=0.3ms decrypt=0.2ms
+#0031,Encrypted Payload Overhead,1,N/A,100B plaintext,0.3,228B ct,PASS,enc=0.162ms dec=0.178ms total=0.340ms
+#0032,Encrypted Payload Overhead,1,N/A,1000B plaintext,0.3,1420B ct,PASS,enc=0.161ms dec=0.168ms total=0.329ms
+#0033,Encrypted Payload Overhead,1,N/A,10000B plaintext,0.7,13432B ct,PASS,enc=0.341ms dec=0.359ms total=0.701ms

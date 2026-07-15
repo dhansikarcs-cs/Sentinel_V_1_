@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.crisis import CrisisState, CrisisLog
 from app.schemas.crisis import CrisisStateResponse, CrisisRiskResponse, CrisisLogResponse, RiskAssessmentRequest
 from app.services.ai_service import assess_crisis_risk
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/crisis", tags=["crisis"])
 
@@ -23,7 +24,7 @@ def _get_or_create_state(db: Session) -> CrisisState:
 
 
 @router.get("/state", response_model=CrisisStateResponse)
-def get_crisis_state(db: Session = Depends(get_db)):
+def get_crisis_state(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     state = _get_or_create_state(db)
     return CrisisStateResponse(
         active=bool(state.active),
@@ -56,6 +57,7 @@ def trigger_crisis(user: User = Depends(get_current_user), db: Session = Depends
     log = CrisisLog(event="triggered", patient=user.username, timestamp=now, source=user.role)
     db.add(log)
     db.commit()
+    log_audit("crisis_triggered", user=user.username, role=user.role, action="trigger", severity="HIGH", status="success", db=db)
     return {"message": "Crisis triggered"}
 
 
@@ -71,6 +73,7 @@ def acknowledge_crisis(user: User = Depends(require_role("psychologist")), db: S
     log = CrisisLog(event="acknowledged", patient=state.patient_username, timestamp=now, source=user.username)
     db.add(log)
     db.commit()
+    log_audit("crisis_acknowledged", user=user.username, role=user.role, action="acknowledge", severity="HIGH", status="success", resource=state.patient_username, db=db)
     return {"message": "Crisis acknowledged"}
 
 
@@ -97,16 +100,17 @@ def resolve_crisis(user: User = Depends(require_role("psychologist")), db: Sessi
     state.helpline_ack_emailed = 0
     db.add(log)
     db.commit()
+    log_audit("crisis_resolved", user=user.username, role=user.role, action="resolve", severity="HIGH", status="success", resource=patient, db=db)
     return {"message": "Crisis resolved"}
 
 
 @router.post("/assess-risk", response_model=CrisisRiskResponse)
-def assess_risk(req: RiskAssessmentRequest, db: Session = Depends(get_db)):
+def assess_risk(req: RiskAssessmentRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     result = assess_crisis_risk(req.text)
     return CrisisRiskResponse(**result)
 
 
 @router.get("/log", response_model=list[CrisisLogResponse])
-def get_crisis_log(db: Session = Depends(get_db)):
+def get_crisis_log(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     logs = db.query(CrisisLog).order_by(CrisisLog.timestamp.desc()).limit(50).all()
     return logs

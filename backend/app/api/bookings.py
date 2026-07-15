@@ -7,6 +7,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.user import User
 from app.models.booking import Booking, PsychAvailability
 from app.schemas.booking import BookingCreate, BookingResponse, BookingUpdate, AvailabilityCreate
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -28,6 +29,7 @@ def create_booking(entry: BookingCreate, user: User = Depends(require_role("pati
     db.add(booking)
     db.commit()
     db.refresh(booking)
+    log_audit("booking_created", user=user.username, role=user.role, action="create_booking", severity="INFO", status="success", resource=str(booking.id), details=f"with {entry.psychologist_username} on {entry.date}", db=db)
     return booking
 
 
@@ -47,6 +49,7 @@ def update_booking_status(booking_id: int, update: BookingUpdate, user: User = D
         return {"error": "Not found"}
     booking.status = update.status
     db.commit()
+    log_audit("booking_status_updated", user=user.username, role=user.role, action="update_booking", severity="INFO", status="success", resource=str(booking_id), details=f"status={update.status}", db=db)
     return {"message": "Updated"}
 
 

@@ -6,6 +6,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.user import User
 from app.models.journal import JournalEntry
 from app.models.clinical_note import ClinicalNote
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/psychologists", tags=["psychologists"])
 
@@ -46,6 +47,7 @@ def save_clinical_note(patient_username: str, raw_notes: str, user: User = Depen
     )
     db.add(note)
     db.commit()
+    log_audit("clinical_note_saved", user=user.username, role=user.role, action="save_note", severity="INFO", status="success", resource=patient_username, db=db)
     return {"message": "Saved"}
 
 

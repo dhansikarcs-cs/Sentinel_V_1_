@@ -1,15 +1,15 @@
-from pydantic import BaseModel
-from typing import Optional
+from typing import Literal
+from pydantic import BaseModel, Field
 
 
 class BookingCreate(BaseModel):
-    psychologist_username: str
-    date: str
-    time: str
-    session_type: str = ""
-    members: str = ""
-    contact: str = ""
-    explanation: str = ""
+    psychologist_username: str = Field(min_length=1, max_length=50)
+    date: str = Field(min_length=10, max_length=10)
+    time: str = Field(min_length=1, max_length=10)
+    session_type: str = Field(default="", max_length=50)
+    members: str = Field(default="", max_length=200)
+    contact: str = Field(default="", max_length=200)
+    explanation: str = Field(default="", max_length=2000)
 
 
 class BookingResponse(BaseModel):
@@ -27,7 +27,7 @@ class BookingResponse(BaseModel):
 
 
 class BookingUpdate(BaseModel):
-    status: str
+    status: Literal["Pending", "Approved", "Rejected", "Cancelled"]
 
 
 class AvailabilityCreate(BaseModel):

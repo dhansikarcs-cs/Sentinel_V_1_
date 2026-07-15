@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
 class JournalCreate(BaseModel):
-    raw_content: str
+    raw_content: str = Field(min_length=1, max_length=10000)
 
 
 class JournalResponse(BaseModel):

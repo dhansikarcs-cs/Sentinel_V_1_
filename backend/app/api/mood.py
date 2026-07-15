@@ -7,6 +7,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.user import User
 from app.models.mood import MoodLog
 from app.schemas.mood import MoodCreate, MoodResponse
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/mood", tags=["mood"])
 
@@ -23,6 +24,7 @@ def log_mood(entry: MoodCreate, user: User = Depends(require_role("patient")), d
     db.add(mood)
     db.commit()
     db.refresh(mood)
+    log_audit("mood_logged", user=user.username, role=user.role, action="log_mood", severity="INFO", status="success", details=f"{entry.emoji} ({entry.label})", db=db)
     return mood
 
 

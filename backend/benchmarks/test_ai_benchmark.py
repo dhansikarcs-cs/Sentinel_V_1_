@@ -1,7 +1,4 @@
-"""
-Test 4: Groq Cloud vs Local Ollama Performance Benchmark.
-Sends identical journal entries to both providers, logs TTFT, total latency, resource impact.
-"""
+"""AI provider benchmark — Mock/Ollama/Groq TTFT + total latency."""
 
 import time, sys, os, json, threading
 from datetime import datetime, timezone

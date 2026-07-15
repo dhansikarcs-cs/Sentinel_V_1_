@@ -1,8 +1,4 @@
-"""
-Discrepancy detection endpoint.
-Receives journal text + biometric data, runs deterministic check,
-logs result, and broadcasts alerts to connected psychologist dashboards.
-"""
+"""Text-biometric mismatch detection + WS broadcast."""
 
 import time
 from fastapi import APIRouter, Depends
@@ -13,6 +9,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.services.websocket_manager import manager
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/discrepancy", tags=["discrepancy"])
 
@@ -77,6 +74,7 @@ def _detect(text: str, bpm: int, hrv: int) -> tuple:
 async def check_discrepancy(
     req: DiscrepancyRequest,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     detected, sentiment, bio_state, ms = _detect(req.journal_text, req.bpm, req.hrv)
     alert_sent = False
@@ -91,6 +89,8 @@ async def check_discrepancy(
             "processing_ms": round(ms, 2),
         })
         alert_sent = True
+
+    log_audit("discrepancy_check", user=user.username, role=user.role, action="check_discrepancy", severity="HIGH" if detected else "INFO", status="success", details=f"sentiment={sentiment}, bio={bio_state}, detected={detected}", db=db)
 
     return DiscrepancyResponse(
         discrepancy_detected=detected,

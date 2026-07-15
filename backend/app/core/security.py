@@ -37,6 +37,7 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
+# TODO: swap PBKDF2 for Argon2id once the Samsung SFT funding lands
 # ── Encryption (passphrase-derived) ──
 
 _MASTER_KEY: Optional[bytes] = None
@@ -100,4 +101,8 @@ def compute_hmac(data: str) -> str:
 
 
 def verify_hmac(data: str, hmac_val: str) -> bool:
-    return compute_hmac(data) == hmac_val
+    import hmac as hmac_mod
+    if not _HMAC_KEY:
+        return False
+    expected = compute_hmac(data)
+    return hmac_mod.compare_digest(expected, hmac_val)

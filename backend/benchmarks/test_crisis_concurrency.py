@@ -1,7 +1,4 @@
-"""
-Test 2: Crisis Engine Concurrency & Deterministic Timing Loops
-Uses TIME_FACTOR to compress 60s real-time into ~3s for benchmarks.
-"""
+"""Crisis concurrency stress test — compressed-time stage transitions."""
 
 import time, threading, sys, os, random
 from datetime import datetime, timezone

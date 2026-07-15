@@ -7,6 +7,7 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.ring import RingSensorLog
 from app.schemas.ring import SensorDataCreate, SensorDataResponse
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/ring", tags=["ring"])
 
@@ -26,6 +27,7 @@ def push_sensor_data(data: SensorDataCreate, user: User = Depends(get_current_us
     db.add(log)
     db.commit()
     db.refresh(log)
+    log_audit("sensor_data_pushed", user=user.username, role=user.role, action="push_sensor_data", severity="INFO", status="success", details=f"bpm={data.bpm}, stress={data.stress}", db=db)
     return log
 
 

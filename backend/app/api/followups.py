@@ -8,6 +8,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.user import User
 from app.models.followup import FollowupTask
 from app.schemas.followup import FollowupCreate, FollowupUpdate, FollowupResponse
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/followups", tags=["followups"])
 
@@ -26,6 +27,7 @@ def create_followup(entry: FollowupCreate, user: User = Depends(require_role("ps
     db.add(task)
     db.commit()
     db.refresh(task)
+    log_audit("followup_created", user=user.username, role=user.role, action="create_followup", severity="INFO", status="success", resource=task.id, details=f"patient={entry.patient_username}, title={entry.title}", db=db)
     return task
 
 
@@ -51,4 +53,5 @@ def update_followup(task_id: str, update: FollowupUpdate, user: User = Depends(g
         task.grade = update.grade
     db.commit()
     db.refresh(task)
+    log_audit("followup_updated", user=user.username, role=user.role, action="update_followup", severity="INFO", status="success", resource=task_id, details=f"status={update.status}, grade={update.grade}", db=db)
     return task

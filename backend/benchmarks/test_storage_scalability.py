@@ -1,6 +1,4 @@
-"""
-Test 3: File-Based JSON Read/Write Scalability + SQLite comparison.
-"""
+"""JSON vs SQLite I/O benchmarks — 10/50/100/500 profiles."""
 import time, json, os, sys, tempfile, threading, shutil
 from pathlib import Path
 from cryptography.fernet import Fernet

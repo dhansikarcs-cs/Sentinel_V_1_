@@ -1,11 +1,7 @@
-"""
-Master benchmark runner.
-Orchestrates all tests, generates CSV logbook at IRIS-judge-ready format.
+"""Benchmark orchestrator — generates IRIS-ready CSV logbook.
 
-Usage:
-    python -m benchmarks.runner              # full suite
-    python -m benchmarks.runner --quick       # minimal subset for dev iteration
-    python -m benchmarks.runner --csv out.csv  # custom output path
+Usage: python -m benchmarks.runner [--quick] [--csv out.csv]
+TODO: wire into CI pipeline — fail on regressions beyond 5% threshold
 """
 
 import sys, os, time, json, argparse, csv, tracemalloc
@@ -19,6 +15,7 @@ from benchmarks.test_discrepancy import run_discrepancy_tests
 from benchmarks.test_crisis_concurrency import run_crisis_concurrency_tests
 from benchmarks.test_storage_scalability import run_storage_benchmarks
 from benchmarks.test_ai_benchmark import run_ai_benchmarks
+from benchmarks.test_security import run_security_benchmarks
 
 LOGBOOK_HEADERS = [
     "Run ID", "Component Tested", "Concurrency Load", "AI Mode",
@@ -83,6 +80,10 @@ def main():
     # 4. AI Benchmark (Groq vs Ollama stubs)
     print("\n>>> [4/4] AI Provider Benchmark")
     run_ai_benchmarks(log, quick=args.quick)
+
+    # 5. Security Benchmark (PBKDF2, crypto overhead, JWT auth)
+    print("\n>>> [5/4] Security Benchmark")
+    run_security_benchmarks(log, quick=args.quick)
 
     write_csv(csv_path)
 

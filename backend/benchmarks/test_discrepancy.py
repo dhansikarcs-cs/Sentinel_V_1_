@@ -1,7 +1,4 @@
-"""
-Test 1: Automated Discrepancy Detection & Alert Latency
-Sends 50 diverse journal+biometric payloads to FastAPI, logs TP/FP/FN/TN.
-"""
+"""Discrepancy detection — 50 profiles, logs TP/FP/FN/TN."""
 
 import time, json, urllib.request, urllib.error, sys, os, subprocess
 from datetime import datetime, timezone

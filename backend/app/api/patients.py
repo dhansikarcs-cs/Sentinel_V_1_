@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -9,6 +9,7 @@ from app.models.journal import JournalEntry
 from app.models.mood import MoodLog
 from app.models.followup import FollowupTask
 from app.models.ring import RingSensorLog
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
@@ -40,8 +41,14 @@ def get_patient_profile(username: str, db: Session = Depends(get_db)):
     }
 
 
+def _owns_or_psych(username: str, user: User, db: Session) -> bool:
+    return user.username == username or user.role == "psychologist"
+
+
 @router.get("/{username}/summary")
 def get_patient_summary(username: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not _owns_or_psych(username, user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     journals = db.query(JournalEntry).filter(JournalEntry.patient_username == username).order_by(JournalEntry.timestamp.desc()).limit(10).all()
     moods = db.query(MoodLog).filter(MoodLog.patient_username == username).order_by(MoodLog.timestamp.desc()).limit(7).all()
     ring_data = db.query(RingSensorLog).filter(RingSensorLog.patient_username == username).order_by(RingSensorLog.logged_at.desc()).first()
@@ -68,4 +75,5 @@ def update_contact(update: ContactUpdate, user: User = Depends(get_current_user)
         if update.trusted_contact:
             db_user.trusted_contact = update.trusted_contact
         db.commit()
+        log_audit("contact_updated", user=user.username, role=user.role, action="update_contact", severity="INFO", status="success", details=f"trusted_contact={'set' if update.trusted_contact else 'unchanged'}", db=db)
     return {"message": "Updated"}

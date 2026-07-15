@@ -14,5 +14,5 @@ class RingSensorLog(Base):
     sleep_hours = Column(Float, default=0)
     spo2 = Column(Float, default=0)
     hrv = Column(Integer, default=0)
-    raw_json = Column(Text, default="")
+    raw_json = Column(Text, default="")  # FIXME: normalize into structured columns when ring firmware v2 ships
     logged_at = Column(String, nullable=False)

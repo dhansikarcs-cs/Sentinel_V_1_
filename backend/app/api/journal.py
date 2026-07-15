@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.journal import JournalEntry
 from app.schemas.journal import JournalCreate, JournalResponse
 from app.services.ai_service import summarize_journal
+from app.services.audit import log_audit
 
 router = APIRouter(prefix="/journal", tags=["journal"])
 
@@ -26,6 +27,7 @@ def create_journal(entry: JournalCreate, user: User = Depends(require_role("pati
     db.add(journal)
     db.commit()
     db.refresh(journal)
+    log_audit("journal_created", user=user.username, role=user.role, action="create_journal", severity="INFO", status="success", resource=str(journal.id), db=db)
     return journal
 
 
@@ -38,12 +40,14 @@ def get_journals(user: User = Depends(get_current_user), db: Session = Depends(g
 @router.get("/{username}", response_model=list[JournalResponse])
 def get_patient_journals(username: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
     journals = db.query(JournalEntry).filter(JournalEntry.patient_username == username).order_by(JournalEntry.timestamp.desc()).all()
+    log_audit("journal_viewed", user=user.username, role=user.role, action="view_journals", severity="INFO", status="success", resource=username, db=db)
     return journals
 
 
 @router.get("/{username}/summaries")
 def get_patient_summaries(username: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
     entries = db.query(JournalEntry).filter(JournalEntry.patient_username == username).order_by(JournalEntry.timestamp.desc()).limit(20).all()
+    log_audit("journal_summaries_viewed", user=user.username, role=user.role, action="view_summaries", severity="INFO", status="success", resource=username, db=db)
     return [
         {"id": e.id, "summary": e.summary, "ai_source": e.ai_source, "emotions": e.emotions, "timestamp": e.timestamp}
         for e in entries
