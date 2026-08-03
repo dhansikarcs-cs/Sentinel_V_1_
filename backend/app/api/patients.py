@@ -157,12 +157,7 @@ def get_patient_overview(username: str, user: User = Depends(get_current_user), 
     clinical_brief = None
     if ctx.journals:
         j = ctx.journals[0]
-        ai = (
-            db.query(AIAnalysis)
-            .filter(AIAnalysis.journal_id == j.id)
-            .order_by(AIAnalysis.created_at.desc())
-            .first()
-        )
+        ai = db.query(AIAnalysis).filter(AIAnalysis.journal_id == j.id).order_by(AIAnalysis.created_at.desc()).first()
         clinical_brief = {
             "journal_id": j.id,
             "summary": j.summary or "",
