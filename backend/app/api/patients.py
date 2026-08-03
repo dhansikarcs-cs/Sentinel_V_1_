@@ -10,6 +10,8 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.input_validator import validate_file_upload
 from app.events import get_event_bus
+from app.ml.crisis_policy import CRISIS_POLICY
+from app.models.ai_analysis import AIAnalysis
 from app.models.crisis import CrisisState
 from app.models.journal import JournalEntry
 from app.models.mood import MoodLog
@@ -155,6 +157,12 @@ def get_patient_overview(username: str, user: User = Depends(get_current_user), 
     clinical_brief = None
     if ctx.journals:
         j = ctx.journals[0]
+        ai = (
+            db.query(AIAnalysis)
+            .filter(AIAnalysis.journal_id == j.id)
+            .order_by(AIAnalysis.created_at.desc())
+            .first()
+        )
         clinical_brief = {
             "journal_id": j.id,
             "summary": j.summary or "",
@@ -162,6 +170,14 @@ def get_patient_overview(username: str, user: User = Depends(get_current_user), 
             "emotions": j.emotions or "",
             "ai_source": j.ai_source or "",
             "timestamp": j.timestamp,
+            "ai_analysis": {
+                "provider": ai.provider if ai else "",
+                "confidence": ai.confidence if ai else 0.0,
+                "model_version": ai.model_version if ai else "",
+                "prompt_version": ai.prompt_version if ai else "",
+                "priority": ai.priority if ai else "",
+                "explanation": ai.explanation if ai else "",
+            },
         }
 
     followup_list = [
@@ -246,7 +262,7 @@ def get_patient_overview(username: str, user: User = Depends(get_current_user), 
         alerts.append("Active crisis — acknowledge or escalate immediately")
     if risk and risk["triggered"]:
         alerts.append(f"AI flagged crisis-level risk ({risk['risk_score']}/10)")
-    elif risk and risk["risk_score"] >= 7:
+    elif risk and CRISIS_POLICY.should_elevate_alert(risk["risk_score"]):
         alerts.append(f"Elevated risk score ({risk['risk_score']}/10) — review latest journal")
     if followup_progress["pending"] > 0:
         alerts.append(f"{followup_progress['pending']} pending homework task(s)")

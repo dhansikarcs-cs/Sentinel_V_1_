@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from app.ml.crisis_policy import CRISIS_POLICY
+
 EMOTION_RISK_WEIGHTS: dict[str, float] = {
     "fear": 1.8,
     "sadness": 1.5,
@@ -175,7 +177,7 @@ def assess_risk_with_explainability(text: str, emotion_probs: dict[str, float] |
 
     return {
         "risk_score": risk_score,
-        "triggered": risk_score >= 8,
+        "triggered": risk_score >= CRISIS_POLICY.auto_trigger_threshold,
         "reasoning": reasoning,
         "emotions": ", ".join(top_emotions) if top_emotions else "neutral",
         "emotion_probabilities": emotion_probs,
@@ -277,7 +279,7 @@ def assess_risk_with_history(
     original_score = base_result["risk_score"]
     new_score = min(10, round(original_score * trend_multiplier))
     base_result["risk_score"] = new_score
-    base_result["triggered"] = new_score >= 8
+    base_result["triggered"] = new_score >= CRISIS_POLICY.auto_trigger_threshold
 
     if trend_notes:
         explanation = base_result.get("explainability", {})

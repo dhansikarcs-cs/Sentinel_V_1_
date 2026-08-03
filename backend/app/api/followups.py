@@ -64,12 +64,16 @@ def update_followup(
     task = repo.get_by_id(task_id)
     if not task:
         return {"error": "Not found"}
+    now = datetime.now(UTC).isoformat()
     if update.status:
         task.status = update.status
         if update.status == "completed":
-            task.completed_at = datetime.now(UTC).isoformat()
-    if update.grade:
+            task.completed_at = now
+    if "grade" in update.model_fields_set and update.grade:
         task.grade = update.grade
+        if user.role == "psychologist":
+            task.approved_by = user.username
+            task.approved_at = now
     db.commit()
     db.refresh(task)
     get_event_bus().emit(

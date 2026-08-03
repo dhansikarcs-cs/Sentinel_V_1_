@@ -10,6 +10,7 @@ class AIAnalysisCreate(BaseModel):
     confidence: float = 0.0
     explanation: str = ""
     provider: str = "rule"
+    prompt_version: str = ""
 
 
 class AIAnalysisResponse(BaseModel):
@@ -23,6 +24,7 @@ class AIAnalysisResponse(BaseModel):
     explanation: str
     provider: str
     model_version: str
+    prompt_version: str = ""
     created_at: str
 
     class Config:

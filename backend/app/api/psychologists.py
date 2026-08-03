@@ -40,20 +40,44 @@ def get_available_psychologists(clinic: str = "", db: Session = Depends(get_db))
 def save_clinical_note(
     patient_username: str,
     raw_notes: str,
+    approved: bool = False,
     user: User = Depends(require_role("psychologist")),
     db: Session = Depends(get_db),
 ):
+    now = datetime.now(UTC).isoformat()
     note = ClinicalNote(
         psychologist_username=user.username,
         patient_username=patient_username,
         raw_notes=raw_notes,
         ai_synthesis=raw_notes,
-        timestamp=datetime.now(UTC).isoformat(),
+        timestamp=now,
+        approved_by=user.username if approved else "",
+        approved_at=now if approved else "",
     )
     db.add(note)
     db.commit()
-    get_event_bus().emit("clinical_note:saved", psych=user.username, patient_username=patient_username)
-    return {"message": "Saved"}
+    get_event_bus().emit(
+        "clinical_note:saved",
+        psych=user.username,
+        patient_username=patient_username,
+        approved=approved,
+    )
+    return {"message": "Saved", "id": note.id}
+
+
+@router.put("/notes/{note_id}/approve")
+def approve_clinical_note(
+    note_id: int, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
+    note = db.query(ClinicalNote).filter(ClinicalNote.id == note_id).first()
+    if not note:
+        return {"error": "Not found"}
+    now = datetime.now(UTC).isoformat()
+    note.approved_by = user.username
+    note.approved_at = now
+    db.commit()
+    get_event_bus().emit("clinical_note:approved", psych=user.username, note_id=note_id)
+    return {"message": "Approved", "id": note_id}
 
 
 @router.get("/notes")
@@ -70,6 +94,8 @@ def get_clinical_notes(
             "patient": n.patient_username,
             "ai_synthesis": n.ai_synthesis,
             "timestamp": n.timestamp,
+            "approved_by": n.approved_by,
+            "approved_at": n.approved_at,
         }
         for n in notes
     ]

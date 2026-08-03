@@ -13,6 +13,35 @@ _ollama_last_call = 0.0
 
 _emotion_clf = EmotionClassifier()
 
+CLINICAL_JOURNAL_SUMMARY_PROMPT_V1 = (
+    "You are Sentinel, a clinical documentation AI. Read this journal entry "
+    "and write a brief clinical summary (2-4 sentences)."
+    "{emotion_hint}"
+    " Use clinical tone, third person, past tense. Do not quote verbatim."
+    ' Return valid JSON: {"summary": "..."}.'
+    "\n\nJournal Entry:\n{text}"
+)
+FRIENDLY_JOURNAL_SUMMARY_PROMPT_V1 = (
+    "You are Sentinel, a friendly AI companion, not a therapist. "
+    "Read this journal entry and reply like a warm, supportive friend "
+    "sending a text message (2-4 short sentences)."
+    "{emotion_hint}"
+    " Be casual and conversational, the way a close friend talks. "
+    "You can use playful or affectionate language. "
+    "Do NOT sound clinical, professional, or like a psychologist. "
+    "No advice whatsoever — "
+    "no suggestions, no 'try this', no 'consider that', no 'remember to', "
+    "no coping techniques, no deep breaths. Zero prescription. Just be there for them."
+    ' Return valid JSON: {"summary": "..."}.'
+    "\n\nJournal Entry:\n{text}"
+)
+NOTE_SYNTHESIS_PROMPT_V1 = (
+    "You are Sentinel. Convert these session notes into a structured clinical note "
+    "with Observations, Assessment, and Plan sections. Use precise emotion language "
+    "in the Assessment. Keep it professional but not cold.\n\n"
+    "Session Notes:\n{raw_notes}\n\nStructured Clinical Note:"
+)
+
 
 def _query_ollama(prompt: str, timeout: int = 20) -> str | None:
     global _ollama_last_call
@@ -115,6 +144,7 @@ def summarize_journal(text: str, mode: str = "patient") -> dict:
             "emotions": "",
             "emotion_probabilities": "{}",
             "source": "rule",
+            "prompt_version": "rule",
         }
 
     top_emotions, emotion_probs = classify_emotions_with_probs(text)
@@ -124,29 +154,11 @@ def summarize_journal(text: str, mode: str = "patient") -> dict:
     emotion_hint = f"\nEmotions detected: {emotions_str}." if emotions_str else ""
 
     if mode == "clinical":
-        prompt = (
-            "You are Sentinel, a clinical documentation AI. Read this journal entry "
-            "and write a brief clinical summary (2-4 sentences)."
-            f"{emotion_hint}"
-            " Use clinical tone, third person, past tense. Do not quote verbatim."
-            ' Return valid JSON: {"summary": "..."}.'
-            f"\n\nJournal Entry:\n{text}"
-        )
+        prompt = CLINICAL_JOURNAL_SUMMARY_PROMPT_V1.format(emotion_hint=emotion_hint, text=text)
+        prompt_version = "clinical_journal_summary/v1"
     else:
-        prompt = (
-            "You are Sentinel, a friendly AI companion, not a therapist. "
-            "Read this journal entry and reply like a warm, supportive friend "
-            "sending a text message (2-4 short sentences)."
-            f"{emotion_hint}"
-            " Be casual and conversational, the way a close friend talks. "
-            "You can use playful or affectionate language. "
-            "Do NOT sound clinical, professional, or like a psychologist. "
-            "No advice whatsoever — "
-            "no suggestions, no 'try this', no 'consider that', no 'remember to', "
-            "no coping techniques, no deep breaths. Zero prescription. Just be there for them."
-            ' Return valid JSON: {"summary": "..."}.'
-            f"\n\nJournal Entry:\n{text}"
-        )
+        prompt = FRIENDLY_JOURNAL_SUMMARY_PROMPT_V1.format(emotion_hint=emotion_hint, text=text)
+        prompt_version = "friendly_journal_summary/v1"
 
     raw = _query_ollama(prompt, timeout=15)
     source = "ollama"
@@ -164,6 +176,7 @@ def summarize_journal(text: str, mode: str = "patient") -> dict:
                     "emotions": emotions_str,
                     "emotion_probabilities": emotion_probs_json,
                     "source": "ai",
+                    "prompt_version": prompt_version,
                 }
             except Exception:
                 pass
@@ -179,8 +192,10 @@ def _fallback_summary(text: str, emotions: str = "", emotion_probs_json: str = "
             "emotions": "",
             "emotion_probabilities": "{}",
             "source": "rule",
+            "prompt_version": "rule",
         }
     if mode == "clinical":
+        prompt_version = "clinical_journal_summary/v1"
         summary = (
             f"Observations: Patient reports emotional experiences "
             f"consistent with {emotions if emotions else 'mixed affect'}.\n\n"
@@ -188,6 +203,7 @@ def _fallback_summary(text: str, emotions: str = "", emotion_probs_json: str = "
             f"Plan: Follow-up within standard interval."
         )
     else:
+        prompt_version = "friendly_journal_summary/v1"
         if emotions:
             summary = f"You're feeling {emotions}. That's completely valid — thanks for sharing how you feel."
         else:
@@ -199,6 +215,7 @@ def _fallback_summary(text: str, emotions: str = "", emotion_probs_json: str = "
         "emotions": emotions,
         "emotion_probabilities": emotion_probs_json,
         "source": "rule",
+        "prompt_version": prompt_version,
     }
 
 
@@ -206,12 +223,7 @@ def synthesize_clinical_notes(raw_notes: str) -> str:
     if not raw_notes.strip():
         return "No notes to synthesize."
 
-    prompt = (
-        "You are Sentinel. Convert these session notes into a structured clinical note "
-        "with Observations, Assessment, and Plan sections. Use precise emotion language "
-        "in the Assessment. Keep it professional but not cold.\n\n"
-        f"Session Notes:\n{raw_notes}\n\nStructured Clinical Note:"
-    )
+    prompt = NOTE_SYNTHESIS_PROMPT_V1.format(raw_notes=raw_notes)
 
     result = _query_ai(prompt)
     if result:

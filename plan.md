@@ -231,6 +231,14 @@ Composed from existing services/repositories **only** (reuses Phase 2 builder). 
 
 **Risk:** low-medium. **Effort:** medium.
 
+**Execution notes (committed `refactor(phase6)`):**
+- New `backend/app/ml/crisis_policy.py`: frozen `CrisisPolicy` dataclass — one audited home for every risk threshold (`auto_trigger=8`, `notify=7`, `warn=6`, `elevated_alert=7`, priority bands ≤3/≤6/high) + action messages (notify, auto-trigger, crisis log, WS alerts) + delay constants (`trusted_contact=30`, `helpline_escalation=60`). Helpers: `triage_priority`, `should_auto_trigger`, `should_notify`, `should_warn`, `should_elevate_alert`. Wired into `ai_worker.py`, `risk_engine.py` (`triggered`), and the overview alert in `patients.py`. Tests: `backend/tests/test_crisis_policy.py` (8 passing); pytest registered under `[project.optional-dependencies].dev`.
+- Prompt versioning: named versioned constants for all prompt sites — `CLINICAL_JOURNAL_SUMMARY_PROMPT_V1`/`FRIENDLY_JOURNAL_SUMMARY_PROMPT_V1`/`NOTE_SYNTHESIS_PROMPT_V1` (`ai_service.py`), `SLOT_SUGGESTION_PROMPT_V1`/`DRAFT_FOLLOWUP_PROMPT_V1`/`PRE_SESSION_BRIEF_PROMPT_V1`/`RING_VITALS_RISK_PROMPT_V1`/`CRISIS_DEBRIEF_PROMPT_V1` (`agents.py`); each agent response returns `prompt_version`. `summarize_journal` returns `prompt_version` (also for rule fallback) → persisted on `AIAnalysis.prompt_version` (new column, migration `d0e1c7a9b2f3`).
+- Provenance: `approved_by`/`approved_at` added to `ClinicalNote` + `FollowupTask` (nullable, migration `d0e1c7a9b2f3`). `POST /psychologists/notes` accepts `approved=true`; new `PUT /psychologists/notes/{note_id}/approve`; `GET /psychologists/notes` returns approval fields. `PUT /followups/{id}` records approval when a psychologist sets a grade.
+- Overview card: risk snapshot now renders `algorithm_version` + confidence + explanation; clinical brief renders `ai_analysis` provenance (provider, `prompt_version`, model version, confidence, priority) from the latest `AIAnalysis`.
+- Dev DB note: schema pre-existed without an alembic stamp → stamped to `4ff25c97017e` before applying the new migration.
+- Verified: `ruff check app tests` 0, `python -m pytest tests` 8 passed, `alembic upgrade head` applied, `tsc --noEmit` 0, `vite build` 0, endpoint smoke tests (note save/approve, followup grade approval, overview payload).
+
 ---
 
 ### PHASE 7 — Operations & production maturity (external review's production section)

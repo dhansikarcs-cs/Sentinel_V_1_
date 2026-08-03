@@ -27,6 +27,8 @@ class FollowupResponse(BaseModel):
     grade: str
     assigned_at: str
     completed_at: str = ""
+    approved_by: str = ""
+    approved_at: str = ""
 
     class Config:
         from_attributes = True

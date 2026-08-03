@@ -4,6 +4,7 @@ import logging
 from datetime import UTC, datetime
 
 from app.events import get_event_bus
+from app.ml.crisis_policy import CRISIS_POLICY
 from app.ml.risk_engine import assess_risk_with_history
 from app.services.ai_service import summarize_journal
 
@@ -75,12 +76,7 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
         db.flush()
 
         risk_score = risk.get("risk_score", 0)
-        if risk_score <= 3:
-            priority = "low"
-        elif risk_score <= 6:
-            priority = "medium"
-        else:
-            priority = "high"
+        priority = CRISIS_POLICY.triage_priority(risk_score)
 
         ai_analysis = AIAnalysis(
             journal_id=journal_id,
@@ -92,6 +88,7 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
             explanation=json.dumps(risk.get("explainability", {})),
             provider=patient_result.get("ai_source", "rule"),
             model_version=EMOTION_CLASSIFIER_VERSION,
+            prompt_version=clinical_result.get("prompt_version", "rule"),
             created_at=now,
         )
         db.add(ai_analysis)
@@ -112,18 +109,18 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
         )
         db.add(risk_assessment)
 
-        if risk_score >= 7:
+        if CRISIS_POLICY.should_notify(risk_score):
             notif = Notification(
                 patient_username=patient_username,
                 title="Crisis Risk Detected",
-                message=f"Your recent journal entry flagged a risk score of {risk_score}/10. Your psychologist has been notified.",
+                message=CRISIS_POLICY.notify_message.format(risk_score=risk_score),
                 notification_type="crisis",
                 read=0,
                 sent_at=now,
             )
             db.add(notif)
 
-        if risk.get("triggered", False) and risk_score >= 8:
+        if CRISIS_POLICY.should_auto_trigger(risk_score, risk.get("triggered", False)):
             from app.models.crisis import CrisisLog, CrisisState
 
             existing = db.query(CrisisState).first()
@@ -145,13 +142,15 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
                     patient=patient_username,
                     timestamp=now,
                     source="ai_detection",
-                    details=f"Risk score {risk_score}/10, triggered by AI emotion+keyword analysis",
+                    details=CRISIS_POLICY.crisis_log_details.format(risk_score=risk_score),
                 )
                 db.add(log)
                 notif_psych = Notification(
                     patient_username=patient_username,
                     title="CRITICAL: Auto-Crisis Triggered",
-                    message=f"AI detected crisis-level risk (score {risk_score}/10) in journal #{journal_id}. Crisis protocol activated. Trusted contact will be notified in 30s.",
+                    message=CRISIS_POLICY.auto_trigger_message.format(
+                        risk_score=risk_score, journal_id=journal_id, delay=CRISIS_POLICY.trusted_contact_delay_seconds
+                    ),
                     notification_type="crisis",
                     read=0,
                     sent_at=now,
@@ -167,12 +166,14 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
                         {
                             "patient": patient_username,
                             "risk_score": risk_score,
-                            "message": f"Auto-detected crisis for {patient_username} (risk: {risk_score}/10)",
+                            "message": CRISIS_POLICY.auto_trigger_alert.format(
+                                patient=patient_username, risk_score=risk_score
+                            ),
                             "timestamp": datetime.now(UTC).isoformat(),
                         },
                     )
                 )
-        elif risk_score >= 6:
+        elif CRISIS_POLICY.should_warn(risk_score):
             from app.services.websocket_manager import manager
 
             loop = asyncio.get_event_loop()
@@ -182,7 +183,9 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
                     {
                         "patient": patient_username,
                         "risk_score": risk_score,
-                        "message": f"High risk detected for {patient_username} (risk: {risk_score}/10)",
+                        "message": CRISIS_POLICY.risk_warning_alert.format(
+                            patient=patient_username, risk_score=risk_score
+                        ),
                         "timestamp": datetime.now(UTC).isoformat(),
                     },
                 )

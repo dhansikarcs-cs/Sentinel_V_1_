@@ -32,6 +32,55 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 _triage_cache: dict[str, tuple[float, dict]] = {}
 TRIAGE_CACHE_TTL = 300  # 5 minutes
 
+SLOT_SUGGESTION_PROMPT_V1 = """Patient "{patient_username}" has {bookings} pending booking(s).
+Proposed slots: {slots}.
+
+Give a priority assessment ("low"/"medium"/"high") and urgency score (1-10).
+Return ONLY valid JSON with keys: priority (str), urgency_score (int), reasoning (str)."""
+
+DRAFT_FOLLOWUP_PROMPT_V1 = """Patient "{patient_username}" wrote:
+"{recent_text}"
+
+Suggest follow-up tasks (max 3) based on this journal. Each task should have a title and description.
+Return ONLY valid JSON with keys:
+- tasks: list of {{title: str, description: str}}
+- priority: "low"/"medium"/"high"
+- urgency_score: int 1-10
+- reasoning: str"""
+
+PRE_SESSION_BRIEF_PROMPT_V1 = """Pre-session brief for patient "{patient_username}".
+
+Recent journal excerpts: "{recent_texts}"
+Recent moods: {recent_moods}
+Mood trend: {mood_trend}
+Avg BPM: {avg_bpm}
+Completed tasks: {completed_followups}
+Pending tasks: {pending_followups}
+
+Return ONLY valid JSON with: concerns (list of str), summary (str), suggested_focus (str).
+Keep summary to 2-3 sentences suitable for a psychologist's pre-session review."""
+
+RING_VITALS_RISK_PROMPT_V1 = """Vitals risk assessment for patient:
+Heart rate: {bpm} BPM
+Stress: {stress}
+Sleep: {sleep}h
+SpO2: {spo2}%
+
+Return ONLY valid JSON with: risk ("low"/"medium"/"high"), flags (list of str), recommendation (str)."""
+
+CRISIS_DEBRIEF_PROMPT_V1 = """Crisis debrief for patient "{patient_username}".
+
+Trigger text: "{trigger}"
+Heart rate: {bpm} BPM
+Stress: {stress}
+
+Provide a structured debrief for the psychologist. Return ONLY valid JSON with:
+- severity: "low"/"moderate"/"high"/"critical"
+- likely_triggers: list of str
+- recommended_interventions: list of str
+- debrief_note: str (1-2 paragraph clinical note)
+- follow_up_plan: str"""
+
 
 class TriageSummaryRequest(BaseModel):
     patient_username: str
@@ -110,6 +159,7 @@ def triage_summary(
         "recent_mood": recent_mood,
         "bpm": bpm,
         "stress": stress,
+        "prompt_version": "triage/v1",
     }
     _triage_cache[cache_key] = (time.time(), result)
     return result
@@ -149,11 +199,11 @@ def suggest_slots(
         .count()
     )
 
-    prompt = f"""Patient "{req.patient_username}" has {bookings} pending booking(s).
-Proposed slots: {json.dumps([s["label"] for s in selected])}.
-
-Give a priority assessment ("low"/"medium"/"high") and urgency score (1-10).
-Return ONLY valid JSON with keys: priority (str), urgency_score (int), reasoning (str)."""
+    prompt = SLOT_SUGGESTION_PROMPT_V1.format(
+        patient_username=req.patient_username,
+        bookings=bookings,
+        slots=json.dumps([s["label"] for s in selected]),
+    )
 
     ai = _query_ai(prompt)
     try:
@@ -172,6 +222,7 @@ Return ONLY valid JSON with keys: priority (str), urgency_score (int), reasoning
         "urgency_score": data.get("urgency_score", 0),
         "workload": {"pending_bookings": bookings},
         "reasoning": data.get("reasoning", f"Suggested {len(selected)} slots."),
+        "prompt_version": "slot_suggestion/v1",
     }
 
 
@@ -184,15 +235,10 @@ def draft_followup(
 
     recent_text = ctx.recent_text(500)
 
-    prompt = f"""Patient "{req.patient_username}" wrote:
-"{recent_text}"
-
-Suggest follow-up tasks (max 3) based on this journal. Each task should have a title and description.
-Return ONLY valid JSON with keys:
-- tasks: list of {{title: str, description: str}}
-- priority: "low"/"medium"/"high"
-- urgency_score: int 1-10
-- reasoning: str"""
+    prompt = DRAFT_FOLLOWUP_PROMPT_V1.format(
+        patient_username=req.patient_username,
+        recent_text=recent_text,
+    )
 
     ai = _query_ai(prompt)
     try:
@@ -212,6 +258,7 @@ Return ONLY valid JSON with keys:
         "urgency_score": data.get("urgency_score", 0),
         "pending_count": existing,
         "reasoning": data.get("reasoning", ""),
+        "prompt_version": "draft_followup/v1",
     }
 
 
@@ -285,17 +332,15 @@ def _build_pre_session_brief(db: Session, username: str) -> dict:
     recent_texts = " ".join(j.raw_content[:200] for j in journals[:3]) if journals else "No entries"
     recent_moods = ", ".join(m.label for m in moods[:5]) if moods else "None"
 
-    prompt = f"""Pre-session brief for patient "{username}".
-
-Recent journal excerpts: "{recent_texts}"
-Recent moods: {recent_moods}
-Mood trend: {mood_trend}
-Avg BPM: {avg_bpm}
-Completed tasks: {completed_followups}
-Pending tasks: {pending_followups}
-
-Return ONLY valid JSON with: concerns (list of str), summary (str), suggested_focus (str).
-Keep summary to 2-3 sentences suitable for a psychologist's pre-session review."""
+    prompt = PRE_SESSION_BRIEF_PROMPT_V1.format(
+        patient_username=username,
+        recent_texts=recent_texts,
+        recent_moods=recent_moods,
+        mood_trend=mood_trend,
+        avg_bpm=avg_bpm,
+        completed_followups=completed_followups,
+        pending_followups=pending_followups,
+    )
 
     ai = _query_ai(prompt)
     try:
@@ -323,6 +368,7 @@ Keep summary to 2-3 sentences suitable for a psychologist's pre-session review."
         "concerns": list(set(concerns)),
         "summary": data.get("summary", ""),
         "suggested_focus": data.get("suggested_focus", ""),
+        "prompt_version": "pre_session_brief/v1",
     }
 
 
@@ -545,13 +591,7 @@ def ring_vitals_risk(user: User = Depends(require_role("psychologist")), db: Ses
     sleep = ring.sleep_hours or 7
     spo2 = ring.spo2 or 98
 
-    prompt = f"""Vitals risk assessment for patient:
-Heart rate: {bpm} BPM
-Stress: {stress}
-Sleep: {sleep}h
-SpO2: {spo2}%
-
-Return ONLY valid JSON with: risk ("low"/"medium"/"high"), flags (list of str), recommendation (str)."""
+    prompt = RING_VITALS_RISK_PROMPT_V1.format(bpm=bpm, stress=stress, sleep=sleep, spo2=spo2)
 
     ai = _query_ai(prompt)
     try:
@@ -580,6 +620,7 @@ Return ONLY valid JSON with: risk ("low"/"medium"/"high"), flags (list of str), 
         "sleep": sleep,
         "spo2": spo2,
         "recommendation": data.get("recommendation", ""),
+        "prompt_version": "ring_vitals_risk/v1",
     }
 
 
@@ -599,18 +640,12 @@ def crisis_debrief(
     bpm = ctx.latest_bpm
     stress = ctx.latest_stress
 
-    prompt = f"""Crisis debrief for patient "{req.patient_username}".
-
-Trigger text: "{trigger}"
-Heart rate: {bpm} BPM
-Stress: {stress}
-
-Provide a structured debrief for the psychologist. Return ONLY valid JSON with:
-- severity: "low"/"moderate"/"high"/"critical"
-- likely_triggers: list of str
-- recommended_interventions: list of str
-- debrief_note: str (1-2 paragraph clinical note)
-- follow_up_plan: str"""
+    prompt = CRISIS_DEBRIEF_PROMPT_V1.format(
+        patient_username=req.patient_username,
+        trigger=trigger,
+        bpm=bpm,
+        stress=stress,
+    )
 
     ai = _query_ai(prompt)
     try:
@@ -642,4 +677,5 @@ Provide a structured debrief for the psychologist. Return ONLY valid JSON with:
         "debrief_note": data.get("debrief_note", ""),
         "follow_up_plan": data.get("follow_up_plan", ""),
         "ai_source": "ollama",
+        "prompt_version": "crisis_debrief/v1",
     }

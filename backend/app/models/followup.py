@@ -17,3 +17,5 @@ class FollowupTask(Base):
     grade = Column(String, default="")
     assigned_at = Column(String, default="")
     completed_at = Column(String, default="")
+    approved_by = Column(String, default="")
+    approved_at = Column(String, default="")

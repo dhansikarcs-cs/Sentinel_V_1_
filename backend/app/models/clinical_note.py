@@ -13,3 +13,5 @@ class ClinicalNote(Base):
     raw_notes = Column(EncryptedText, default="")
     ai_synthesis = Column(EncryptedText, default="")
     timestamp = Column(String, nullable=False)
+    approved_by = Column(String, default="")
+    approved_at = Column(String, default="")

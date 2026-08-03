@@ -25,4 +25,5 @@ class AIAnalysis(Base):
     explanation = Column(Text, default="")
     provider = Column(String, default="rule")  # rule | ollama | groq
     model_version = Column(String, default="1.0.0")
+    prompt_version = Column(String, default="")
     created_at = Column(String, nullable=False)

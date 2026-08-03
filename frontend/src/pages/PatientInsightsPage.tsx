@@ -148,6 +148,7 @@ function OverviewSection({ overview, loading }: { overview: any; loading: boolea
               </div>
               <div style={{ color: '#6a6474', fontSize: '0.6rem' }}>
                 {formatDate(risk.created_at)} &middot; confidence {risk.confidence ? `${(risk.confidence * 100).toFixed(0)}%` : 'N/A'}
+                {risk.algorithm_version ? ` &middot; engine v${risk.algorithm_version}` : ''}
               </div>
               {(risk.explanation || '').length > 0 && (
                 <div style={{ color: '#7a8aaa', fontSize: '0.62rem', marginTop: '4px', lineHeight: 1.5 }}>
@@ -206,6 +207,14 @@ function OverviewSection({ overview, loading }: { overview: any; loading: boolea
               </div>
               {(overview.clinical_brief.emotions || '').length > 0 && (
                 <div style={{ color: '#6a6474', fontSize: '0.62rem', marginTop: '4px' }}>Emotions: {overview.clinical_brief.emotions}</div>
+              )}
+              {overview.clinical_brief.ai_analysis && (
+                <div style={{ color: '#5a5464', fontSize: '0.58rem', marginTop: '6px', lineHeight: 1.6 }}>
+                  AI: {overview.clinical_brief.ai_analysis.provider || 'rule'} &middot; prompt {overview.clinical_brief.ai_analysis.prompt_version || 'rule'}
+                  {overview.clinical_brief.ai_analysis.model_version ? ` &middot; model v${overview.clinical_brief.ai_analysis.model_version}` : ''}
+                  {overview.clinical_brief.ai_analysis.confidence ? ` &middot; confidence ${(overview.clinical_brief.ai_analysis.confidence * 100).toFixed(0)}%` : ''}
+                  {overview.clinical_brief.ai_analysis.priority ? ` &middot; priority ${overview.clinical_brief.ai_analysis.priority}` : ''}
+                </div>
               )}
             </>
           ) : (
