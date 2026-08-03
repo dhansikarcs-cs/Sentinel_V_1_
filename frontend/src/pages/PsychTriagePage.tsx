@@ -32,15 +32,14 @@ export default function PsychTriagePage() {
         const results = await Promise.allSettled(
           pts.map((p: any) => api.triageSummary(p.username || p).catch(() => null))
         )
-        const crisisState = await api.getCrisisState().catch(() => ({}))
         const computed = pts.map((p: any, i: any) => {
           const result = results[i]?.status === 'fulfilled' ? results[i].value : null
-          const crisis = crisisState?.active && crisisState?.patient === (p.username || p)
-          const score = crisis ? 100 : (result?.priority === 'high' ? 50 : result?.priority === 'medium' ? 25 : 0)
-          const tier = crisis ? 'crisis' : score >= 40 ? 'high' : score >= 15 ? 'attention' : 'stable'
+          const tier: string = result?.tier || 'stable'
+          const crisis: boolean = result?.crisis ?? false
+          const score: number = result?.priority_score ?? 0
           return { patient: p.username || p, name: p.name || p, score, tier, crisis, ...(result || {}) }
         })
-        computed.sort((a: any, b: any) => (a.tier === 'crisis' ? 0 : 1) - (b.tier === 'crisis' ? 0 : 1) || (a.tier === 'high' ? 0 : 1) - (b.tier === 'high' ? 0 : 1) || b.score - a.score)
+        computed.sort((a: any, b: any) => b.score - a.score)
         setPriorities(computed)
       }
     }).catch(() => {})

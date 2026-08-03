@@ -6,14 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import require_role
-from app.models.journal import JournalEntry
-from app.models.mood import MoodLog
-from app.models.ring import RingSensorLog
 from app.models.triage import TriageEntry
 from app.models.user import User
 from app.schemas.triage import TriageCreate, TriageResponse, TriageUpdate
 from app.services.ai_service import _query_ai
 from app.services.audit import log_audit
+from app.services.patient_context import build_triage_prompt, recent_patient_context
 
 router = APIRouter(prefix="/triage", tags=["triage"])
 
@@ -22,41 +20,12 @@ router = APIRouter(prefix="/triage", tags=["triage"])
 def create_triage_assessment(
     req: TriageCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
 ):
-    journals = (
-        db.query(JournalEntry)
-        .filter(JournalEntry.patient_username == req.patient_username)
-        .order_by(JournalEntry.timestamp.desc())
-        .limit(5)
-        .all()
-    )
-    moods = (
-        db.query(MoodLog)
-        .filter(MoodLog.patient_username == req.patient_username)
-        .order_by(MoodLog.timestamp.desc())
-        .limit(7)
-        .all()
-    )
-    ring = (
-        db.query(RingSensorLog)
-        .filter(RingSensorLog.patient_username == req.patient_username)
-        .order_by(RingSensorLog.logged_at.desc())
-        .first()
-    )
+    ctx = recent_patient_context(db, req.patient_username)
+    recent_mood = ctx.recent_mood_label
+    bpm = ctx.latest_bpm
+    stress = ctx.latest_stress
 
-    recent_text = journals[0].raw_content[:500] if journals else "No recent journal entries"
-    recent_mood = moods[0].label if moods else "unknown"
-    bpm = ring.bpm if ring else 72
-    stress = ring.stress if ring else 35
-
-    prompt = f"""Triage urgency assessment for patient "{req.patient_username}".
-
-Recent journal excerpt: "{recent_text}"
-Recent mood label: {recent_mood}
-Heart rate: {bpm} BPM
-Stress: {stress}
-
-Assess the urgency of this patient's situation on a scale of 1-10 (1=stable, 10=immediate crisis).
-Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"), reasons (list of str), suggestion (str)."""
+    prompt = build_triage_prompt(ctx)
 
     ai = _query_ai(prompt)
     try:

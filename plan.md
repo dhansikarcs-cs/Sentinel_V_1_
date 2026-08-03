@@ -119,9 +119,11 @@ Each phase is an independent commit; each is revertible; order is low-risk → h
 
 ---
 
-### PHASE 2 — Unify AI context assembly + move triage logic to backend
+### PHASE 2 — Unify AI context assembly + move triage logic to backend ✅ DONE
 
 **Goal:** Eliminate the largest duplication cluster; backend owns clinical priority. Improves *duplication, coupling, cognitive load, API complexity*.
+
+> **Executed 2026-08-03.** New `backend/app/services/patient_context.py` is now the **single gatekeeper** for single-patient context (Constitution #5/#6): `triage.py`, `agents.py` (triage_summary, draft_followup, pre-session-brief, crisis_debrief), and `ai_worker.py` all consume `recent_patient_context(...)` + `build_triage_prompt(...)`. `triage-summary` now returns server-derived `tier` + `priority_score` + `crisis` (from `CrisisState`); both duplicated frontend tier formulas (`Layout.tsx:96-103`, `PsychTriagePage.tsx:36-43`) deleted. Added `GET /agents/pre-session-brief/{username}` (Phase 4 foundation). Also fixed a latent `NameError` on `triage-summary`'s AI-fallback path (`data` was referenced outside the try). Panel-level analytics (`compliance-radar`, `relapse-indicators`, `silent-period-watch`, `cross-patient-patterns`, `ring-vitals-risk`) remain direct-DB by design — they are aggregate queries over a whole panel, a legitimate exception. Verified: `ruff` clean, app import OK, `test_ring_api.py` pass, frontend `tsc` + `vite build` exit 0, plus a functional builder smoke test against a seeded in-memory DB.
 
 **Verified duplication (the smoking gun):**
 - `api/triage.py:25-59` and `api/agents.py:61-95` are a **verbatim duplicate** (same recent-journal/mood/ring query, same prompt string).

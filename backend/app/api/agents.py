@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import require_role
 from app.models.booking import Booking, PsychAvailability
-from app.models.followup import FollowupTask
+from app.models.crisis import CrisisState
 from app.models.journal import JournalEntry
 from app.models.mood import MoodLog
 from app.models.ring import RingSensorLog
@@ -20,6 +20,12 @@ from app.services.ai_service import (
     synthesize_clinical_notes,
 )
 from app.services.audit import log_audit
+from app.services.patient_context import (
+    build_triage_prompt,
+    derive_triage_tier,
+    recent_patient_context,
+    triage_priority_score,
+)
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -58,43 +64,15 @@ def triage_summary(
     if cached and (time.time() - cached[0]) < TRIAGE_CACHE_TTL:
         return cached[1]
 
-    journals = (
-        db.query(JournalEntry)
-        .filter(JournalEntry.patient_username == req.patient_username)
-        .order_by(JournalEntry.timestamp.desc())
-        .limit(5)
-        .all()
-    )
-    moods = (
-        db.query(MoodLog)
-        .filter(MoodLog.patient_username == req.patient_username)
-        .order_by(MoodLog.timestamp.desc())
-        .limit(7)
-        .all()
-    )
-    ring = (
-        db.query(RingSensorLog)
-        .filter(RingSensorLog.patient_username == req.patient_username)
-        .order_by(RingSensorLog.logged_at.desc())
-        .first()
-    )
+    ctx = recent_patient_context(db, req.patient_username)
+    recent_mood = ctx.recent_mood_label
+    bpm = ctx.latest_bpm
+    stress = ctx.latest_stress
 
-    recent_text = journals[0].raw_content[:500] if journals else "No recent journal entries"
-    recent_mood = moods[0].label if moods else "unknown"
-    bpm = ring.bpm if ring else 72
-    stress = ring.stress if ring else 35
-
-    prompt = f"""Triage urgency assessment for patient "{req.patient_username}".
-
-Recent journal excerpt: "{recent_text}"
-Recent mood label: {recent_mood}
-Heart rate: {bpm} BPM
-Stress: {stress}
-
-Assess the urgency of this patient's situation on a scale of 1-10 (1=stable, 10=immediate crisis).
-Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"), reasons (list of strings), suggestion (str)."""
+    prompt = build_triage_prompt(ctx)
 
     ai = _query_ai(prompt)
+    data = {}
     try:
         data = json.loads(ai)
         score = data.get("score", 1)
@@ -105,6 +83,10 @@ Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"),
         reasons = ["AI unavailable, used rule fallback"]
         priority = "low"
 
+    crisis_state = db.query(CrisisState).first()
+    crisis = bool(crisis_state and crisis_state.active and crisis_state.patient_username == req.patient_username)
+    tier = derive_triage_tier(priority, crisis=crisis)
+
     log_audit(
         "agent_triage_summary",
         user=user.username,
@@ -112,7 +94,7 @@ Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"),
         severity="INFO",
         status="success",
         resource=req.patient_username,
-        details=f"score={score}, priority={priority}",
+        details=f"score={score}, priority={priority}, tier={tier}",
         db=db,
     )
 
@@ -120,6 +102,9 @@ Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"),
         "patient": req.patient_username,
         "priority": priority,
         "urgency_score": score,
+        "tier": tier,
+        "priority_score": triage_priority_score(tier),
+        "crisis": crisis,
         "suggestion": data.get("suggestion", f"Patient triaged at {priority} priority (score: {score}/10)."),
         "reasoning": "; ".join(reasons) if reasons else "No significant indicators detected.",
         "recent_mood": recent_mood,
@@ -194,20 +179,10 @@ Return ONLY valid JSON with keys: priority (str), urgency_score (int), reasoning
 def draft_followup(
     req: DraftFollowupRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
 ):
-    journals = (
-        db.query(JournalEntry)
-        .filter(JournalEntry.patient_username == req.patient_username)
-        .order_by(JournalEntry.timestamp.desc())
-        .limit(3)
-        .all()
-    )
-    existing = (
-        db.query(FollowupTask)
-        .filter(FollowupTask.patient_username == req.patient_username, FollowupTask.status == "pending")
-        .count()
-    )
+    ctx = recent_patient_context(db, req.patient_username, journal_limit=3, include_followups=True)
+    existing = sum(1 for f in ctx.followups if f.status == "pending")
 
-    recent_text = journals[0].raw_content[:500] if journals else "No journal entries yet"
+    recent_text = ctx.recent_text(500)
 
     prompt = f"""Patient "{req.patient_username}" wrote:
 "{recent_text}"
@@ -275,33 +250,22 @@ def journal_to_note(
 def pre_session_brief(
     req: PreSessionBriefRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
 ):
-    journals = (
-        db.query(JournalEntry)
-        .filter(JournalEntry.patient_username == req.patient_username)
-        .order_by(JournalEntry.timestamp.desc())
-        .limit(10)
-        .all()
-    )
-    moods = (
-        db.query(MoodLog)
-        .filter(MoodLog.patient_username == req.patient_username)
-        .order_by(MoodLog.timestamp.desc())
-        .limit(14)
-        .all()
-    )
-    followups = (
-        db.query(FollowupTask)
-        .filter(FollowupTask.patient_username == req.patient_username)
-        .order_by(FollowupTask.assigned_at.desc())
-        .all()
-    )
-    ring_data = (
-        db.query(RingSensorLog)
-        .filter(RingSensorLog.patient_username == req.patient_username)
-        .order_by(RingSensorLog.logged_at.desc())
-        .limit(7)
-        .all()
-    )
+    return _build_pre_session_brief(db, req.patient_username)
+
+
+@router.get("/pre-session-brief/{username}")
+def get_pre_session_brief(
+    username: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
+    return _build_pre_session_brief(db, username)
+
+
+def _build_pre_session_brief(db: Session, username: str) -> dict:
+    ctx = recent_patient_context(db, username, journal_limit=10, mood_limit=14, ring_limit=7, include_followups=True)
+    journals = ctx.journals
+    moods = ctx.moods
+    followups = ctx.followups
+    ring_data = ctx.ring_logs
 
     mood_trend = "stable"
     if len(moods) >= 2:
@@ -315,12 +279,13 @@ def pre_session_brief(
     completed_followups = sum(1 for f in followups if f.status == "completed")
     pending_followups = sum(1 for f in followups if f.status == "pending")
     total_journals = len(journals)
-    avg_bpm = round(sum(r.bpm for r in ring_data if r.bpm) / max(len([r for r in ring_data if r.bpm]), 1))
+    bpm_values = [r.bpm for r in ring_data if r.bpm]
+    avg_bpm = round(sum(bpm_values) / max(len(bpm_values), 1))
 
     recent_texts = " ".join(j.raw_content[:200] for j in journals[:3]) if journals else "No entries"
     recent_moods = ", ".join(m.label for m in moods[:5]) if moods else "None"
 
-    prompt = f"""Pre-session brief for patient "{req.patient_username}".
+    prompt = f"""Pre-session brief for patient "{username}".
 
 Recent journal excerpts: "{recent_texts}"
 Recent moods: {recent_moods}
@@ -349,7 +314,7 @@ Keep summary to 2-3 sentences suitable for a psychologist's pre-session review."
         concerns.append("Low journal engagement")
 
     return {
-        "patient": req.patient_username,
+        "patient": username,
         "mood_trend": mood_trend,
         "total_journals": total_journals,
         "completed_followups": completed_followups,
@@ -628,23 +593,11 @@ class CrisisDebriefRequest(BaseModel):
 def crisis_debrief(
     req: CrisisDebriefRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
 ):
-    journals = (
-        db.query(JournalEntry)
-        .filter(JournalEntry.patient_username == req.patient_username)
-        .order_by(JournalEntry.timestamp.desc())
-        .limit(5)
-        .all()
-    )
-    ring = (
-        db.query(RingSensorLog)
-        .filter(RingSensorLog.patient_username == req.patient_username)
-        .order_by(RingSensorLog.logged_at.desc())
-        .first()
-    )
+    ctx = recent_patient_context(db, req.patient_username, journal_limit=5, ring_limit=1)
 
-    trigger = req.trigger_text or (journals[0].raw_content[:300] if journals else "No specific trigger text")
-    bpm = ring.bpm if ring else 72
-    stress = ring.stress if ring else 35
+    trigger = req.trigger_text or ctx.recent_text(300)
+    bpm = ctx.latest_bpm
+    stress = ctx.latest_stress
 
     prompt = f"""Crisis debrief for patient "{req.patient_username}".
 

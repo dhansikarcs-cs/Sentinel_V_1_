@@ -92,12 +92,11 @@ export default function Layout() {
           const results = await Promise.allSettled(
             pts.map((p: any) => api.triageSummary(p.username || p).catch(() => null))
           )
-          const crisisSt = await api.getCrisisState().catch(() => ({}))
           const computed = pts.map((p: any, i: any) => {
             const result = results[i]?.status === 'fulfilled' ? results[i].value : null
-            const crisis = crisisSt?.active && crisisSt?.patient === (p.username || p)
-            const score = crisis ? 100 : (result?.priority === 'high' ? 50 : result?.priority === 'medium' ? 25 : 0)
-            const tier = crisis ? 'crisis' : score >= 40 ? 'high' : score >= 15 ? 'attention' : 'stable'
+            const tier: string = result?.tier || 'stable'
+            const crisis: boolean = result?.crisis ?? false
+            const score: number = result?.priority_score ?? 0
             return { patient: p.username || p, name: p.name || p, score, tier, crisis, ...(result || {}) }
           })
           computed.sort((a: any, b: any) => b.score - a.score)

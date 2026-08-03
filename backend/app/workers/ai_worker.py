@@ -21,17 +21,11 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
     clinical_result = summarize_journal(raw_content, mode="clinical")
 
     from app.core.database import SessionLocal as _PreSessionDB
-    from app.models.journal import JournalEntry
+    from app.services.patient_context import recent_patient_context
 
     _pre_db = _PreSessionDB()
     try:
-        _recent = (
-            _pre_db.query(JournalEntry)
-            .filter(JournalEntry.patient_username == patient_username)
-            .order_by(JournalEntry.timestamp.desc())
-            .limit(10)
-            .all()
-        )
+        _recent = recent_patient_context(_pre_db, patient_username, journal_limit=10).journals
         _recent_texts = [j.raw_content for j in reversed(_recent) if j.id != journal_id]
     except Exception:
         _recent_texts = []
