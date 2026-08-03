@@ -10,7 +10,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    api.get('/psychologists/available').then(d => setPsychologists(d || [])).catch(() => {})
+    api.getAvailablePsychs().then(d => setPsychologists(d || [])).catch(() => {})
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {

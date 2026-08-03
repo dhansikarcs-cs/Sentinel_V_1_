@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { getUser } from '../stores/auth'
+import PatientSelector from '../components/PatientSelector'
 
 const STATUS_COLORS: Record<string, string> = { Approved: '#22c55e', Rejected: '#ef4444', Cancelled: '#6a6474', Pending: '#c49ea4' }
 const STATUS_ICONS: Record<string, string> = { Approved: '✅', Rejected: '❌', Cancelled: '🔴', Pending: '⏳' }
@@ -110,7 +111,7 @@ function PatientBookingForm() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api.get('/psychologists/available').then(d => setPsychs(d || [])).catch(() => {})
+    api.getAvailablePsychs().then(d => setPsychs(d || [])).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -440,12 +441,7 @@ function PsychBookingAgent() {
     <div className="psych-box">
       <div className="psych-box-title">🤖 Booking Agent</div>
       <div className="psych-box-desc">AI-powered slot suggestions</div>
-      <select value={selected} onChange={e => setSelected(e.target.value)} style={{ marginBottom: '8px', fontSize: '0.8125rem', padding: '8px' }}>
-        <option value="">Select patient...</option>
-        {patients.map((p: any) => (
-          <option key={p.username || p} value={p.username || p}>{p.name || p}</option>
-        ))}
-      </select>
+      <PatientSelector patients={patients} value={selected} onChange={setSelected} placeholder="Select patient..." style={{ marginBottom: '8px' }} />
       <button onClick={analyze} className="btn-primary" style={{ width: '100%', fontSize: '0.8125rem' }}>🤖 Analyze & Suggest Slots</button>
 
       {agentResult && (

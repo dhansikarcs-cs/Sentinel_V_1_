@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AreaChart, Area, Tooltip, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { api } from '../api/client'
-
-function mockHistory(base: number, variance: number, len = 24): number[] {
-  return Array.from({ length: len }, (_, i) => Math.round(base + (Math.sin(i * 0.6) * variance) + (Math.random() - 0.5) * variance * 0.5))
-}
+import { mockHistory } from '../constants'
 
 export default function Dashboard() {
   const [wellness, setWellness] = useState<any>(null)

@@ -19,7 +19,7 @@ export default function ProfilePage() {
     setSaving(true)
     setMsg('')
     try {
-      await api.put('/patients/me/contact', { contact_info: contact, trusted_contact: trusted })
+      await api.updateContact({ contact_info: contact, trusted_contact: trusted })
       await fetchMe()
       setMsg('Saved successfully.')
     } catch (err: any) {

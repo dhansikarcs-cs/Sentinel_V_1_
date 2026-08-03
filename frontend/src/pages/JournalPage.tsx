@@ -1,15 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-
-const moods = [
-  { emoji: '😁', label: 'Great', score: 5, color: '#16a34a' },
-  { emoji: '🙂', label: 'Good', score: 4, color: '#22c55e' },
-  { emoji: '😐', label: 'Okay', score: 3, color: '#eab308' },
-  { emoji: '🙁', label: 'Down', score: 2, color: '#f59e0b' },
-  { emoji: '😢', label: 'Sad', score: 1, color: '#ef4444' },
-]
-
-const MOOD_COLORS: Record<string, string> = { Great: '#16a34a', Good: '#22c55e', Okay: '#eab308', Down: '#f59e0b', Sad: '#ef4444' }
+import { MOODS, moodColor, moodScore, sourceColor, todayStr, formatDateTime } from '../constants'
 
 export default function JournalPage() {
   const [text, setText] = useState('')
@@ -37,8 +28,7 @@ export default function JournalPage() {
       const mh = await api.getMoods()
       if (Array.isArray(mh)) {
         setMoodHistory(mh)
-        const today = new Date().toISOString().slice(0, 10)
-        const tm = mh.find((m: any) => (m.date || '').slice(0, 10) === today)
+        const tm = mh.find((m: any) => (m.date || '').slice(0, 10) === todayStr())
         if (tm) setTodayMood(tm)
       }
     } catch {}
@@ -46,11 +36,10 @@ export default function JournalPage() {
 
   useEffect(() => { load() }, [])
 
-  async function handleMood(m: typeof moods[0]) {
+  async function handleMood(m: typeof MOODS[0]) {
     if (moodLocked) return
-    const date = new Date().toISOString().split('T')[0]
     try {
-      await api.logMood(date, m.emoji, m.label)
+      await api.logMood(todayStr(), m.emoji, m.label)
       setTodayMood(m)
       setMoodLocked(true)
     } catch {}
@@ -81,8 +70,6 @@ export default function JournalPage() {
     })
   }
 
-  const sourceColors: Record<string, string> = { ollama: '#c49ea4', groq: '#22c55e', rule: '#f59e0b', ai: '#60a5fa' }
-
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0
   const charCount = text.length
 
@@ -97,9 +84,9 @@ export default function JournalPage() {
 
       <div className="card" style={{ padding: '20px' }}>
         {todayMood ? (
-          <div style={{ textAlign: 'center', background: 'linear-gradient(135deg,#1a2844,#1e2a45)', border: `2px solid ${(MOOD_COLORS[todayMood.label] || '#888')}44`, borderRadius: '16px', padding: '16px' }}>
+          <div style={{ textAlign: 'center', background: 'linear-gradient(135deg,#1a2844,#1e2a45)', border: `2px solid ${moodColor(todayMood.label)}44`, borderRadius: '16px', padding: '16px' }}>
             <div style={{ fontSize: '3rem', lineHeight: 1.2 }}>{todayMood.emoji}</div>
-            <div style={{ color: MOOD_COLORS[todayMood.label] || '#888', fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>{todayMood.label}</div>
+            <div style={{ color: moodColor(todayMood.label), fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>{todayMood.label}</div>
             <div style={{ color: '#5a6a8a', fontSize: '0.7rem', marginTop: '4px' }}>Today's mood</div>
           </div>
         ) : (
@@ -108,7 +95,7 @@ export default function JournalPage() {
               <div style={{ fontSize: '2rem', opacity: 0.6 }}>Tap an emoji to log your mood</div>
             </div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-              {moods.map(m => {
+              {MOODS.map(m => {
                 const selected = todayMood?.label === m.label
                 return (
                   <button key={m.label} onClick={() => handleMood(m)} disabled={moodLocked}
@@ -148,7 +135,7 @@ export default function JournalPage() {
                 {(() => {
                   const pts = recentMoods.map((m, i) => {
                     const x = 20 + (i / Math.max(recentMoods.length - 1, 1)) * 240
-                    const y = 45 - ((MOOD_COLORS[m.label] ? moods.find(mm => mm.label === m.label)?.score || 3 : 3) / 5) * 35
+                    const y = 45 - (moodScore(m.label) / 5) * 35
                     return { x, y, label: m.label, date: m.date }
                   })
                   const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
@@ -158,7 +145,7 @@ export default function JournalPage() {
                       <path d={fillPath} fill="url(#moodFill)" />
                       <path d={linePath} fill="none" stroke="#c06a8b88" strokeWidth="2" />
                       {pts.map((p, i) => (
-                        <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={MOOD_COLORS[p.label] || '#888'} stroke="#fff" strokeWidth="1.2" />
+                        <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={moodColor(p.label)} stroke="#fff" strokeWidth="1.2" />
                       ))}
                     </>
                   )
@@ -187,9 +174,9 @@ export default function JournalPage() {
                 AI Summary
                 {lastSource && (
                   <span style={{
-                    background: `${sourceColors[lastSource] || '#888'}22`, color: sourceColors[lastSource] || '#888',
+                    background: `${sourceColor(lastSource)}22`, color: sourceColor(lastSource),
                     fontSize: '0.6rem', padding: '1px 6px', borderRadius: '3px', fontWeight: 600,
-                    border: `1px solid ${sourceColors[lastSource] || '#888'}44`, marginLeft: '6px',
+                    border: `1px solid ${sourceColor(lastSource)}44`, marginLeft: '6px',
                   }}>{lastSource.charAt(0).toUpperCase() + lastSource.slice(1)}</span>
                 )}
               </div>
@@ -209,7 +196,7 @@ export default function JournalPage() {
             {entries.slice(-20).reverse().map((e: any, i: number) => {
               const id = e.id || i
               const open = expandedEntries.has(id)
-              const ts = new Date(e.timestamp || e.created_at || Date.now()).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+              const ts = formatDateTime(e.timestamp || e.created_at || Date.now())
               return (
                 <div key={id}>
                   <button onClick={() => toggleExpanded(id)}
@@ -222,9 +209,9 @@ export default function JournalPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                         {e.ai_source && (
                           <span style={{
-                            background: `${sourceColors[e.ai_source] || '#888'}22`, color: sourceColors[e.ai_source] || '#888',
+                            background: `${sourceColor(e.ai_source)}22`, color: sourceColor(e.ai_source),
                             fontSize: '0.6rem', padding: '1px 6px', borderRadius: '3px', fontWeight: 600,
-                            border: `1px solid ${sourceColors[e.ai_source] || '#888'}44`,
+                            border: `1px solid ${sourceColor(e.ai_source)}44`,
                           }}>{e.ai_source.toUpperCase()}</span>
                         )}
                         {e.emotions && (

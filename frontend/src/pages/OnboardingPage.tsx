@@ -20,7 +20,7 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api.get('/patients/me').then((d: any) => {
+    api.getMe().then((d: any) => {
       if (d.onboarding_step >= 99) { navigate('/dashboard'); return }
       setStep(d.onboarding_step || 0)
       setTrustedContact(d.trusted_contact || '')
@@ -46,14 +46,14 @@ export default function OnboardingPage() {
 
   async function handleContact() {
     try {
-      await api.put('/patients/me/contact', { contact_info: contactInfo, trusted_contact: trustedContact })
+      await api.updateContact({ contact_info: contactInfo, trusted_contact: trustedContact })
     } catch {}
     goTo(4)
   }
 
   async function saveTrustedAndNext() {
     if (trustedContact.trim()) {
-      try { await api.put('/patients/me/contact', { contact_info: contactInfo, trusted_contact: trustedContact }) } catch {}
+      try { await api.updateContact({ contact_info: contactInfo, trusted_contact: trustedContact }) } catch {}
     }
     goTo(3)
   }

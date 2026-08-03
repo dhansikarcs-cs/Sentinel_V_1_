@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { api } from '../api/client'
 import { getUser } from '../stores/auth'
+import { computeCrisisStage, CRISIS_STAGES, CRISIS_STAGE_MESSAGES } from '../constants'
 
 function playAlertAudio() {
   try {
@@ -24,9 +25,6 @@ function playAlertAudio() {
     return () => { try { src.stop(); ctx.close() } catch {} }
   } catch { return () => {} }
 }
-
-const TRUSTED_DELAY = 30
-const HELPLINE_DELAY = 60
 
 export default function CrisisPage() {
   const user = getUser()
@@ -80,15 +78,7 @@ export default function CrisisPage() {
   const active = cs.active
   const triggeredBy = cs.triggered_by || 'patient'
 
-  const stage = (() => {
-    if (!active) return 'none'
-    if (cs.acknowledged) return 'acknowledged'
-    if (cs.trustee_acknowledged) return 'trustee_coming'
-    if (cs.trustee_clicked) return 'trustee_clicked'
-    if (elapsed >= HELPLINE_DELAY) return 'helpline_escalated'
-    if (elapsed >= TRUSTED_DELAY) return 'trustee_notified'
-    return 'triggered'
-  })()
+  const stage = computeCrisisStage(cs, elapsed)
 
   const terminal = stage === 'acknowledged'
 
@@ -124,11 +114,7 @@ export default function CrisisPage() {
 
   const displayTime = elapsed >= 60 ? '60+' : String(elapsed)
 
-  const stages = [
-    { key: 'triggered', label: '🚨 Triggered', sec: 0 },
-    { key: 'trustee_notified', label: '👤 Trusted Contact', sec: TRUSTED_DELAY },
-    { key: 'helpline_escalated', label: '🏥 Helpline', sec: HELPLINE_DELAY },
-  ]
+  const stages = CRISIS_STAGES
 
   function stageStyle(key: string) {
     const isActive = key === stage || (terminal && ['helpline_escalated', 'acknowledged'].includes(stage) && key === 'helpline_escalated')
@@ -178,15 +164,15 @@ export default function CrisisPage() {
             </div>
           )}
           {stage === 'acknowledged' && (
-            <div style={{ color: '#22c55e', fontWeight: 600 }}><strong>✅ Crisis acknowledged.</strong> Support team is with you.</div>
+            <div style={{ color: CRISIS_STAGE_MESSAGES.acknowledged.color, fontWeight: 600 }}><strong>{CRISIS_STAGE_MESSAGES.acknowledged.text}</strong></div>
           )}
           {stage === 'helpline_escalated' && (
             <div className="card" style={{ borderColor: '#ef4444', color: '#f87171' }}>
-              <strong>🚨 Crisis escalated to helpline.</strong> Professional help is being dispatched.
+              <strong>{CRISIS_STAGE_MESSAGES.helpline_escalated.text}</strong>
             </div>
           )}
           {['trustee_coming', 'trustee_clicked'].includes(stage) && (
-            <div style={{ color: '#f59e0b' }}><strong>🟢 Trusted contact has been notified.</strong></div>
+            <div style={{ color: '#f59e0b' }}><strong>{CRISIS_STAGE_MESSAGES[stage].text}</strong></div>
           )}
           {!terminal && stage !== 'helpline_escalated' && triggeredBy !== 'psychologist' && (
             <div className="card" style={{ borderColor: '#ef4444', color: '#fca5a5' }}>

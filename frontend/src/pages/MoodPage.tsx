@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-
-const moods = [
-  { emoji: '😁', label: 'Great' },
-  { emoji: '🙂', label: 'Good' },
-  { emoji: '😐', label: 'Okay' },
-  { emoji: '🙁', label: 'Down' },
-  { emoji: '😢', label: 'Sad' },
-]
+import { MOODS } from '../constants'
 
 export default function MoodPage() {
   const [logs, setLogs] = useState<any[]>([])
@@ -26,7 +19,7 @@ export default function MoodPage() {
 
   useEffect(() => { load() }, [])
 
-  async function handleMood(m: typeof moods[0]) {
+  async function handleMood(m: typeof MOODS[0]) {
     const date = new Date().toISOString().split('T')[0]
     try {
       await api.logMood(date, m.emoji, m.label)
@@ -44,7 +37,7 @@ export default function MoodPage() {
         <div className="card">
           <p style={{ fontSize: '0.875rem', color: '#9a92a2', marginBottom: '16px' }}>How are you feeling right now?</p>
           <div className="flex gap-3 flex-wrap">
-            {moods.map(m => (
+            {MOODS.map(m => (
               <button key={m.label} onClick={() => handleMood(m)}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '12px 16px', background: '#1e2336', border: '1px solid #2d2d44', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', minWidth: '80px' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#232840'; e.currentTarget.style.borderColor = '#c49ea4' }}

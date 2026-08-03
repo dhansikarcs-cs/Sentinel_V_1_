@@ -207,6 +207,17 @@ Composed from existing services/repositories **only** (reuses Phase 2 builder). 
 
 **Risk:** medium (UI churn, but mechanical). **Effort:** medium-large.
 
+**Execution notes (committed `refactor(phase5)`):**
+- New `src/constants.ts`: canonical mood vocabulary `MOODS` (lowercase `great/good/okay/bad/awful/terrible` matching `timeline_service.py:18` `_mood_val`, so logged moods score correctly) + case-insensitive `moodIcon/moodColor/moodScore`; `SOURCE_COLORS` + `sourceColor()`; `formatTime/formatDateTime/formatDate/todayStr`; crisis stage machine (`TRUSTED_DELAY=30`, `HELPLINE_DELAY=60`, `CRISIS_STAGES`, `CRISIS_STAGE_MESSAGES`, `computeCrisisStage`); `mockHistory` placeholder series.
+- New `src/components/PatientSelector.tsx`: `usePatientContext()` hook (loads psych patients once) + `patientKey/patientLabel` + shared `PatientSelector` `<select>`.
+- `api/client.ts`: new `upload()` helper (FormData through the auth/refresh path, no forced JSON Content-Type) + typed wrappers `uploadFollowupAttachment(id, file)`, `uploadFollowupProof(id, file)`, `uploadConsentForm(file)`, `updateContact(data)`, `getPsychNotes()`, `createPsychNote(data)`, `getAvailablePsychs()`.
+- Migrated pages to shared constants: `MoodPage`, `JournalPage` (mood picker now logs canonical lowercase labels), `TimelinePage`, `PatientInsightsPage`, `PsychJournalPage`, `ClinicalNotesPage`, `PsychTriagePage`, `Dashboard`.
+- Removed raw auth bypasses (hand-rolled Bearer + `localStorage.getItem('token')`): `FollowupsPage` (2 upload fetches → client wrappers), `PsychOnboardingPage` (consent upload → `uploadConsentForm`). Remaining raw-path calls routed through typed wrappers: `OnboardingPage`, `PsychOnboardingPage`, `ProfilePage` (`getMe`/`updateContact`), `BookingsPage`/`Register` (`getAvailablePsychs`).
+- Patient `<select>`s swapped to shared `PatientSelector`: Timeline, Insights (now via `usePatientContext`), ClinicalNotes, Bookings, Followups (2).
+- Crisis stage machine de-duplicated: `CrisisPage` + `Layout` both now call `computeCrisisStage` and use `CRISIS_STAGE_MESSAGES`/`CRISIS_STAGES`.
+- Psych sidebar reordered consultation-first: Triage → Clinical Notes → Patient Insights → Journal & Wellness → Bookings → Follow-Up → Export.
+- Verified: `tsc --noEmit` 0, `vite build` 0.
+
 ---
 
 ### PHASE 6 — Provenance, prompts, and explicit AI policy

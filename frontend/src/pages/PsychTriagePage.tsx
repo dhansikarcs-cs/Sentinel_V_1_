@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { sourceColor } from '../constants'
 
 function MetricCard({ label, value, unit, color }: { label: string; value: string; unit: string; color: string }) {
   return (
@@ -111,10 +112,9 @@ export default function PsychTriagePage() {
                   <div className="ai-box" style={{ marginTop: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>AI Clinical Insight</span>
-                      {p.ai_source && (() => {
-                        const sc = { ollama: '#c49ea4', groq: '#22c55e', rule: '#f59e0b' } as Record<string, string>
-                        return <span style={{ background: `${(sc[p.ai_source] || '#888')}22`, color: sc[p.ai_source] || '#888', fontSize: '0.6rem', padding: '1px 6px', borderRadius: '3px', fontWeight: 600, border: `1px solid ${(sc[p.ai_source] || '#888')}44`, marginLeft: '6px' }}>{p.ai_source.charAt(0).toUpperCase() + p.ai_source.slice(1)}</span>
-                      })()}
+                      {p.ai_source && (
+                        <span style={{ background: `${sourceColor(p.ai_source)}22`, color: sourceColor(p.ai_source), fontSize: '0.6rem', padding: '1px 6px', borderRadius: '3px', fontWeight: 600, border: `1px solid ${sourceColor(p.ai_source)}44`, marginLeft: '6px' }}>{p.ai_source.charAt(0).toUpperCase() + p.ai_source.slice(1)}</span>
+                      )}
                     </div>
                     <div style={{ color: '#9aa8c0', fontSize: '0.8125rem', marginTop: '4px' }}>{p.summary}</div>
                     {p.emotions && <div style={{ color: '#7a8aaa', fontSize: '0.65rem', marginTop: '2px' }}>Detected: {p.emotions}</div>}

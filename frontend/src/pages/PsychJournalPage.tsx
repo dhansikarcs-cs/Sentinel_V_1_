@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api/client'
-
-const sourceColors: Record<string, string> = { ollama: '#c49ea4', groq: '#22c55e', rule: '#f59e0b', ai: '#60a5fa' }
-
-function mockHistory(base: number, variance: number, len = 24): number[] {
-  return Array.from({ length: len }, (_, i) => Math.round(base + (Math.sin(i * 0.6) * variance) + (Math.random() - 0.5) * variance * 0.5))
-}
+import { sourceColor, mockHistory } from '../constants'
 
 export default function PsychJournalPage() {
   const [sensorLogs, setSensorLogs] = useState<any[]>([])
@@ -168,9 +163,9 @@ function MyJournal() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                         {e.ai_source && (
                           <span style={{
-                            background: `${sourceColors[e.ai_source] || '#888'}22`, color: sourceColors[e.ai_source] || '#888',
+                            background: `${sourceColor(e.ai_source)}22`, color: sourceColor(e.ai_source),
                             fontSize: '0.6rem', padding: '1px 6px', borderRadius: '3px', fontWeight: 600,
-                            border: `1px solid ${sourceColors[e.ai_source] || '#888'}44`,
+                            border: `1px solid ${sourceColor(e.ai_source)}44`,
                           }}>{e.ai_source.toUpperCase()}</span>
                         )}
                         {e.emotions && (

@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { getUser } from '../stores/auth'
-
-const MOOD_ICONS: Record<string, string> = { great: '🤩', good: '😊', okay: '😐', bad: '😞', awful: '😰', terrible: '💩' }
-const MOOD_COLORS: Record<string, string> = { great: '#22c55e', good: '#86efac', okay: '#fbbf24', bad: '#fb923c', awful: '#ef4444', terrible: '#7f1d1d' }
-
-function formatTime(ts: string) {
-  try { return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts }
-}
+import { moodIcon, formatTime } from '../constants'
+import PatientSelector from '../components/PatientSelector'
 
 function eventBorder(type: string) {
   return { borderLeft: `3px solid ${type === 'mood' ? '#22c55e' : type === 'journal' ? '#6366f1' : type === 'followup' ? '#f59e0b' : '#ef4444'}`, background: '#111827', borderRadius: '6px', padding: '8px 12px', margin: '4px 0' }
@@ -40,8 +35,6 @@ export default function TimelinePage() {
     } catch {}
   }
 
-  const moodVal: Record<string, number> = { great: 5, good: 4, okay: 3, bad: 2, awful: 1, terrible: 0 }
-
   return (
     <div className="animate-fade-in">
       {isPsych && (
@@ -53,12 +46,7 @@ export default function TimelinePage() {
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
             <div style={{ flex: 2 }}>
               <label>Select Patient</label>
-              <select value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
-                <option value="">Select...</option>
-                {patients.map((p: any) => (
-                  <option key={p.username || p} value={p.username || p}>{p.name || p}</option>
-                ))}
-              </select>
+              <PatientSelector patients={patients} value={selectedPatient} onChange={setSelectedPatient} placeholder="Select..." />
             </div>
             <div style={{ flex: 1 }}>
               <label>Time range</label>
@@ -104,7 +92,7 @@ export default function TimelinePage() {
                       {metrics.latest_mood && (
                     <div>
                       <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>LATEST MOOD</div>
-                      <div style={{ fontSize: '1.5rem' }}>{MOOD_ICONS[metrics.latest_mood.label?.toLowerCase()] || '❓'}</div>
+                      <div style={{ fontSize: '1.5rem' }}>{moodIcon(metrics.latest_mood.label)}</div>
                       <div style={{ color: '#7a8aaa', fontSize: '0.75rem' }}>{metrics.latest_mood.label} — {formatTime(metrics.latest_mood.timestamp)}</div>
                     </div>
                   )}
@@ -128,7 +116,7 @@ export default function TimelinePage() {
                     return (
                       <div key={i} style={eventBorder(etype)}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div><span style={{ color: '#e0e8f0', fontWeight: 600, fontSize: '0.85rem' }}>{MOOD_ICONS[label.toLowerCase()] || '❓'} [{label.toUpperCase()}]</span></div>
+                          <div><span style={{ color: '#e0e8f0', fontWeight: 600, fontSize: '0.85rem' }}>{moodIcon(label)} [{label.toUpperCase()}]</span></div>
                           <span style={{ color: '#6a6474', fontSize: '0.7rem' }}>{formatTime(ev.timestamp)}</span>
                         </div>
                         <div style={{ color: '#7a8aaa', fontSize: '0.75rem', marginTop: '2px' }}>Mood logged: {label} on {ev.data?.date || ''}</div>

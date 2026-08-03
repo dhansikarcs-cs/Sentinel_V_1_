@@ -80,6 +80,36 @@ function buildBody(data: any): string | undefined {
   return JSON.stringify(data)
 }
 
+// Multipart upload that goes through the same auth/refresh path as request()
+// but without forcing a JSON Content-Type (the browser sets the boundary).
+async function upload(path: string, file: File, isRetry = false): Promise<any> {
+  const headers: Record<string, string> = {}
+  if (_token) headers['Authorization'] = `Bearer ${_token}`
+
+  const body = new FormData()
+  body.append('file', file)
+
+  const res = await fetch(`${BASE}${path}`, { method: 'POST', headers, body })
+
+  if (res.status === 401 && !isRetry && path !== '/auth/refresh') {
+    const refreshed = await tryRefresh()
+    if (refreshed) return upload(path, file, true)
+    setToken(null)
+    setRefreshToken(null)
+    window.location.href = '/login'
+    throw new Error('Unauthorized')
+  }
+
+  let data: any = {}
+  try {
+    const text = await res.text()
+    try { data = JSON.parse(text) } catch { data = { detail: text || 'Request failed' } }
+  } catch { data = { detail: 'Request failed' } }
+  if (!res.ok) throw new Error(data.detail || data.message || 'Request failed')
+  if (data?.success === true && data?.data !== undefined) return data.data
+  return data
+}
+
 export const api = {
   get: (path: string) => request(path),
   post: (path: string, data?: any) => request(path, { method: 'POST', body: buildBody(data) }),
@@ -97,9 +127,11 @@ export const api = {
 
   // Patients
   getMe: () => request('/patients/me'),
+  updateContact: (data: any) => request('/patients/me/contact', { method: 'PUT', body: JSON.stringify(data) }),
   getPatientProfile: (username: string) => request(`/patients/${username}/profile`),
   getPatientSummary: (username: string) => request(`/patients/${username}/summary`),
   getPatientOverview: (username: string) => request(`/patients/${username}/overview`),
+  uploadConsentForm: (file: File) => upload('/patients/me/consent', file),
   getWellness: () => request('/patients/me/wellness'),
   updateOnboarding: (step: number) => request('/patients/me/onboarding', { method: 'PUT', body: JSON.stringify({ step }) }),
   assignPsychologist: (username: string, psychUsername: string) =>
@@ -108,6 +140,8 @@ export const api = {
   // Psychologists
   getPsychPatients: () => request('/psychologists/patients'),
   getAvailablePsychs: (clinic?: string) => request(`/psychologists/available${clinic ? `?clinic=${clinic}` : ''}`),
+  getPsychNotes: () => request('/psychologists/notes'),
+  createPsychNote: (data: any) => request('/psychologists/notes', { method: 'POST', body: JSON.stringify(data) }),
 
   // Journal
   createJournal: (raw: string) => request('/journal', { method: 'POST', body: JSON.stringify({ raw_content: raw }) }),
@@ -149,6 +183,8 @@ export const api = {
   createFollowup: (data: any) => request('/followups', { method: 'POST', body: JSON.stringify(data) }),
   getFollowups: () => request('/followups'),
   updateFollowup: (id: string, data: any) => request(`/followups/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  uploadFollowupAttachment: (id: string, file: File) => upload(`/followups/${id}/upload`, file),
+  uploadFollowupProof: (id: string, file: File) => upload(`/followups/${id}/upload-proof`, file),
 
   // Ring
   pushSensorData: (data: any) => request('/ring/data', { method: 'POST', body: JSON.stringify(data) }),

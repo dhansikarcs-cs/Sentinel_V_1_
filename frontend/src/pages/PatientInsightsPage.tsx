@@ -1,16 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { EmotionBars } from '../components/EmotionBar'
-
-const MOOD_ICONS: Record<string, string> = { great: '\u{1F929}', good: '\u{1F60A}', okay: '\u{1F610}', bad: '\u{1F61E}', awful: '\u{1F630}', terrible: '\u{1F4A9}' }
-
-function formatTime(ts: string) {
-  try { return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts }
-}
-
-function formatDate(ts: string) {
-  try { return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) } catch { return ts }
-}
+import PatientSelector, { usePatientContext } from '../components/PatientSelector'
+import { moodIcon, formatTime, formatDate } from '../constants'
 
 const SUB_TABS = [
   { key: 'overview', label: '\u{1F9ED} Current State' },
@@ -20,15 +12,11 @@ const SUB_TABS = [
 ]
 
 export default function PatientInsightsPage() {
-  const [patients, setPatients] = useState<any[]>([])
+  const { patients } = usePatientContext()
   const [selected, setSelected] = useState('')
   const [overview, setOverview] = useState<any>(null)
   const [overviewLoading, setOverviewLoading] = useState(false)
   const [subTab, setSubTab] = useState('overview')
-
-  useEffect(() => {
-    api.getPsychPatients().then(d => setPatients(d || [])).catch(() => {})
-  }, [])
 
   useEffect(() => {
     if (!selected) { setOverview(null); return }
@@ -46,20 +34,13 @@ export default function PatientInsightsPage() {
         One composed view of the patient's current state — identity, clinical brief, trends, risk, and activity.
       </p>
 
-      <select
+      <PatientSelector
+        patients={patients}
         value={selected}
-        onChange={e => setSelected(e.target.value)}
-        style={{
-          width: '100%', padding: '8px 12px', borderRadius: '8px',
-          background: '#1e2336', border: '1px solid #2d2d44', color: '#e0e8f0',
-          fontSize: '0.8125rem', marginBottom: '16px',
-        }}
-      >
-        <option value="">-- Select patient --</option>
-        {patients.map((p: any) => (
-          <option key={p.username || p} value={p.username || p}>{p.name || p}</option>
-        ))}
-      </select>
+        onChange={setSelected}
+        placeholder="-- Select patient --"
+        style={{ marginBottom: '16px' }}
+      />
 
       {selected && (
         <div style={{ display: 'flex', gap: '4px', marginBottom: '20px' }}>
@@ -262,13 +243,13 @@ function OverviewSection({ overview, loading }: { overview: any; loading: boolea
         <div className="card" style={{ padding: '10px', marginBottom: '16px' }}>
           <div style={{ color: '#6a6474', fontSize: '0.6rem', marginBottom: '4px' }}>LATEST MOOD &middot; MOOD TREND (14d)</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.4rem' }}>{MOOD_ICONS[latestMood.label?.toLowerCase()] || '\u2753'}</span>
+            <span style={{ fontSize: '1.4rem' }}>{moodIcon(latestMood.label)}</span>
             <span style={{ color: '#e0e8f0', fontWeight: 600, fontSize: '0.75rem' }}>{latestMood.label}</span>
             <span style={{ color: '#6a6474', fontSize: '0.65rem' }}>{formatTime(latestMood.timestamp)}</span>
             <div style={{ flex: 1, display: 'flex', gap: '3px' }}>
               {moodTrend.map((m: any, i: number) => (
                 <div key={i} style={{ flex: 1, fontSize: '0.8rem', opacity: m.timestamp === latestMood.timestamp ? 1 : 0.55 }} title={`${m.label} ${formatDate(m.timestamp)}`}>
-                  {MOOD_ICONS[m.label?.toLowerCase()] || '\u25AB'}
+                  {moodIcon(m.label)}
                 </div>
               ))}
             </div>
@@ -288,7 +269,7 @@ function OverviewSection({ overview, loading }: { overview: any; loading: boolea
               <div key={i} style={{ borderLeft, background: '#111827', borderRadius: '6px', padding: '8px 12px', margin: '4px 0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#e0e8f0', fontWeight: 600, fontSize: '0.8rem' }}>
-                    {ev.type === 'mood' ? `${MOOD_ICONS[ev.data?.label?.toLowerCase()] || ''} [${ev.data?.label?.toUpperCase()}]` :
+                    {ev.type === 'mood' ? `${moodIcon(ev.data?.label)} [${ev.data?.label?.toUpperCase()}]` :
                      ev.type === 'journal' ? `\u{1F4DD} ${ev.data?.title || 'Journal Entry'}` :
                      ev.type === 'followup' ? `${ev.data?.status === 'completed' ? '\u2705' : '\u23F3'} ${ev.data?.title || 'Task'}` :
                      `\u{1F6A8} ${(ev.data?.event || 'Crisis').toUpperCase()}`}

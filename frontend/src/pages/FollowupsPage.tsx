@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { getUser } from '../stores/auth'
+import PatientSelector from '../components/PatientSelector'
 
 export default function FollowupsPage() {
   const user = getUser()
@@ -26,15 +27,9 @@ function PatientFollowups() {
   async function uploadProofAndComplete(taskId: string) {
     const file = uploadingProof[taskId]
     if (!file) return
-    const formData = new FormData()
-    formData.append('file', file)
     try {
-      const res = await fetch(`/api/followups/${taskId}/upload-proof`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData,
-      })
-      if (res.ok) setTasks((await api.getFollowups()) || [])
+      await api.uploadFollowupProof(taskId, file)
+      setTasks((await api.getFollowups()) || [])
     } catch {}
   }
 
@@ -136,13 +131,7 @@ function PsychFollowups() {
     try {
       const task = await api.createFollowup({ patient_username: newPatient, title: newTitle, description: newDesc })
       if (newFile && task?.id) {
-        const formData = new FormData()
-        formData.append('file', newFile)
-        await fetch(`/api/followups/${task.id}/upload`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          body: formData,
-        })
+        await api.uploadFollowupAttachment(task.id, newFile)
       }
       setNewTitle(''); setNewDesc(''); setNewFile(null)
       setTasks((await api.getFollowups()) || [])
@@ -183,12 +172,7 @@ function PsychFollowups() {
                 <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
                   <div style={{ flex: 1 }}>
                     <label>Patient</label>
-                    <select value={newPatient} onChange={e => setNewPatient(e.target.value)}>
-                      <option value="">Select...</option>
-                      {patients.map((p: any) => (
-                        <option key={p.username || p} value={p.username || p}>{p.name || p}</option>
-                      ))}
-                    </select>
+                    <PatientSelector patients={patients} value={newPatient} onChange={setNewPatient} placeholder="Select..." />
                   </div>
                   <div style={{ flex: 2 }}>
                     <label>Task title</label>
@@ -270,12 +254,7 @@ function PsychFollowups() {
         <div className="psych-box">
           <div className="psych-box-title">🤖 Follow-Up Agent</div>
           <div className="psych-box-desc">AI-powered task drafting</div>
-          <select value={aiPatient} onChange={e => setAiPatient(e.target.value)} style={{ marginBottom: '8px', fontSize: '0.8125rem', padding: '8px' }}>
-            <option value="">Select patient...</option>
-            {patients.map((p: any) => (
-              <option key={p.username || p} value={p.username || p}>{p.name || p}</option>
-            ))}
-          </select>
+          <PatientSelector patients={patients} value={aiPatient} onChange={setAiPatient} placeholder="Select patient..." style={{ marginBottom: '8px', fontSize: '0.8125rem', padding: '8px' }} />
           <button onClick={analyze} className="btn-primary" style={{ width: '100%', fontSize: '0.8125rem' }}>Analyze & Draft Tasks</button>
 
           {agentResult && (

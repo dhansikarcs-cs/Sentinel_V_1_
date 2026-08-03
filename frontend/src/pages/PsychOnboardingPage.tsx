@@ -20,7 +20,7 @@ export default function PsychOnboardingPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api.get('/patients/me').then((d: any) => {
+    api.getMe().then((d: any) => {
       if (d.onboarding_step >= 99) navigate('/triage')
       setStep(d.onboarding_step || 0)
       setContactInfo(d.contact_info || '')
@@ -36,7 +36,7 @@ export default function PsychOnboardingPage() {
   async function handleSaveContact() {
     setSaving(true)
     try {
-      await api.put('/patients/me/contact', { contact_info: contactInfo, trusted_contact: '' })
+      await api.updateContact({ contact_info: contactInfo, trusted_contact: '' })
     } catch {}
     setSaving(false)
     advance(2)
@@ -45,7 +45,7 @@ export default function PsychOnboardingPage() {
   async function handleSaveTrusted() {
     setSaving(true)
     try {
-      await api.put('/patients/me/contact', { contact_info: contactInfo, trusted_contact: trustedContact })
+      await api.updateContact({ contact_info: contactInfo, trusted_contact: trustedContact })
     } catch {}
     setSaving(false)
     advance(3)
@@ -200,18 +200,9 @@ function ConsentUpload({ user }: { user: any }) {
     if (!file) return
     setUploading(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/patients/me/consent', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData,
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setUploaded(data.file_path || 'Uploaded')
-        setFile(null)
-      }
+      const data = await api.uploadConsentForm(file)
+      setUploaded(data?.file_path || 'Uploaded')
+      setFile(null)
     } catch {}
     setUploading(false)
   }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import { getUser } from '../stores/auth'
+import PatientSelector from '../components/PatientSelector'
 
 export default function ClinicalNotesPage() {
   const [patients, setPatients] = useState<any[]>([])
@@ -12,17 +12,17 @@ export default function ClinicalNotesPage() {
 
   useEffect(() => {
     api.getPsychPatients().then(setPatients).catch(() => {})
-    api.get('/psychologists/notes').then(setNotes).catch(() => {})
+    api.getPsychNotes().then(setNotes).catch(() => {})
   }, [])
 
   async function saveNote() {
     if (!selectedPatient || !rawNotes.trim()) return
     setSaving(true)
     try {
-      await api.post('/psychologists/notes', { patient_username: selectedPatient, raw_notes: rawNotes })
+      await api.createPsychNote({ patient_username: selectedPatient, raw_notes: rawNotes })
       setRawNotes('')
       setAiDraft(null)
-      const updated = await api.get('/psychologists/notes')
+      const updated = await api.getPsychNotes()
       setNotes(updated || [])
     } catch (err: any) { alert(err.message) }
     setSaving(false)
@@ -41,8 +41,6 @@ export default function ClinicalNotesPage() {
     }
   }
 
-  const sourceColors: Record<string, string> = { ollama: '#c49ea4', groq: '#22c55e', rule: '#f59e0b', ai: '#60a5fa' }
-
   return (
     <div className="space-y-6 animate-fade-in">
       <h1>📝 Clinical Documentation</h1>
@@ -51,13 +49,13 @@ export default function ClinicalNotesPage() {
         <div className="space-y-4">
           <div className="card" style={{ padding: '20px' }}>
             <h2 style={{ fontSize: '0.9rem', margin: '0 0 12px 0' }}>✍️ New Session Note</h2>
-            <select value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem', marginBottom: '12px' }}>
-              <option value="">Select patient...</option>
-              {patients.map((p: any) => (
-                <option key={p.username} value={p.username}>{p.name} (@{p.username})</option>
-              ))}
-            </select>
+            <PatientSelector
+              patients={patients}
+              value={selectedPatient}
+              onChange={setSelectedPatient}
+              placeholder="Select patient..."
+              style={{ width: '100%', marginBottom: '12px' }}
+            />
             <textarea
               value={rawNotes}
               onChange={e => setRawNotes(e.target.value)}

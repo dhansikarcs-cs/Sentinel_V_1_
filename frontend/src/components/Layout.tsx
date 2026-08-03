@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { getUser, logout, subscribe } from '../stores/auth'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { computeCrisisStage, CRISIS_STAGE_MESSAGES, todayStr } from '../constants'
 import TourGuide from './TourGuide'
 
 const QUOTES = [
@@ -28,14 +29,13 @@ const patientTabs: Tab[] = [
 ]
 const psychTabs: Tab[] = [
   { to: '/triage', label: '📋 Patient Triage' },
-  { to: '/patient-insights', label: '📊 Patient Insights' },
   { to: '/clinical-notes', label: '📝 Clinical Notes' },
+  { to: '/patient-insights', label: '📊 Patient Insights' },
   { to: '/psych-journal', label: '📓 Journal & Wellness' },
   { to: '/bookings', label: '📅 Bookings' },
   { to: '/followups', label: '📋 Follow-Up' },
   { to: '/export', label: '📦 Export Center' },
 ]
-
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -134,7 +134,7 @@ export default function Layout() {
   const heartRate = sensorData?.bpm || sensorData?.heart_rate || '-'
   const journalOk = journals.some((j: any) => {
     const d = (j.created_at || j.timestamp || '').slice(0, 10)
-    return d === new Date().toISOString().slice(0, 10)
+    return d === todayStr()
   }) ? 'Logged' : 'Not yet'
   const nextSession = (() => {
     const approved = bookings.filter((b: any) => b.status === 'Approved').sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''))
@@ -142,8 +142,7 @@ export default function Layout() {
     return `${approved[0].date || ''} @ ${approved[0].time || ''}`
   })()
   const todayMood = (() => {
-    const today = new Date().toISOString().slice(0, 10)
-    const m = moods.find((m: any) => (m.date || '').slice(0, 10) === today)
+    const m = moods.find((m: any) => (m.date || '').slice(0, 10) === todayStr())
     return m ? m.emoji || m.label || 'Logged' : '-'
   })()
 
@@ -164,24 +163,7 @@ export default function Layout() {
 
   const showCrisisBanner = crisisState?.active
   const cs = crisisState || {}
-  const crisisStage = (() => {
-    if (!showCrisisBanner) return 'none'
-    if (cs.acknowledged) return 'acknowledged'
-    if (cs.trustee_acknowledged) return 'trustee_coming'
-    if (cs.trustee_clicked) return 'trustee_clicked'
-    if (crisisElapsed >= 60) return 'helpline_escalated'
-    if (crisisElapsed >= 30) return 'trustee_notified'
-    return 'triggered'
-  })()
-
-  const stageMessages: Record<string, { text: string; color: string }> = {
-    acknowledged: { text: '✅ Crisis acknowledged. Support team is with you.', color: '#22c55e' },
-    trustee_coming: { text: '🟢 Trusted contact is on the way.', color: '#4ade80' },
-    trustee_clicked: { text: '🟢 Trusted contact has been notified.', color: '#6ee7a7' },
-    helpline_escalated: { text: '🚨 Crisis escalated to helpline. Professional help dispatched.', color: '#ef4444' },
-    trustee_notified: { text: '👤 Trusted contact notified.', color: '#f59e0b' },
-    triggered: { text: '🔴 Crisis active — help is on the way.', color: '#ef4444' },
-  }
+  const crisisStage = computeCrisisStage(cs, crisisElapsed)
 
   const lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
   const bookingMsg = lastBooking ? ({
@@ -399,8 +381,8 @@ export default function Layout() {
             <div className="card" style={{ borderColor: '#ef4444', background: 'rgba(239,68,68,0.08)', marginBottom: '16px', padding: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
                 <span style={{ color: '#ef4444', fontSize: '1.25rem' }}>⏱️ {crisisElapsed >= 60 ? '60+' : crisisElapsed}s</span>
-                <span style={{ color: stageMessages[crisisStage]?.color || '#ef4444', fontWeight: 600, fontSize: '0.875rem' }}>
-                  {stageMessages[crisisStage]?.text || '🔴 Crisis Active'}
+                <span style={{ color: CRISIS_STAGE_MESSAGES[crisisStage]?.color || '#ef4444', fontWeight: 600, fontSize: '0.875rem' }}>
+                  {CRISIS_STAGE_MESSAGES[crisisStage]?.text || '🔴 Crisis Active'}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
