@@ -1,68 +1,469 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { getUser } from '../stores/auth'
+
+const STATUS_COLORS: Record<string, string> = { Approved: '#22c55e', Rejected: '#ef4444', Cancelled: '#6a6474', Pending: '#c49ea4' }
+const STATUS_ICONS: Record<string, string> = { Approved: '✅', Rejected: '❌', Cancelled: '🔴', Pending: '⏳' }
 
 export default function BookingsPage() {
+  const user = getUser()
+  const isPsych = user?.role === 'psychologist'
+
+  if (isPsych) return <PsychBookings />
+  return <PatientBookings />
+}
+
+function PatientBookings() {
   const [bookings, setBookings] = useState<any[]>([])
-  const [psychs, setPsychs] = useState<any[]>([])
-  const [psychId, setPsychId] = useState('')
-  const [slot, setSlot] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState(0)
 
-  async function load() {
+  useEffect(() => { api.getBookings().then(d => setBookings(d || [])).catch(() => {}) }, [])
+
+  const aiBookings = (bookings || []).filter((b: any) => b.explanation?.includes('AI-suggested'))
+  const manualBookings = bookings.filter((b: any) => !b.explanation?.includes('AI-suggested'))
+  const proposed = aiBookings.filter((b: any) => b.status === 'Proposed')
+  const pastAi = aiBookings.filter((b: any) => b.status !== 'Proposed')
+
+  async function handleAction(booking: any, action: string) {
     try {
-      const [b, p] = await Promise.all([api.getBookings(), api.getAvailablePsychs()])
-      setBookings(b || [])
-      setPsychs(p || [])
-    } catch {}
-    setLoading(false)
-  }
-
-  useEffect(() => { load() }, [])
-
-  async function handleBook() {
-    if (!psychId || !slot) return
-    try {
-      await api.createBooking({ psych_id: Number(psychId), slot })
-      setPsychId('')
-      setSlot('')
-      await load()
+      await api.updateBookingStatus(booking.id, action)
+      const updated = await api.getBookings()
+      setBookings(updated || [])
     } catch (err: any) { alert(err.message) }
   }
 
-  if (loading) return <p className="text-gray-400">Loading...</p>
+  return (
+    <div className="animate-fade-in">
+      <h2>📅 Booking</h2>
+      {bookings.length > 0 && (
+        <div style={{ fontSize: '0.8125rem', marginBottom: '16px' }}>
+          {(() => {
+            const latest = bookings[bookings.length - 1]
+            if (latest.status === 'Approved') return <div style={{ color: '#22c55e' }}>✅ Your last request was <strong>Approved</strong>. Check your contact for details.</div>
+            if (latest.status === 'Rejected') return <div style={{ color: '#ef4444' }}>❌ Your last request was <strong>Rejected</strong>.</div>
+            return <div style={{ color: '#c49ea4' }}>⏳ Your request is <strong>Pending Review</strong> by the clinician.</div>
+          })()}
+        </div>
+      )}
+
+      <div className="sub-tabs">
+        <button className={`sub-tab ${tab === 0 ? 'active' : ''}`} onClick={() => setTab(0)}>📨 Psych Suggested</button>
+        <button className={`sub-tab ${tab === 1 ? 'active' : ''}`} onClick={() => setTab(1)}>📅 Book Appointment</button>
+      </div>
+
+      {tab === 0 && (
+        <div>
+          {proposed.length > 0 ? (
+            <>
+              <div className="card" style={{ borderColor: '#f59e0b' }}>
+                <div style={{ color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>💡 NEW — Psychologist Suggested</div>
+                <div style={{ color: '#6a6474', fontSize: '0.75rem', marginTop: '4px' }}>
+                  Your psychologist recommended the following appointment. Accept to request a review or decline to suggest a different time.
+                </div>
+              </div>
+              {proposed.map((b: any, i: number) => (
+                <div key={i} className="card" style={{ borderColor: '#f59e0b' }}>
+                  <div style={{ color: '#f59e0b', fontSize: '0.9rem', fontWeight: 600 }}>{b.date} @ {b.time}</div>
+                  <div style={{ color: '#6a6474', fontSize: '0.75rem', marginTop: '4px' }}>{b.explanation}</div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button className="btn-primary" onClick={() => handleAction(b, 'Approved')}>✅ Accept</button>
+                    <button onClick={() => handleAction(b, 'Rejected')}>❌ Decline</button>
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : (
+            <div className="card"><span style={{ color: '#6a6474', fontSize: '0.875rem' }}>No suggestions from your psychologist yet.</span></div>
+          )}
+          {pastAi.length > 0 && (
+            <div style={{ marginTop: '16px' }}>
+              <h3>History</h3>
+              <div className="space-y-2">
+                {pastAi.slice(-5).reverse().map((b: any, i: number) => (
+                  <div key={i} className="card-stage" style={{ justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem' }}>{STATUS_ICONS[b.status] || '⚪'} <strong>{b.date} @ {b.time}</strong></span>
+                    <span style={{ fontSize: '0.6875rem', color: STATUS_COLORS[b.status] || '#6a6474' }}>{b.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 1 && <PatientBookingForm />}
+    </div>
+  )
+}
+
+function PatientBookingForm() {
+  const [psychs, setPsychs] = useState<any[]>([])
+  const [selectedPsych, setSelectedPsych] = useState('')
+  const [availableDates, setAvailableDates] = useState<string[]>([])
+  const [selectedDate, setSelectedDate] = useState('')
+  const [time, setTime] = useState('10:00')
+  const [sessionType, setSessionType] = useState('Therapy')
+  const [memberCount, setMemberCount] = useState(1)
+  const [members, setMembers] = useState<{ name: string; age: number }[]>([{ name: '', age: 25 }])
+  const [contact, setContact] = useState('')
+  const [context, setContext] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    api.get('/psychologists/available').then(d => setPsychs(d || [])).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!selectedPsych) { setAvailableDates([]); return }
+    api.get(`/psychologists/${selectedPsych}/availability`).then((dates: string[]) => {
+      setAvailableDates(dates || [])
+    }).catch(() => {})
+  }, [selectedPsych])
+
+  useEffect(() => {
+    setMembers(Array.from({ length: memberCount }, (_, i) => members[i] || { name: '', age: 25 }))
+  }, [memberCount])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selectedPsych || !selectedDate || !contact.trim() || !context.trim() || members.some(m => !m.name.trim())) {
+      alert('Please fill all required fields.')
+      return
+    }
+    setSaving(true)
+    try {
+      await api.createBooking({
+        patient: getUser()?.username,
+        psychologist_username: selectedPsych,
+        date: selectedDate,
+        time,
+        session_type: sessionType,
+        members: members.map(m => `${m.name.trim()} (${m.age})`).join('; '),
+        contact: contact.trim(),
+        explanation: context.trim(),
+      })
+      alert('Request sent!')
+    } catch (err: any) { alert(err.message) }
+    setSaving(false)
+  }
 
   return (
-    <div className="max-w-lg space-y-6">
-      <h1 className="text-2xl font-semibold">Bookings</h1>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-medium text-gray-300">New Booking</h2>
-        <select value={psychId} onChange={e => setPsychId(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-          <option value="">Select psychologist...</option>
-          {psychs.map((p: any) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
+    <div>
+      <h3>📅 Clinic Booking Portal</h3>
+
+      <div className="space-y-4" style={{ marginTop: '12px' }}>
+        {/* Step 1: Psychologist */}
+        <div>
+          <label>Psychologist</label>
+          <select value={selectedPsych} onChange={e => setSelectedPsych(e.target.value)}>
+            <option value="">Select psychologist...</option>
+            {psychs.map((p: any) => (
+              <option key={p.username || p} value={p.username || p}>{p.name || p}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Step 2: Available dates */}
+        <div>
+          <label>Available dates</label>
+          {availableDates.length > 0 ? (
+            <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}>
+              <option value="">Select a date...</option>
+              {availableDates.map((d: string) => (
+                <option key={d} value={d}>{new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</option>
+              ))}
+            </select>
+          ) : (
+            <div style={{ color: '#6a6474', fontSize: '0.8125rem', padding: '8px 0' }}>No available dates. Your psychologist hasn't opened slots yet.</div>
+          )}
+        </div>
+
+        {/* Step 3: Attendance */}
+        <div>
+          <label>How many members are attending?</label>
+          <input type="number" min={1} max={6} value={memberCount} onChange={e => setMemberCount(Number(e.target.value))} style={{ width: '100px' }} />
+        </div>
+
+        {/* Step 4: Session Details */}
+        <div>
+          <div style={{ fontSize: '0.8125rem', color: '#b4aab8', fontWeight: 500, marginBottom: '8px' }}>Session Details</div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <label>Time</label>
+              <input type="time" value={time} onChange={e => setTime(e.target.value)} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Type</label>
+              <select value={sessionType} onChange={e => setSessionType(e.target.value)}>
+                <option>Therapy</option>
+                <option>Follow-up</option>
+                <option>Crisis Check-in</option>
+                <option>Mindfulness</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <hr />
+
+        {/* Step 5: Member Details */}
+        <div>
+          <div style={{ fontSize: '0.8125rem', color: '#b4aab8', fontWeight: 500, marginBottom: '8px' }}>Member Details</div>
+          {members.map((m, i) => (
+            <div key={i} style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+              <div style={{ flex: 3 }}>
+                <label>Member {i + 1} Full Name</label>
+                <input value={m.name} onChange={e => {
+                  const next = [...members]; next[i] = { ...next[i], name: e.target.value }; setMembers(next)
+                }} placeholder="Full name" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>Age</label>
+                <input type="number" min={0} max={120} value={m.age} onChange={e => {
+                  const next = [...members]; next[i] = { ...next[i], age: Number(e.target.value) }; setMembers(next)
+                }} />
+              </div>
+            </div>
           ))}
-        </select>
-        <input type="datetime-local" value={slot} onChange={e => setSlot(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-        <button onClick={handleBook} disabled={!psychId || !slot}
-          className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-          Book Session
+        </div>
+
+        <hr />
+
+        <div>
+          <label>Preferred Contact (Phone/Email)</label>
+          <input value={contact} onChange={e => setContact(e.target.value)} placeholder="Phone or email" />
+        </div>
+        <div>
+          <label>Context for the session</label>
+          <textarea value={context} onChange={e => setContext(e.target.value)} placeholder="Briefly describe the goal for this visit." rows={3} />
+        </div>
+
+        <button className="btn-primary" onClick={handleSubmit} disabled={saving} style={{ width: '100%', padding: '10px' }}>
+          {saving ? 'Submitting...' : 'Submit Request'}
         </button>
       </div>
-      <div className="space-y-2">
-        {bookings.map((b: any) => (
-          <div key={b.id} className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg px-4 py-3">
-            <div>
-              <div className="text-sm text-gray-300">{new Date(b.slot).toLocaleString()}</div>
-              <div className="text-xs text-gray-500">{b.psych_name || 'Psychologist'}</div>
-            </div>
-            <span className={`text-xs px-2 py-1 rounded ${b.status === 'confirmed' ? 'bg-green-900/30 text-green-400' : b.status === 'cancelled' ? 'bg-red-900/30 text-red-400' : 'bg-yellow-900/30 text-yellow-400'}`}>
-              {b.status}
-            </span>
+    </div>
+  )
+}
+
+/* ──── Psychologist Booking ──── */
+
+function PsychBookings() {
+  const [tab, setTab] = useState(0)
+
+  return (
+    <div className="animate-fade-in">
+      <h2>📅 Bookings</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '24px' }}>
+        <div>
+          <div className="sub-tabs">
+            <button className={`sub-tab ${tab === 0 ? 'active' : ''}`} onClick={() => setTab(0)}>📅 Calendar</button>
+            <button className={`sub-tab ${tab === 1 ? 'active' : ''}`} onClick={() => setTab(1)}>📋 Queue</button>
           </div>
-        ))}
+          {tab === 0 && <PsychCalendar />}
+          {tab === 1 && <PsychQueue />}
+        </div>
+        <div>
+          <PsychBookingAgent />
+        </div>
       </div>
+    </div>
+  )
+}
+
+function PsychCalendar() {
+  const today = new Date()
+  const [year, setYear] = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth() + 1)
+  const [avail, setAvail] = useState<string[]>([])
+
+  useEffect(() => {
+    api.get('/bookings/availability/me').then(d => setAvail(d || [])).catch(() => {})
+  }, [])
+
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const firstDay = new Date(year, month - 1, 1).getDay()
+  const weekday = firstDay === 0 ? 6 : firstDay - 1
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+  async function toggleDate(d: number) {
+    const ds = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    try {
+      if (avail.includes(ds)) {
+        await api.delete(`/bookings/availability/date/${ds}`)
+        setAvail(avail.filter(a => a !== ds))
+      } else {
+        await api.post('/bookings/availability', { date: ds })
+        setAvail([...avail, ds])
+      }
+    } catch {}
+  }
+
+  return (
+    <div>
+      <h3>📅 Availability Calendar</h3>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+        <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ width: '140px' }}>
+          {months.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+        </select>
+        <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ width: '100px' }}>
+          {[today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1, today.getFullYear() + 2].map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="cal-wrap">
+        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+          <div key={d} className="cal-hdr">{d}</div>
+        ))}
+        {Array.from({ length: weekday }).map((_, i) => <div key={`e${i}`}></div>)}
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+          const ds = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+          const isAvail = avail.includes(ds)
+          const isPast = new Date(year, month - 1, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+          const isToday = year === today.getFullYear() && month === today.getMonth() + 1 && d === today.getDate()
+          let cls = 'cal-cell'
+          if (isPast) cls += ' cal-past'
+          else if (isAvail) cls += ' cal-avail'
+          else if (isToday) cls += ' cal-today'
+          else cls += ' cal-day'
+          return <div key={d} className={cls} style={{ cursor: isPast ? 'default' : 'pointer' }} onClick={() => !isPast && toggleDate(d)}>{d}</div>
+        })}
+      </div>
+
+      <div style={{ display: 'flex', gap: '16px', fontSize: '0.75rem', marginTop: '8px' }}>
+        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#1a4a2a', border: '1px solid #22c55e', borderRadius: '3px', verticalAlign: 'middle', marginRight: '4px' }}></span> Available ({avail.length})</span>
+        <span style={{ color: '#5a4a5a' }}>Click a date to toggle available/blocked</span>
+      </div>
+    </div>
+  )
+}
+
+function PsychQueue() {
+  const [bookings, setBookings] = useState<any[]>([])
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({})
+
+  useEffect(() => { api.getBookings().then(d => setBookings(d || [])).catch(() => {}) }, [])
+
+  async function updateStatus(id: number, status: string) {
+    try {
+      await api.updateBookingStatus(id, status)
+      const updated = await api.getBookings()
+      setBookings(updated || [])
+    } catch {}
+  }
+
+  if (bookings.length === 0) return <div className="card"><span style={{ color: '#6a6474' }}>The queue is currently empty.</span></div>
+
+  return (
+    <div>
+      <h3>📋 Booking Management</h3>
+      <div className="space-y-2">
+        {bookings.map((item: any, idx: number) => {
+          const s = item.status
+          const icon = STATUS_ICONS[s] || '○'
+          const open = expanded[idx]
+          return (
+            <div key={item.id} className="expander">
+              <div className="expander-header" onClick={() => setExpanded({ ...expanded, [idx]: !open })}>
+                <span>{icon} {item.patient_username} - {item.date} @ {item.time}</span>
+                <span>{open ? '▲' : '▼'}</span>
+              </div>
+              {open && (
+                <div className="expander-body">
+                  <div className="space-y-2" style={{ fontSize: '0.8125rem' }}>
+                    <div><strong>Status:</strong> <span style={{ color: STATUS_COLORS[s] || '#6a6474' }}>{s}</span></div>
+                    <div><strong>Patient:</strong> {item.patient_username}</div>
+                    <div><strong>Date:</strong> {item.date}</div>
+                    <div><strong>Time:</strong> {item.time}</div>
+                    <div><strong>Session:</strong> {item.session_type || 'Therapy'}</div>
+                    <div><strong>Members:</strong> {item.members || 'N/A'}</div>
+                    <div><strong>Contact:</strong> {item.contact || 'N/A'}</div>
+                    <div className="card" style={{ padding: '10px' }}><strong>Reason:</strong> {item.explanation || 'N/A'}</div>
+
+                    {s === 'Cancelled' && (
+                      <div className="card" style={{ background: '#2a0a0a', borderColor: '#ef4444' }}>
+                        <span style={{ color: '#ef4444' }}>❌ Patient cancelled this slot.</span>
+                      </div>
+                    )}
+                    {s === 'Pending' && (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                        <button className="btn-primary" onClick={() => updateStatus(item.id, 'Approved')}>✅ Approve</button>
+                        <button onClick={() => updateStatus(item.id, 'Rejected')}>❌ Reject</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function PsychBookingAgent() {
+  const [patients, setPatients] = useState<any[]>([])
+  const [selected, setSelected] = useState('')
+  const [agentResult, setAgentResult] = useState<any>(null)
+
+  useEffect(() => { api.getPsychPatients().then(d => setPatients(d || [])).catch(() => {}) }, [])
+
+  async function analyze() {
+    if (!selected) return
+    try {
+      const result = await api.suggestSlots(selected)
+      setAgentResult(result)
+    } catch {}
+  }
+
+  async function proposeSlot(slot: any) {
+    try {
+      await api.createBooking({
+        psychologist_username: getUser()?.username,
+        date: slot.date,
+        time: slot.time || '10:00',
+        session_type: 'Therapy',
+        members: '1',
+        contact: '',
+        explanation: 'AI-suggested booking',
+      })
+      alert('Booking proposed - waiting for patient to confirm.')
+      setAgentResult(null)
+    } catch (err: any) { alert(err.message) }
+  }
+
+  return (
+    <div className="psych-box">
+      <div className="psych-box-title">🤖 Booking Agent</div>
+      <div className="psych-box-desc">AI-powered slot suggestions</div>
+      <select value={selected} onChange={e => setSelected(e.target.value)} style={{ marginBottom: '8px', fontSize: '0.8125rem', padding: '8px' }}>
+        <option value="">Select patient...</option>
+        {patients.map((p: any) => (
+          <option key={p.username || p} value={p.username || p}>{p.name || p}</option>
+        ))}
+      </select>
+      <button onClick={analyze} className="btn-primary" style={{ width: '100%', fontSize: '0.8125rem' }}>🤖 Analyze & Suggest Slots</button>
+
+      {agentResult && (
+        <div className="ai-box" style={{ marginTop: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '0.75rem', marginBottom: '6px' }}>
+            <span style={{ color: '#c0d0e0' }}>Priority: <strong>{agentResult.priority}</strong></span>
+            <span style={{ color: '#5a4a5a' }}>|</span>
+            <span style={{ color: '#c0d0e0' }}>Urgency: <strong>{agentResult.urgency_score}/10</strong></span>
+          </div>
+          <div style={{ color: '#6a6474', fontSize: '0.6875rem', marginBottom: '8px' }}>{agentResult.reasoning}</div>
+          {agentResult.suggested_slots?.map((s: any, i: number) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: '1px solid #2d2d44' }}>
+              <span style={{ color: '#c49ea4', fontSize: '0.8125rem', fontWeight: 600 }}>{s.label}</span>
+              <button className="btn-primary" style={{ fontSize: '0.6875rem', padding: '4px 10px' }} onClick={() => proposeSlot(s)}>Propose</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -22,3 +22,6 @@ backend/*.db-shm
 backend/*.db-wal
 frontend/node_modules/
 frontend/dist/
+archive/
+*.tsbuildinfo
+test.pdf

@@ -1,4 +1,5 @@
 """Centralized audit service with hash-chained tamper detection."""
+import json
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
@@ -15,6 +16,12 @@ def log_audit(
     status: str = "success",
     ip: str = "",
     details: str = "",
+    device: str = "",
+    browser: str = "",
+    session_id: str = "",
+    before_value: str = "",
+    after_value: str = "",
+    request_id: str = "",
     db: Session | None = None,
 ) -> AuditLog:
     own_session = False
@@ -26,6 +33,25 @@ def log_audit(
         prev = db.query(AuditLog).order_by(AuditLog.id.desc()).first()
         prev_hash = prev.curr_hash if prev else ""
 
+        rich_details = details
+        if any([device, browser, session_id, before_value, after_value, request_id]):
+            payload = {}
+            if device:
+                payload["device"] = device
+            if browser:
+                payload["browser"] = browser
+            if session_id:
+                payload["session_id"] = session_id
+            if before_value:
+                payload["before"] = before_value
+            if after_value:
+                payload["after"] = after_value
+            if request_id:
+                payload["request_id"] = request_id
+            if details:
+                payload["extra"] = details
+            rich_details = json.dumps(payload) if payload else details
+
         entry = AuditLog(
             timestamp=datetime.now(timezone.utc).isoformat(),
             user=user,
@@ -36,7 +62,7 @@ def log_audit(
             severity=severity,
             status=status,
             ip=ip,
-            details=details,
+            details=rich_details,
             prev_hash=prev_hash,
             curr_hash="",
         )

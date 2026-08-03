@@ -13,6 +13,16 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         value: https://sentinel-frontend.onrender.com
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: HELPLINE_EMAIL
+        sync: false
 
   - type: web
     name: sentinel-frontend

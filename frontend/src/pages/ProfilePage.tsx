@@ -9,6 +9,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
 
+  useEffect(() => {
+    setContact(user?.contact_info || '')
+    setTrusted(user?.trusted_contact || '')
+  }, [user])
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -24,48 +29,39 @@ export default function ProfilePage() {
     }
   }
 
-  useEffect(() => {
-    setContact(user?.contact_info || '')
-    setTrusted(user?.trusted_contact || '')
-  }, [user])
+  if (!user) return null
 
   return (
-    <div className="max-w-lg space-y-6">
-      <h1 className="text-2xl font-semibold">Profile</h1>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
-        <div>
-          <label className="text-xs text-gray-500 uppercase tracking-wide">Name</label>
-          <div className="text-sm text-gray-200 mt-1">{user?.name}</div>
+    <div className="space-y-6 animate-fade-in">
+      <h1>👤 My Profile</h1>
+      <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="grid grid-cols-2" style={{ gap: '16px' }}>
+          {[
+            { label: 'Name', value: user.name },
+            { label: 'Username', value: user.username },
+            { label: 'Role', value: user.role },
+            { label: 'Clinic', value: user.clinic || '\u2014' },
+          ].map(f => (
+            <div key={f.label}>
+              <div className="metric-label">{f.label}</div>
+              <div style={{ fontSize: '0.9rem', color: '#e8e4ec', marginTop: '2px' }}>{f.value}</div>
+            </div>
+          ))}
         </div>
-        <div>
-          <label className="text-xs text-gray-500 uppercase tracking-wide">Username</label>
-          <div className="text-sm text-gray-200 mt-1">{user?.username}</div>
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 uppercase tracking-wide">Role</label>
-          <div className="text-sm text-gray-200 mt-1 capitalize">{user?.role}</div>
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 uppercase tracking-wide">Clinic</label>
-          <div className="text-sm text-gray-200 mt-1">{user?.clinic || '—'}</div>
-        </div>
-        <form onSubmit={handleSave} className="space-y-3 pt-2 border-t border-gray-800">
+        <hr />
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label className="text-xs text-gray-500">Contact Info</label>
-            <input value={contact} onChange={e => setContact(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mt-1" />
+            <label style={{ fontSize: '0.75rem', color: '#9a92a2', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Contact Info</label>
+            <input value={contact} onChange={e => setContact(e.target.value)} placeholder="Phone or email" style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem' }} />
           </div>
           <div>
-            <label className="text-xs text-gray-500">Trusted Contact</label>
-            <input value={trusted} onChange={e => setTrusted(e.target.value)}
-              placeholder="Name and phone/email"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mt-1" />
+            <label style={{ fontSize: '0.75rem', color: '#9a92a2', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Trusted Contact</label>
+            <input value={trusted} onChange={e => setTrusted(e.target.value)} placeholder="Name and phone/email" style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem' }} />
           </div>
-          <button type="submit" disabled={saving}
-            className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-          {msg && <p className="text-xs text-gray-400">{msg}</p>}
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving...' : '💾 Save'}</button>
+            {msg && <span style={{ fontSize: '0.75rem', color: msg === 'Saved successfully.' ? '#22c55e' : '#ef4444' }}>{msg}</span>}
+          </div>
         </form>
       </div>
     </div>

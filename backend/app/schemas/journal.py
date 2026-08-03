@@ -11,8 +11,10 @@ class JournalResponse(BaseModel):
     patient_username: str
     raw_content: str
     summary: str
+    clinical_summary: str = ""
     ai_source: str
     emotions: str
+    emotion_probabilities: str = ""
     timestamp: str
 
     class Config:
@@ -23,8 +25,10 @@ class JournalSummary(BaseModel):
     id: int
     patient_username: str
     summary: str
+    clinical_summary: str = ""
     ai_source: str
     emotions: str
+    emotion_probabilities: str = ""
     timestamp: str
 
     class Config:

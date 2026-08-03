@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 
 const moods = [
-  { emoji: '😊', label: 'Good' },
+  { emoji: '😁', label: 'Great' },
+  { emoji: '🙂', label: 'Good' },
   { emoji: '😐', label: 'Okay' },
+  { emoji: '🙁', label: 'Down' },
   { emoji: '😢', label: 'Sad' },
-  { emoji: '😤', label: 'Irritable' },
-  { emoji: '😰', label: 'Anxious' },
-  { emoji: '😴', label: 'Tired' },
 ]
 
 export default function MoodPage() {
@@ -39,34 +38,44 @@ export default function MoodPage() {
   }
 
   return (
-    <div className="max-w-lg space-y-6">
-      <h1 className="text-2xl font-semibold">Mood Log</h1>
+    <div className="space-y-6 animate-fade-in">
+      <h1>Mood Log</h1>
       {!todayDone ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <p className="text-sm text-gray-400 mb-3">How are you feeling right now?</p>
+        <div className="card">
+          <p style={{ fontSize: '0.875rem', color: '#9a92a2', marginBottom: '16px' }}>How are you feeling right now?</p>
           <div className="flex gap-3 flex-wrap">
             {moods.map(m => (
               <button key={m.label} onClick={() => handleMood(m)}
-                className="flex flex-col items-center gap-1 p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
-                <span className="text-2xl">{m.emoji}</span>
-                <span className="text-xs text-gray-400">{m.label}</span>
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '12px 16px', background: '#1e2336', border: '1px solid #2d2d44', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', minWidth: '80px' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#232840'; e.currentTarget.style.borderColor = '#c49ea4' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#1e2336'; e.currentTarget.style.borderColor = '#2d2d44' }}>
+                <span style={{ fontSize: '1.75rem' }}>{m.emoji}</span>
+                <span style={{ fontSize: '0.75rem', color: '#6a6474' }}>{m.label}</span>
               </button>
             ))}
           </div>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-sm text-gray-400">
-          Mood logged for today. Check back tomorrow!
+        <div className="card" style={{ borderColor: 'rgba(34,197,94,0.3)' }}>
+          <div className="flex items-center gap-2">
+            <span>✅</span>
+            <span style={{ fontSize: '0.875rem', color: '#22c55e' }}>Mood logged for today. Check back tomorrow!</span>
+          </div>
         </div>
       )}
-      <div className="space-y-2">
-        {logs.slice(-14).reverse().map((l: any) => (
-          <div key={l.id} className="flex items-center gap-3 bg-gray-900 border border-gray-800 rounded-lg px-4 py-2">
-            <span className="text-lg">{l.emoji}</span>
-            <span className="text-xs text-gray-500">{l.date}</span>
-            <span className="text-sm text-gray-300">{l.label}</span>
-          </div>
-        ))}
+      <div>
+        <h2>Recent Moods</h2>
+        <div className="space-y-2 mt-3">
+          {logs.slice(-14).reverse().map((l: any) => (
+            <div key={l.id} className="card-stage" style={{ justifyContent: 'space-between' }}>
+              <div className="flex items-center gap-3">
+                <span style={{ fontSize: '1.25rem' }}>{l.emoji}</span>
+                <span style={{ fontSize: '0.8125rem', color: '#d8d4dc' }}>{l.label}</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#6a6474' }}>{l.date}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

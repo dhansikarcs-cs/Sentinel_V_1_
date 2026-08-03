@@ -1,4 +1,4 @@
-import { api, setToken, getToken } from '../api/client'
+import { api, setToken, setRefreshToken, getToken } from '../api/client'
 
 export interface User {
   username: string
@@ -24,12 +24,14 @@ function notify() { _listeners.forEach(fn => fn()) }
 export async function login(username: string, password: string) {
   const res = await api.login(username, password)
   setToken(res.access_token)
+  if (res.refresh_token) setRefreshToken(res.refresh_token)
   await fetchMe()
   return res
 }
 
 export function logout() {
   setToken(null)
+  setRefreshToken(null)
   _user = null
   notify()
 }

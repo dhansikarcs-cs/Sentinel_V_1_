@@ -1,10 +1,18 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, Index, CheckConstraint
 
 from app.core.database import Base
+from app.core.encrypted_fields import EncryptedText
 
 
 class Booking(Base):
     __tablename__ = "bookings"
+    __table_args__ = (
+        Index("ix_booking_patient_username", "patient_username"),
+        Index("ix_booking_psychologist_username", "psychologist_username"),
+        Index("ix_booking_status", "status"),
+        Index("ix_booking_date", "date"),
+        CheckConstraint("status IN ('Pending', 'Approved', 'Rejected', 'Cancelled', 'Proposed', 'Completed')", name="ck_booking_status"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     patient_username = Column(String, ForeignKey("patient_profiles.username"), nullable=False)
@@ -13,8 +21,8 @@ class Booking(Base):
     time = Column(String, nullable=False)
     session_type = Column(String, default="")
     members = Column(String, default="")
-    contact = Column(String, default="")
-    explanation = Column(String, default="")
+    contact = Column(EncryptedText, default="")
+    explanation = Column(EncryptedText, default="")
     status = Column(String, default="Pending")
     created_at = Column(String, nullable=False)
 

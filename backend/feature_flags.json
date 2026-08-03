@@ -1,0 +1,30 @@
+{
+  "ai_v2_classifier": {
+    "enabled": false,
+    "rollout_pct": 0
+  },
+  "risk_engine_v2": {
+    "enabled": false,
+    "rollout_pct": 0
+  },
+  "offline_sync": {
+    "enabled": false,
+    "rollout_pct": 0
+  },
+  "search_engine": {
+    "enabled": false,
+    "rollout_pct": 0
+  },
+  "event_sourcing": {
+    "enabled": true,
+    "rollout_pct": 100
+  },
+  "cqrs": {
+    "enabled": true,
+    "rollout_pct": 100
+  },
+  "pagination": {
+    "enabled": true,
+    "rollout_pct": 100
+  }
+}

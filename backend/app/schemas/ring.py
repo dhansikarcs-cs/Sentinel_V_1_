@@ -24,3 +24,21 @@ class SensorDataResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class RingDeviceCreate(BaseModel):
+    serial: str = Field(min_length=1, max_length=128)
+    vendor: str = "simulated"
+
+
+class RingDeviceResponse(BaseModel):
+    serial: str
+    patient_username: str
+    vendor: str
+    status: str
+    last_seen_at: str
+    created_at: str
+    token: str = ""
+
+    class Config:
+        from_attributes = True

@@ -6,11 +6,13 @@ class FollowupCreate(BaseModel):
     patient_username: str = Field(min_length=1, max_length=50)
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=5000)
+    file_path: str = Field(default="", max_length=500)
 
 
 class FollowupUpdate(BaseModel):
     status: Literal["pending", "completed", "skipped"] = "pending"
     grade: Literal["none", "red", "yellow", "green"] = "none"
+    file_path: str = Field(default="", max_length=500)
 
 
 class FollowupResponse(BaseModel):
@@ -19,6 +21,7 @@ class FollowupResponse(BaseModel):
     psychologist_username: str
     title: str
     description: str
+    file_path: str = ""
     status: str
     grade: str
     assigned_at: str

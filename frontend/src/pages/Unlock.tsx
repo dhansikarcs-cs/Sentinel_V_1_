@@ -23,17 +23,20 @@ export default function Unlock() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950">
-      <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-xl p-8 w-full max-w-sm space-y-4">
-        <h1 className="text-xl font-bold text-pink-300 text-center">Encryption Unlock</h1>
-        <p className="text-xs text-gray-500 text-center">Enter your passphrase to decrypt session data</p>
-        {error && <div className="bg-red-900/30 text-red-400 text-sm p-2 rounded">{error}</div>}
-        <input type="password" placeholder="Passphrase" value={passphrase} onChange={e => setPassphrase(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-        <button type="submit" disabled={loading}
-          className="w-full bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-          {loading ? 'Unlocking...' : 'Unlock'}
+    <div className="min-h-screen flex items-center justify-center">
+      <form onSubmit={handleSubmit} className="card" style={{ padding: '32px', width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
+        <div style={{ fontSize: '2.5rem' }}>🔐</div>
+        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#e8e4ec' }}>Security Passphrase Required</div>
+        <div style={{ fontSize: '0.8125rem', color: '#6a6474', lineHeight: 1.6 }}>
+          The clinic admin or lead psychologist must enter the master encryption passphrase.<br />
+          This passphrase is <strong style={{ color: '#d8d4dc' }}>never stored on disk</strong> — it exists only in memory for this session.
+        </div>
+        <input type="password" placeholder="Enter the clinic's master passphrase..." value={passphrase} onChange={e => setPassphrase(e.target.value)} style={{ padding: '10px 12px', fontSize: '0.875rem' }} />
+        <button type="submit" disabled={loading} className="btn-primary" style={{ justifyContent: 'center', padding: '10px' }}>
+          {loading ? 'Unlocking...' : '🔓 Unlock Platform'}
         </button>
+        {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '0.8125rem', padding: '8px 12px', borderRadius: '8px' }}>{error}</div>}
+        <div style={{ fontSize: '0.6875rem', color: '#4a5a6a' }}>One-time entry per session. Closing the app clears the key from memory.</div>
       </form>
     </div>
   )

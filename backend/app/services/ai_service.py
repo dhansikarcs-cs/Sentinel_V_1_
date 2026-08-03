@@ -1,12 +1,29 @@
 import json
 import re
+import time
 import urllib.request
+from collections import deque
+from threading import Lock
 from typing import Optional
 
 from app.core.config import settings
+from app.ml.emotion_classifier import EmotionClassifier, GOEMOTIONS
+from app.ml.risk_engine import assess_risk_with_explainability
+
+_ollama_lock = Lock()
+_ollama_queue: deque = deque()
+_ollama_last_call = 0.0
+
+_emotion_clf = EmotionClassifier()
 
 
-def _query_ollama(prompt: str, timeout: int = 15) -> Optional[str]:
+def _query_ollama(prompt: str, timeout: int = 20) -> Optional[str]:
+    global _ollama_last_call
+    with _ollama_lock:
+        now = time.time()
+        if now - _ollama_last_call < 0.5:
+            time.sleep(0.5 - (now - _ollama_last_call))
+        _ollama_last_call = time.time()
     try:
         data = json.dumps({"model": settings.ollama_model, "prompt": prompt, "stream": False}).encode()
         req = urllib.request.Request(
@@ -21,113 +38,189 @@ def _query_ollama(prompt: str, timeout: int = 15) -> Optional[str]:
         return None
 
 
-CRISIS_KW = ["suicide", "kill myself", "end my life", "want to die", "not worth living", "self-harm", "hurt myself", "emergency", "can't take it", "overdose"]
-HIGH_KW = ["panic", "hopeless", "desperate", "terrified", "screaming", "can't breathe", "alone", "scared", "anxiety", "afraid", "worthless", "numb"]
-MEDIUM_KW = ["sad", "worried", "tired", "stress", "overwhelmed", "frustrated", "angry", "upset", "crying", "lost"]
-SOCIAL_KW = ["friends", "family", "people", "nobody", "alone", "isolated", "no one", "lonely", "withdrew"]
-SLEEP_KW = ["sleep", "insomnia", "tired", "exhausted", "can't sleep", "wake up", "nightmare"]
-ACTIVITY_KW = ["nothing", "didn't do", "stay in bed", "no energy", "can't", "avoid", "skipped"]
+def _query_groq(prompt: str, timeout: int = 20) -> str:
+    key = settings.groq_api_key or ""
+    if not key or key == "gsk_your_key_here":
+        return ""
+    try:
+        data = json.dumps({
+            "model": "llama-3.1-8b-instant",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": 512,
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions",
+            data=data,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        )
+        resp = urllib.request.urlopen(req, timeout=timeout)
+        result = json.loads(resp.read().decode())
+        return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+    except Exception:
+        return ""
 
 
-def _compute_contributing_factors(text: str) -> dict:
-    lower = text.lower()
-    return {
-        "crisis_keywords": [kw for kw in CRISIS_KW if kw in lower],
-        "high_risk_keywords": [kw for kw in HIGH_KW if kw in lower],
-        "moderate_keywords": [kw for kw in MEDIUM_KW if kw in lower],
-        "social_withdrawal": sum(1 for kw in SOCIAL_KW if kw in lower),
-        "sleep_disturbance": sum(1 for kw in SLEEP_KW if kw in lower),
-        "activity_decline": sum(1 for kw in ACTIVITY_KW if kw in lower),
-    }
+def _query_ai(prompt: str, timeout: int = 20) -> str:
+    result = _query_ollama(prompt, timeout=timeout)
+    if result:
+        return result
+    result = _query_groq(prompt, timeout=timeout)
+    if result:
+        return result
+    return ""
+
+
+def _is_raw_echo(output: str, original: str) -> bool:
+    cleaned = output.strip().lower()
+    orig_clean = original.strip().lower()
+    if not cleaned or not orig_clean:
+        return False
+    if cleaned == orig_clean:
+        return True
+    if cleaned in orig_clean:
+        return True
+    if orig_clean in cleaned:
+        return True
+    out_words = set(re.findall(r'\w+', cleaned))
+    orig_words = set(re.findall(r'\w+', orig_clean))
+    if not orig_words:
+        return False
+    overlap = len(out_words & orig_words) / len(orig_words)
+    return overlap > 0.85
+
+
+def classify_emotions(text: str) -> str:
+    top = _emotion_clf.predict_top(text, threshold=0.15)
+    labels = [e for e, p in top if e != "neutral"]
+    if not labels:
+        return ""
+    return ", ".join(labels[:5])
+
+
+def classify_emotions_with_probs(text: str) -> tuple[list[tuple[str, float]], dict[str, float]]:
+    probs = _emotion_clf.predict_proba(text)
+    top = _emotion_clf.predict_top(text, threshold=0.15)
+    return top, probs
 
 
 def assess_crisis_risk(text: str) -> dict:
+    return assess_risk_with_explainability(text)
+
+
+def summarize_journal(text: str, mode: str = "patient") -> dict:
     if not text.strip():
-        return {"risk_score": 1, "reasoning": "No content to assess.", "triggered": False, "contributing_factors": {}}
+        return {
+            "summary": text[:200],
+            "ai_source": "rule",
+            "emotions": "",
+            "emotion_probabilities": "{}",
+            "source": "rule",
+        }
 
-    factors = _compute_contributing_factors(text)
+    top_emotions, emotion_probs = classify_emotions_with_probs(text)
+    emotions_str = ", ".join(e for e, p in top_emotions if e != "neutral") or "neutral"
+    emotion_probs_json = json.dumps(emotion_probs)
 
-    prompt = (
-        "You are Sentinel. Assess crisis risk in this journal entry. "
-        "Return ONLY a valid JSON object with three fields: "
-        '"risk_score" (integer 1-10), "reasoning" (string), '
-        '"contributing_factors" (object with keys like sentiment, emotions_detected, key_triggers). '
-        f"\n\nJournal Entry:\n{text}\n\n"
-        "Example: {\"risk_score\": 7, \"reasoning\": \"Fear and sadness detected.\", \"contributing_factors\": {\"sentiment\": \"negative\", \"emotions_detected\": [\"fear\"], \"key_triggers\": [\"hopelessness\"]}}"
-    )
+    emotion_hint = f"\nEmotions detected: {emotions_str}." if emotions_str else ""
 
-    raw = _query_ollama(prompt)
-    if raw:
-        match = re.search(r'\{[^{}]*"risk_score"[^{}]*"reasoning"[^{}]*\}', raw, re.DOTALL)
-        if match:
-            try:
-                result = json.loads(match.group())
-                if isinstance(result.get("risk_score"), (int, float)):
-                    result["risk_score"] = int(result["risk_score"])
-                    result["triggered"] = result["risk_score"] >= 8
-                    if "contributing_factors" not in result:
-                        result["contributing_factors"] = factors
-                    return result
-            except Exception:
-                pass
+    if mode == "clinical":
+        prompt = (
+            "You are Sentinel, a clinical documentation AI. Read this journal entry "
+            "and write a brief clinical summary (2-4 sentences)."
+            f"{emotion_hint}"
+            " Use clinical tone, third person, past tense. Do not quote verbatim."
+            " Return valid JSON: {\"summary\": \"...\"}."
+            f"\n\nJournal Entry:\n{text}"
+        )
+    else:
+        prompt = (
+            "You are Sentinel, a friendly AI companion, not a therapist. "
+            "Read this journal entry and reply like a warm, supportive friend "
+            "sending a text message (2-4 short sentences)."
+            f"{emotion_hint}"
+            " Be casual and conversational, the way a close friend talks. "
+            "You can use playful or affectionate language. "
+            "Do NOT sound clinical, professional, or like a psychologist. "
+            "No advice whatsoever — "
+            "no suggestions, no 'try this', no 'consider that', no 'remember to', "
+            "no coping techniques, no deep breaths. Zero prescription. Just be there for them."
+            " Return valid JSON: {\"summary\": \"...\"}."
+            f"\n\nJournal Entry:\n{text}"
+        )
 
-    return _fallback_risk_assessment(text, factors)
-
-
-def _fallback_risk_assessment(text: str, factors: dict = None) -> dict:
-    if factors is None:
-        factors = _compute_contributing_factors(text)
-
-    score = 1
-    if factors.get("crisis_keywords"):
-        score = 10
-    elif factors.get("high_risk_keywords"):
-        score = 7
-    elif factors.get("moderate_keywords"):
-        score = 4
-    if factors.get("social_withdrawal", 0) >= 2 or factors.get("sleep_disturbance", 0) >= 2 or factors.get("activity_decline", 0) >= 2:
-        score = max(score, 5)
-
-    factor_lines = []
-    if factors["crisis_keywords"]:
-        factor_lines.append(f"CRISIS keywords: {', '.join(factors['crisis_keywords'])}")
-    if factors["high_risk_keywords"]:
-        factor_lines.append(f"High-risk: {', '.join(factors['high_risk_keywords'][:3])}")
-    if factors["moderate_keywords"]:
-        factor_lines.append(f"Moderate: {', '.join(factors['moderate_keywords'][:3])}")
-    if factors["social_withdrawal"] >= 2:
-        factor_lines.append(f"Social withdrawal ({factors['social_withdrawal']}x)")
-    if factors["sleep_disturbance"] >= 2:
-        factor_lines.append(f"Sleep disturbance ({factors['sleep_disturbance']}x)")
-    if factors["activity_decline"] >= 2:
-        factor_lines.append(f"Activity decline ({factors['activity_decline']}x)")
-
-    return {
-        "risk_score": score,
-        "reasoning": f"Score {score}/10. {'; '.join(factor_lines) if factor_lines else 'No significant indicators.'}",
-        "triggered": score >= 8,
-        "contributing_factors": factors,
-    }
-
-
-def summarize_journal(text: str) -> dict:
-    if not text.strip():
-        return {"summary": text, "ai_source": "rule", "emotions": "", "source": "rule"}
-
-    prompt = (
-        "You are Sentinel. Summarize this journal entry in 1-2 sentences clinically. "
-        "Return valid JSON: {\"summary\": \"...\", \"emotions\": \"comma,separated,emotions\"}. "
-        f"\n\n{text}"
-    )
-
-    raw = _query_ollama(prompt)
-    if raw:
+    raw = _query_ollama(prompt, timeout=15)
+    source = "ollama"
+    if not raw or _is_raw_echo(raw, text):
+        raw = _query_groq(prompt)
+        source = "groq"
+    if raw and not _is_raw_echo(raw, text):
         match = re.search(r'\{[^{}]+\}', raw, re.DOTALL)
         if match:
             try:
                 result = json.loads(match.group())
-                return {"summary": result.get("summary", text[:200]), "ai_source": "ollama", "emotions": result.get("emotions", ""), "source": "ai"}
+                return {
+                    "summary": result.get("summary", text[:200]),
+                    "ai_source": source,
+                    "emotions": emotions_str,
+                    "emotion_probabilities": emotion_probs_json,
+                    "source": "ai",
+                }
             except Exception:
                 pass
 
-    return {"summary": text[:200], "ai_source": "rule", "emotions": "", "source": "rule"}
+    return _fallback_summary(text, emotions_str, emotion_probs_json, mode)
+
+
+def _fallback_summary(text: str, emotions: str = "", emotion_probs_json: str = "{}", mode: str = "patient") -> dict:
+    if not text.strip():
+        return {
+            "summary": "No content to summarize.",
+            "ai_source": "rule",
+            "emotions": "",
+            "emotion_probabilities": "{}",
+            "source": "rule",
+        }
+    if mode == "clinical":
+        summary = (
+            f"Observations: Patient reports emotional experiences "
+            f"consistent with {emotions if emotions else 'mixed affect'}.\n\n"
+            f"Assessment: Emotional awareness present. Continue monitoring.\n\n"
+            f"Plan: Follow-up within standard interval."
+        )
+    else:
+        if emotions:
+            summary = f"You're feeling {emotions}. That's completely valid — thanks for sharing how you feel."
+        else:
+            summary = "Thanks for writing this entry. Your feelings matter and tracking them is a positive step."
+
+    return {
+        "summary": summary,
+        "ai_source": "rule",
+        "emotions": emotions,
+        "emotion_probabilities": emotion_probs_json,
+        "source": "rule",
+    }
+
+
+def synthesize_clinical_notes(raw_notes: str) -> str:
+    if not raw_notes.strip():
+        return "No notes to synthesize."
+
+    prompt = (
+        "You are Sentinel. Convert these session notes into a structured clinical note "
+        "with Observations, Assessment, and Plan sections. Use precise emotion language "
+        "in the Assessment. Keep it professional but not cold.\n\n"
+        f"Session Notes:\n{raw_notes}\n\nStructured Clinical Note:"
+    )
+
+    result = _query_ai(prompt)
+    if result:
+        return result
+
+    return (
+        f"**Observations**: {raw_notes[:200]}{'...' if len(raw_notes) > 200 else ''}\n\n"
+        f"**Assessment**: Patient appears engaged in therapeutic process. "
+        f"Continue monitoring emotional trajectory.\n\n"
+        f"**Plan**: Follow-up session recommended within standard interval."
+    )

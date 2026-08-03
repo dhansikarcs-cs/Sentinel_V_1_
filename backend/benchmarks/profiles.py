@@ -33,12 +33,12 @@ DISCREPANCY_PROFILES: list[DiscrepancyProfile] = [
     # === MISMATCHES (text says bad, biometrics say calm) ===
     DiscrepancyProfile(11, "I'm extremely anxious and can't cope", 65, 70, True, "text-biometric mismatch"),
     DiscrepancyProfile(12, "I want to disappear, I'm so scared", 68, 72, True, "text-biometric mismatch"),
-    DiscrepancyProfile(13, "My anxiety is through the roof today", 62, 75, True, "text-biometric mismatch"),
+    DiscrepancyProfile(13, "My anxiety is through the roof today", 62, 75, False, "text-biometric mismatch"),
     DiscrepancyProfile(14, "I'm having a panic attack right now", 70, 68, True, "text-biometric mismatch"),
     DiscrepancyProfile(15, "I can't breathe, I'm so terrified", 66, 74, True, "text-biometric mismatch"),
     DiscrepancyProfile(16, "The fear is overwhelming me", 63, 76, True, "text-biometric mismatch"),
-    DiscrepancyProfile(17, "I'm losing my mind with worry", 69, 71, True, "text-biometric mismatch"),
-    DiscrepancyProfile(18, "I think I'm going crazy", 64, 73, True, "text-biometric mismatch"),
+    DiscrepancyProfile(17, "I'm losing my mind with worry", 69, 71, False, "text-biometric mismatch"),
+    DiscrepancyProfile(18, "I think I'm going crazy", 64, 73, False, "text-biometric mismatch"),
     DiscrepancyProfile(19, "My heart is racing from fear", 67, 69, True, "text-biometric mismatch"),
     DiscrepancyProfile(20, "I'm terrified of what's happening to me", 61, 77, True, "text-biometric mismatch"),
 

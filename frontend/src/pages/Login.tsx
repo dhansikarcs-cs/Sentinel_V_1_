@@ -1,13 +1,26 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { login } from '../stores/auth'
+import { login, getUser } from '../stores/auth'
 
 export default function Login() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  function redirectAfterLogin() {
+    const u = getUser()
+    if (!u) { navigate('/dashboard'); return }
+    const step = u.onboarding_step ?? 0
+    if (step >= 99) {
+      navigate(u.role === 'psychologist' ? '/triage' : '/dashboard')
+      return
+    }
+    if (u.role === 'psychologist') { navigate('/psych-onboarding'); return }
+    navigate('/onboarding')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -15,7 +28,22 @@ export default function Login() {
     setLoading(true)
     try {
       await login(username, password)
-      navigate('/dashboard')
+      redirectAfterLogin()
+    } catch (err: any) {
+      setError(err.message || 'Invalid credentials')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function quickLogin(u: string, p: string) {
+    setUsername(u)
+    setPassword(p)
+    setError('')
+    setLoading(true)
+    try {
+      await login(u, p)
+      redirectAfterLogin()
     } catch (err: any) {
       setError(err.message || 'Invalid credentials')
     } finally {
@@ -24,38 +52,47 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950">
-      <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-xl p-8 w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-bold text-pink-300 text-center">Sentinel</h1>
-        <p className="text-sm text-gray-500 text-center">Sign in to your account</p>
-        {error && <div className="bg-red-900/30 text-red-400 text-sm p-2 rounded">{error}</div>}
-        <div>
-          <input
-            placeholder="Username"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-pink-500"
-          />
+    <div className="min-h-screen flex items-center justify-center" style={{ padding: '20px' }}>
+      <form onSubmit={handleSubmit} className="card" style={{ padding: '32px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 700, background: 'linear-gradient(135deg, #c49ea4, #d8b4ba)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>
+            🧠 Brain Sentinel
+          </div>
+          <div style={{ fontSize: '0.8125rem', color: '#6a6474', marginTop: '4px' }}>AI-Assisted Mental Health Ecosystem</div>
         </div>
-        <div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-pink-500"
-          />
+
+        <hr style={{ borderColor: '#2d2d44', opacity: 0.4 }} />
+
+        {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '0.8125rem', padding: '8px 12px', borderRadius: '8px' }}>{error}</div>}
+
+        <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} style={{ padding: '10px 12px', fontSize: '0.875rem', width: '100%' }} />
+        <div style={{ position: 'relative' }}>
+          <input type={showPw ? 'text' : 'password'} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: '10px 12px', fontSize: '0.875rem', width: '100%', paddingRight: '36px' }} />
+          <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#6a6474', cursor: 'pointer', fontSize: '0.75rem', padding: '4px' }}>
+            {showPw ? 'Hide' : 'Show'}
+          </button>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-        >
-          {loading ? 'Signing in...' : 'Sign In'}
+
+        <button type="submit" disabled={loading} className="btn-primary" style={{ justifyContent: 'center', width: '100%', padding: '10px' }}>
+          {loading ? 'Signing in...' : 'Authenticate'}
         </button>
-        <p className="text-xs text-gray-500 text-center">
-          Don't have an account? <Link to="/register" className="text-pink-400 hover:text-pink-300">Register</Link>
-        </p>
+
+        <hr style={{ borderColor: '#2d2d44', opacity: 0.4 }} />
+
+        <div style={{ fontSize: '0.75rem', color: '#6a6474', textAlign: 'center', fontWeight: 600 }}>Demo Accounts</div>
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button type="button" onClick={() => quickLogin('demopatient', 'Demo@1234')} style={{ flex: 1, padding: '8px', fontSize: '0.7rem', background: '#1e2336', border: '1px solid #2d2d44', borderRadius: '8px', color: '#c49ea4', cursor: 'pointer' }}>
+            Patient<br /><span style={{ color: '#6a6474', fontSize: '0.6rem' }}>demopatient</span>
+          </button>
+          <button type="button" onClick={() => quickLogin('psychdemo', 'Psych@1234')} style={{ flex: 1, padding: '8px', fontSize: '0.7rem', background: '#1e2336', border: '1px solid #2d2d44', borderRadius: '8px', color: '#f59e0b', cursor: 'pointer' }}>
+            Psychologist<br /><span style={{ color: '#6a6474', fontSize: '0.6rem' }}>psychdemo</span>
+          </button>
+        </div>
+
+        <div style={{ fontSize: '0.75rem', color: '#6a6474', textAlign: 'center' }}>
+          Don't have an account? <Link to="/register">Register</Link>
+        </div>
       </form>
     </div>
   )

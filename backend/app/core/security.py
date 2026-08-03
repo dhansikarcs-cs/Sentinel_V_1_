@@ -23,16 +23,56 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
+REFRESH_SECRET = SECRET + ":refresh"
+REFRESH_EXPIRE_DAYS = 30
+
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
-    to_encode.update({"exp": expire})
+    now_ts = int(datetime.now(timezone.utc).timestamp())
+    import uuid as _uuid
+    to_encode.update({
+        "exp": expire,
+        "iat": now_ts,
+        "iss": "sentinel-health",
+        "jti": _uuid.uuid4().hex[:16],
+        "type": "access",
+    })
     return jwt.encode(to_encode, SECRET, algorithm=ALGORITHM)
+
+
+def create_refresh_token(username: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRE_DAYS)
+    now_ts = int(datetime.now(timezone.utc).timestamp())
+    import uuid as _uuid
+    payload = {
+        "sub": username,
+        "exp": expire,
+        "iat": now_ts,
+        "iss": "sentinel-health",
+        "jti": _uuid.uuid4().hex[:16],
+        "type": "refresh",
+    }
+    return jwt.encode(payload, REFRESH_SECRET, algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> Optional[dict]:
     try:
-        return jwt.decode(token, SECRET, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
+        if payload.get("type") != "access":
+            return None
+        return payload
+    except JWTError:
+        return None
+
+
+def decode_refresh_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, REFRESH_SECRET, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            return None
+        return payload
     except JWTError:
         return None
 

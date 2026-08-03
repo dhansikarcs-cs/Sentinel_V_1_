@@ -11,7 +11,6 @@ def _detect_discrepancy(text: str, bpm: int, hrv: int) -> bool:
     """Local deterministic discrepancy detector (mirrors server logic)."""
     text_lower = text.lower().strip()
 
-    # Sentiment heuristic
     positive_words = {"great", "happy", "good", "wonderful", "amazing", "fantastic",
                       "energetic", "refreshed", "joy", "love", "beautiful", "perfect",
                       "cured", "better", "peaceful", "content", "grateful", "optimistic"}
@@ -19,9 +18,31 @@ def _detect_discrepancy(text: str, bpm: int, hrv: int) -> bool:
                       "hopeless", "die", "kill", "suicide", "disappear", "worried",
                       "can't", "cannot", "unbearable", "drowning", "alone", "numb",
                       "struggling", "darkness", "terrible", "falling apart"}
+    negation_prefixes = {"not", "no", "never", "don't", "dont", "doesn't", "doesnt",
+                         "isn't", "isnt", "wasn't", "wasnt", "won't", "wont",
+                         "can't", "cant", "couldn't", "couldnt", "shouldn't", "shouldnt",
+                         "wouldn't", "wouldnt", "hardly", "barely", "neither", "nor"}
 
-    has_positive = any(w in text_lower for w in positive_words)
-    has_negative = any(w in text_lower for w in negative_words)
+    words = text_lower.split()
+    negated = set()
+    i = 0
+    while i < len(words):
+        if words[i] in negation_prefixes and i + 1 < len(words):
+            for j in range(i + 1, min(i + 4, len(words))):
+                candidate = words[j].rstrip(".,!?;:")
+                if candidate in positive_words:
+                    negated.add(candidate)
+                if candidate in negative_words:
+                    negated.add(candidate)
+            i += 2
+        else:
+            i += 1
+
+    effective_pos = positive_words - negated
+    effective_neg = negative_words - negated
+
+    has_positive = any(w in text_lower for w in effective_pos)
+    has_negative = any(w in text_lower for w in effective_neg)
 
     if has_positive and not has_negative:
         text_stress = "low"
@@ -42,7 +63,7 @@ def _detect_discrepancy(text: str, bpm: int, hrv: int) -> bool:
         return True
     if text_stress == "high" and moderate:
         return True  # anxious words + mid biometrics = still a concern
-    if text_stress == "neutral" and (high_stress or low_stress):
+    if text_stress == "neutral" and high_stress:
         return True  # neutral text but extreme biometrics
     return False
 

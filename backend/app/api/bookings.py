@@ -7,6 +7,9 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.user import User
 from app.models.booking import Booking, PsychAvailability
 from app.schemas.booking import BookingCreate, BookingResponse, BookingUpdate, AvailabilityCreate
+from app.repositories import BookingRepository
+from app.repositories.booking_repository import AvailabilityRepository
+from app.events import get_event_bus
 from app.services.audit import log_audit
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
@@ -14,6 +17,7 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 @router.post("", response_model=BookingResponse)
 def create_booking(entry: BookingCreate, user: User = Depends(require_role("patient")), db: Session = Depends(get_db)):
+    repo = BookingRepository(db)
     booking = Booking(
         patient_username=user.username,
         psychologist_username=entry.psychologist_username,
@@ -26,36 +30,35 @@ def create_booking(entry: BookingCreate, user: User = Depends(require_role("pati
         status="Pending",
         created_at=datetime.now(timezone.utc).isoformat(),
     )
-    db.add(booking)
-    db.commit()
-    db.refresh(booking)
-    log_audit("booking_created", user=user.username, role=user.role, action="create_booking", severity="INFO", status="success", resource=str(booking.id), details=f"with {entry.psychologist_username} on {entry.date}", db=db)
+    repo.add(booking)
+    get_event_bus().emit("booking:created", booking_id=booking.id, patient=user.username, psych=entry.psychologist_username, date=entry.date)
     return booking
 
 
 @router.get("", response_model=list[BookingResponse])
 def get_bookings(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    repo = BookingRepository(db)
     if user.role == "psychologist":
-        bookings = db.query(Booking).filter(Booking.psychologist_username == user.username).order_by(Booking.date.desc()).all()
-    else:
-        bookings = db.query(Booking).filter(Booking.patient_username == user.username).order_by(Booking.date.desc()).all()
-    return bookings
+        return repo.get_for_psychologist(user.username)
+    return repo.get_for_patient(user.username)
 
 
 @router.put("/{booking_id}/status")
 def update_booking_status(booking_id: int, update: BookingUpdate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    repo = BookingRepository(db)
+    booking = repo.get_by_id(booking_id)
     if not booking:
         return {"error": "Not found"}
     booking.status = update.status
     db.commit()
-    log_audit("booking_status_updated", user=user.username, role=user.role, action="update_booking", severity="INFO", status="success", resource=str(booking_id), details=f"status={update.status}", db=db)
+    get_event_bus().emit("booking:status_updated", booking_id=booking_id, psych=user.username, status=update.status)
     return {"message": "Updated"}
 
 
 @router.post("/availability")
 def set_availability(entry: AvailabilityCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    existing = db.query(PsychAvailability).filter(PsychAvailability.psychologist_username == user.username, PsychAvailability.date == entry.date).first()
+    avail_repo = AvailabilityRepository(db)
+    existing = avail_repo.get_by_psych_and_date(user.username, entry.date)
     if existing:
         existing.start_time = entry.start_time
         existing.end_time = entry.end_time
@@ -72,7 +75,35 @@ def set_availability(entry: AvailabilityCreate, user: User = Depends(require_rol
     return {"message": "Availability set"}
 
 
+@router.get("/availability/me")
+def get_my_availability(user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+    avail_repo = AvailabilityRepository(db)
+    slots = avail_repo.get_for_psychologist(user.username)
+    return [s.date for s in slots]
+
+
 @router.get("/availability/{psych_username}")
 def get_availability(psych_username: str, db: Session = Depends(get_db)):
-    slots = db.query(PsychAvailability).filter(PsychAvailability.psychologist_username == psych_username).order_by(PsychAvailability.date).all()
-    return [{"date": s.date, "start": s.start_time, "end": s.end_time} for s in slots]
+    avail_repo = AvailabilityRepository(db)
+    slots = avail_repo.get_for_psychologist(psych_username)
+    return [{"id": s.id, "date": s.date, "start": s.start_time, "end": s.end_time} for s in slots]
+
+
+@router.delete("/availability/id/{slot_id}")
+def delete_availability(slot_id: int, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+    avail_repo = AvailabilityRepository(db)
+    slot = avail_repo.get_by_slot_id(slot_id, user.username)
+    if not slot:
+        return {"error": "Not found"}
+    avail_repo.delete(slot)
+    return {"message": "Deleted"}
+
+
+@router.delete("/availability/date/{date}")
+def delete_availability_date(date: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+    avail_repo = AvailabilityRepository(db)
+    slot = avail_repo.get_by_date(date, user.username)
+    if not slot:
+        return {"error": "Not found"}
+    avail_repo.delete(slot)
+    return {"message": "Deleted"}

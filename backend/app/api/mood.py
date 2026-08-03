@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.api_response import ok
 from app.models.user import User
 from app.models.mood import MoodLog
 from app.schemas.mood import MoodCreate, MoodResponse
@@ -24,7 +25,7 @@ def log_mood(entry: MoodCreate, user: User = Depends(require_role("patient")), d
     db.add(mood)
     db.commit()
     db.refresh(mood)
-    log_audit("mood_logged", user=user.username, role=user.role, action="log_mood", severity="INFO", status="success", details=f"{entry.emoji} ({entry.label})", db=db)
+    log_audit("mood_logged", user=user.username, role=user.role, severity="INFO", status="success", details=f"{entry.emoji} ({entry.label})", db=db)
     return mood
 
 
@@ -33,7 +34,7 @@ def check_today_mood(user: User = Depends(require_role("patient")), db: Session 
     from datetime import date
     today = date.today().isoformat()
     existing = db.query(MoodLog).filter(MoodLog.patient_username == user.username, MoodLog.date == today).first()
-    return {"logged": existing is not None}
+    return ok(data={"logged": existing is not None})
 
 
 @router.get("", response_model=list[MoodResponse])

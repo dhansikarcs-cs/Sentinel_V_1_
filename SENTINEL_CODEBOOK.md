@@ -2,6 +2,8 @@
 
 Every function, every block, every key line explained.
 
+> **Note:** This codebook documents the original Streamlit prototype (`database.py`, `ai_kernel_.py`, `patient_journal_.py`, ...), which was superseded by the FastAPI + React architecture and archived under `archive/`. For the current stack, see `README.md` (structure), `docs/TECHNICAL_DESIGN.md`, and `docs/ENGINEERING_DECISIONS.md`. The ring SDK (current `app/services/ring/`) is documented in `docs/ROADMAP_HARDWARE.md` and `docs/TECHNICAL_DESIGN.md` §13.
+
 ---
 
 ## `database.py` — Database Schema & Connection (200 lines)

@@ -1,15 +1,17 @@
 services:
   sentinel-backend:
     build: ./backend
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       - DATABASE_URL=sqlite:///./data/sentinel.db
-      - JWT_SECRET=change-me-in-production
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
       - CORS_ORIGINS=http://localhost:5173
     volumes:
       - sentinel_data:/app/data
     restart: unless-stopped
+    networks:
+      - internal
 
   sentinel-frontend:
     build: ./frontend
@@ -18,6 +20,12 @@ services:
     depends_on:
       - sentinel-backend
     restart: unless-stopped
+    networks:
+      - internal
 
 volumes:
   sentinel_data:
+
+networks:
+  internal:
+    driver: bridge

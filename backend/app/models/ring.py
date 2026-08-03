@@ -1,10 +1,15 @@
-from sqlalchemy import Column, Integer, String, Float, Text
+from sqlalchemy import Column, Integer, String, Float, Text, Index
 
 from app.core.database import Base
 
 
 class RingSensorLog(Base):
     __tablename__ = "ring_sensor_log"
+    __table_args__ = (
+        Index("ix_ring_patient_username", "patient_username"),
+        Index("ix_ring_logged_at", "logged_at"),
+        Index("ix_ring_device_id", "device_id"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     device_id = Column(String, default="")

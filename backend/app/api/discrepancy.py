@@ -20,6 +20,27 @@ NEGATIVE_SET = {"anxious", "scared", "terrified", "panic", "fear", "afraid",
                 "hopeless", "die", "kill", "suicide", "disappear", "worried",
                 "can't", "cannot", "unbearable", "drowning", "alone", "numb",
                 "struggling", "darkness", "terrible", "falling apart"}
+NEGATION_PREFIXES = {"not", "no", "never", "don't", "dont", "doesn't", "doesnt",
+                     "isn't", "isnt", "wasn't", "wasnt", "won't", "wont",
+                     "can't", "cant", "couldn't", "couldnt", "shouldn't", "shouldnt",
+                     "wouldn't", "wouldnt", "hardly", "barely", "neither", "nor"}
+
+
+def _strip_negated_words(text: str, keywords: set) -> set:
+    """Return keywords after removing those preceded by a negation prefix."""
+    words = text.split()
+    negated = set()
+    i = 0
+    while i < len(words):
+        if words[i] in NEGATION_PREFIXES and i + 1 < len(words):
+            for j in range(i + 1, min(i + 4, len(words))):
+                candidate = words[j].rstrip(".,!?;:")
+                if candidate in keywords:
+                    negated.add(candidate)
+            i += 2
+        else:
+            i += 1
+    return keywords - negated
 
 
 class DiscrepancyRequest(BaseModel):
@@ -40,8 +61,10 @@ def _detect(text: str, bpm: int, hrv: int) -> tuple:
     t0 = time.perf_counter()
     lower = text.lower().strip()
 
-    has_pos = any(w in lower for w in POSITIVE_SET)
-    has_neg = any(w in lower for w in NEGATIVE_SET)
+    effective_pos = _strip_negated_words(lower, POSITIVE_SET)
+    effective_neg = _strip_negated_words(lower, NEGATIVE_SET)
+    has_pos = any(w in lower for w in effective_pos)
+    has_neg = any(w in lower for w in effective_neg)
 
     if has_pos and not has_neg:
         sentiment = "positive"
@@ -63,7 +86,7 @@ def _detect(text: str, bpm: int, hrv: int) -> tuple:
     discrepancy = (
         (sentiment == "positive" and high_stress) or
         (sentiment == "negative" and low_stress) or
-        (sentiment == "neutral" and (high_stress or low_stress))
+        (sentiment == "neutral" and high_stress)
     )
 
     elapsed = (time.perf_counter() - t0) * 1000
@@ -90,7 +113,7 @@ async def check_discrepancy(
         })
         alert_sent = True
 
-    log_audit("discrepancy_check", user=user.username, role=user.role, action="check_discrepancy", severity="HIGH" if detected else "INFO", status="success", details=f"sentiment={sentiment}, bio={bio_state}, detected={detected}", db=db)
+    log_audit("discrepancy_check", user=user.username, role=user.role, severity="HIGH" if detected else "INFO", status="success", details=f"sentiment={sentiment}, bio={bio_state}, detected={detected}", db=db)
 
     return DiscrepancyResponse(
         discrepancy_detected=detected,
