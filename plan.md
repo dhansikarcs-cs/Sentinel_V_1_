@@ -167,7 +167,7 @@ Each phase is an independent commit; each is revertible; order is low-risk → h
 
 ---
 
-### PHASE 4 — Patient Overview (workflow API) — the external review's #1 ask, and R3
+### PHASE 4 — Patient Overview (workflow API) — the external review's #1 ask, and R3 — ✅ DONE
 
 **Goal:** "The UI makes one request; the backend composes the response." Improves *frontend orchestration, API complexity, context switching*.
 
@@ -180,6 +180,12 @@ Composed from existing services/repositories **only** (reuses Phase 2 builder). 
 
 **Migration:** ship endpoint → migrate `PatientInsightsPage` first → other pages when useful.
 **Rollback:** old per-entity endpoints stay untouched. **Risk:** medium (contract design, read-only). **Effort:** medium.
+
+**Execution notes (committed `refactor(phase4)`):**
+- New `backend/app/services/timeline_service.py` is the single owner of `compute_change_metrics(username, db)` and `build_timeline_events(username, days, db)`; `api/timeline.py` rewritten as thin routes (`GET /{username}?days=30`, `GET /{username}/metrics`) with unchanged response shapes.
+- `GET /patients/{username}/overview` added to `patients.py`: reads-only, composed from `recent_patient_context` (journal_limit=10, mood_limit=14, ring_limit=7, include_followups=True), `compute_change_metrics`, `build_timeline_events(30d)`, `BookingRepository.get_for_patient`, latest `RiskAssessment`, active `CrisisState`. Returns 11 sections: `patient · last_appointment · clinical_brief · followups · changes_since_last_visit · mood_trend · timeline · sensor_trends · risk · crisis · alerts`. Guards: 404 if patient unknown (checked first), then `_owns_or_psych` 403; patients can view their own overview.
+- Frontend: `client.ts` gains `getPatientOverview(username)`. `PatientInsightsPage.tsx` now fetches the overview once per patient (default "Current State" tab renders identity, alerts, risk snapshot, follow-up progress, latest ring, clinical brief, last appointment, mood trend strip, 30d activity feed) and `PatternsSection` reuses the overview payload for metrics/timeline instead of re-fetching. Emotions/AI-Trace remain granular drill-downs (per-entry probability bars, full history) — the overview intentionally represents *current state*, not a data dump.
+- Verified: ruff clean + formatted, app import OK, `phase4_overview_smoke.py` passes (11 sections present, /timeline + /metrics unchanged after extraction, 403/404 guard ordering, patient-owned view), `tsc --noEmit` 0, `vite build` 0.
 
 ---
 

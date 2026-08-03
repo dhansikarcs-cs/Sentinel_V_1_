@@ -8,8 +8,12 @@ function formatTime(ts: string) {
   try { return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return ts }
 }
 
+function formatDate(ts: string) {
+  try { return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) } catch { return ts }
+}
+
 const SUB_TABS = [
-  { key: 'timeline', label: '\u{1F4C8} Timeline' },
+  { key: 'overview', label: '\u{1F9ED} Current State' },
   { key: 'emotions', label: '\u{1F3AD} Emotions' },
   { key: 'ai-trace', label: '\u{1F9E0} AI Trace' },
   { key: 'patterns', label: '\u{1F50D} Patterns' },
@@ -18,17 +22,28 @@ const SUB_TABS = [
 export default function PatientInsightsPage() {
   const [patients, setPatients] = useState<any[]>([])
   const [selected, setSelected] = useState('')
-  const [subTab, setSubTab] = useState('timeline')
+  const [overview, setOverview] = useState<any>(null)
+  const [overviewLoading, setOverviewLoading] = useState(false)
+  const [subTab, setSubTab] = useState('overview')
 
   useEffect(() => {
     api.getPsychPatients().then(d => setPatients(d || [])).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    if (!selected) { setOverview(null); return }
+    setOverviewLoading(true)
+    api.getPatientOverview(selected)
+      .then(d => setOverview(d))
+      .catch(() => setOverview(null))
+      .finally(() => setOverviewLoading(false))
+  }, [selected])
+
   return (
     <div className="animate-fade-in">
       <h2>{'\u{1F50D}'} Patient Insights</h2>
       <p style={{ color: '#6a6474', fontSize: '0.75rem', marginBottom: '12px' }}>
-        Unified view of behavioral timeline, emotion analysis, and AI explainability.
+        One composed view of the patient's current state — identity, clinical brief, trends, risk, and activity.
       </p>
 
       <select
@@ -68,102 +83,229 @@ export default function PatientInsightsPage() {
 
       {!selected && (
         <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '32px' }}>
-          Select a patient to view their insights.
+          Select a patient to view their current state.
         </div>
       )}
 
-      {selected && subTab === 'timeline' && <TimelineSection patient={selected} />}
+      {selected && subTab === 'overview' && <OverviewSection overview={overview} loading={overviewLoading} />}
       {selected && subTab === 'emotions' && <EmotionsSection patient={selected} />}
       {selected && subTab === 'ai-trace' && <AITraceSection patient={selected} />}
-      {selected && subTab === 'patterns' && <PatternsSection patient={selected} />}
+      {selected && subTab === 'patterns' && <PatternsSection patient={selected} overview={overview} />}
     </div>
   )
 }
 
-function TimelineSection({ patient }: { patient: string }) {
-  const [days, setDays] = useState(30)
-  const [metrics, setMetrics] = useState<any>(null)
-  const [events, setEvents] = useState<any[]>([])
+function OverviewSection({ overview, loading }: { overview: any; loading: boolean }) {
+  if (loading) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>Composing patient state...</div>
+  if (!overview) return <div className="card" style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>Failed to load overview.</div>
 
-  useEffect(() => {
-    Promise.all([
-      api.getMetrics(patient).then(setMetrics).catch(() => {}),
-      api.getTimeline(patient, days).then(e => setEvents(e?.events || e || [])).catch(() => {}),
-    ])
-  }, [patient, days])
+  const identity = overview.patient || {}
+  const changes = overview.changes_since_last_visit || {}
+  const moodTrend = overview.mood_trend || []
+  const followups = overview.followups || {}
+  const sensor = overview.sensor_trends || []
+  const latestSensor = sensor[0]
+  const events = overview.timeline || []
+  const risk = overview.risk
+  const crisis = overview.crisis
+
+  const latestMood = moodTrend.length > 0 ? moodTrend[0] : null
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
-      <div>
-        <h3>{'\u{1F4CA}'} Change Metrics</h3>
-        <div className="card-dark" style={{ padding: '14px' }}>
-          {metrics && (
+    <>
+      {(overview.alerts || []).length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          {overview.alerts.map((a: string, i: number) => (
+            <div key={i} style={{ background: '#2a0f1c', border: '1px solid #ef444455', color: '#fca5a5', borderRadius: '8px', padding: '8px 12px', fontSize: '0.75rem', marginBottom: '6px' }}>
+              {'\u26A0\uFE0F'} {a}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>PATIENT</div>
+          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f0f4ff' }}>{identity.name || identity.username}</div>
+          <div style={{ color: '#7a8aaa', fontSize: '0.7rem', marginTop: '2px' }}>
+            @{identity.username} &middot; {identity.role}
+          </div>
+          <div style={{ color: '#6a6474', fontSize: '0.65rem', marginTop: '4px' }}>
+            {identity.age || '?'} yrs &middot; {identity.occupation || '—'} &middot; {identity.clinic || '—'}
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>MOOD TREND</div>
+          <div style={{ color: changes.mood_trend === 'improving' ? '#22c55e' : changes.mood_trend === 'declining' ? '#ef4444' : '#fbbf24', fontSize: '1.1rem', fontWeight: 700 }}>
+            {changes.mood_trend === 'improving' ? '\u2197\uFE0F improving' : changes.mood_trend === 'declining' ? '\u2198 declining' : changes.mood_trend === 'stable' ? '\u2192 stable' : '\u2014'}
+          </div>
+          <div style={{ color: '#7a8aaa', fontSize: '0.65rem' }}>
+            Now: {changes.current_mood_avg ? `${Number(changes.current_mood_avg).toFixed(1)}/5` : 'N/A'} | Prev: {changes.previous_mood_avg ? `${Number(changes.previous_mood_avg).toFixed(1)}/5` : 'N/A'}
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>ENGAGEMENT</div>
+          <div style={{ color: '#f0f4ff', fontSize: '1.1rem', fontWeight: 700 }}>
+            {changes.journal_count_7 || 0} <span style={{ fontSize: '0.6rem', color: '#6a6474' }}>journals 7d</span>
+          </div>
+          <div style={{ color: changes.engagement_trend === 'increasing' ? '#22c55e' : changes.engagement_trend === 'declining' ? '#ef4444' : '#fbbf24', fontSize: '0.65rem' }}>
+            {changes.engagement_trend === 'increasing' ? '\u2197' : changes.engagement_trend === 'declining' ? '\u2198' : '\u2192'} {changes.journal_count_14 || 0} in 14d
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>RISK SNAPSHOT</div>
+          {risk ? (
             <>
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>MOOD TREND</div>
-                <div style={{ color: metrics.mood_trend === 'improving' ? '#22c55e' : metrics.mood_trend === 'declining' ? '#ef4444' : '#fbbf24', fontSize: '1.1rem', fontWeight: 700 }}>
-                  {metrics.mood_trend === 'improving' ? '\u2197\uFE0F improving' : metrics.mood_trend === 'declining' ? '\u2198 declining' : metrics.mood_trend === 'stable' ? '\u2192 stable' : '\u2014'}
-                </div>
-                <div style={{ color: '#7a8aaa', fontSize: '0.7rem' }}>
-                  Now: {metrics.current_mood_avg ? `${metrics.current_mood_avg.toFixed(1)}/5` : 'N/A'} | Prev: {metrics.previous_mood_avg ? `${metrics.previous_mood_avg.toFixed(1)}/5` : 'N/A'}
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: risk.triggered ? '#ef4444' : risk.risk_score >= 7 ? '#f59e0b' : '#22c55e', fontSize: '1.4rem', fontWeight: 700 }}>{risk.risk_score}/10</span>
+                {risk.triggered && <span style={{ fontSize: '0.9rem' }}>{'\u{1F6A8}'}</span>}
               </div>
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>ENGAGEMENT</div>
-                <div style={{ color: metrics.engagement_trend === 'increasing' ? '#22c55e' : metrics.engagement_trend === 'declining' ? '#ef4444' : '#fbbf24', fontSize: '1.1rem', fontWeight: 700 }}>
-                  {metrics.journal_count_7 || 0} entries (7d) vs {metrics.journal_count_14 || 0} (14d)
-                </div>
+              <div style={{ color: '#6a6474', fontSize: '0.6rem' }}>
+                {formatDate(risk.created_at)} &middot; confidence {risk.confidence ? `${(risk.confidence * 100).toFixed(0)}%` : 'N/A'}
               </div>
-              {metrics.latest_mood && (
-                <div>
-                  <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>LATEST MOOD</div>
-                  <div style={{ fontSize: '1.3rem' }}>{MOOD_ICONS[metrics.latest_mood.label?.toLowerCase()] || '?'}</div>
-                  <div style={{ color: '#7a8aaa', fontSize: '0.7rem' }}>{metrics.latest_mood.label}</div>
+              {(risk.explanation || '').length > 0 && (
+                <div style={{ color: '#7a8aaa', fontSize: '0.62rem', marginTop: '4px', lineHeight: 1.5 }}>
+                  {risk.explanation.slice(0, 160)}
                 </div>
               )}
             </>
+          ) : (
+            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No assessments yet.</div>
           )}
-          {!metrics && <div style={{ color: '#6a6474', fontSize: '0.8rem' }}>No data available.</div>}
         </div>
-        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#6a6474', fontSize: '0.7rem' }}>Range:</span>
-          <input type="range" min={7} max={90} value={days} onChange={e => setDays(Number(e.target.value))} style={{ flex: 1, padding: 0 }} />
-          <span style={{ color: '#6a6474', fontSize: '0.7rem' }}>{days}d</span>
+
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>FOLLOW-UPS</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#f0f4ff', fontSize: '1.4rem', fontWeight: 700 }}>{followups.pending || 0}</span>
+            <span style={{ color: '#6a6474', fontSize: '0.65rem' }}>pending of {followups.total || 0}</span>
+          </div>
+          <div style={{ color: '#22c55e', fontSize: '0.65rem' }}>{followups.completed || 0} completed</div>
+          {(followups.list || []).slice(0, 3).map((f: any) => (
+            <div key={f.id} style={{ color: '#7a8aaa', fontSize: '0.62rem', marginTop: '3px' }}>
+              {f.status === 'completed' ? '\u2705' : '\u23F3'} {f.title}
+            </div>
+          ))}
+        </div>
+
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>LATEST RING</div>
+          {latestSensor ? (
+            <>
+              <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', color: '#7a8aaa' }}>
+                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.bpm || '—'}</span> BPM</span>
+                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.stress || '—'}</span> stress</span>
+                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.sleep_hours || '—'}</span>h sleep</span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', color: '#7a8aaa', marginTop: '3px' }}>
+                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.spo2 || '—'}</span> SpO2</span>
+                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.hrv || '—'}</span> HRV</span>
+              </div>
+              <div style={{ color: '#6a6474', fontSize: '0.6rem', marginTop: '4px' }}>{formatTime(latestSensor.logged_at)}</div>
+            </>
+          ) : (
+            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No ring data yet.</div>
+          )}
         </div>
       </div>
 
-      <div>
-        <h3>{'\u{1F4C5}'} Event Feed</h3>
-        {events.length === 0 ? (
-          <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>No events in this period.</div>
-        ) : (
-          <div style={{ maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
-            {events.map((ev: any, i: number) => {
-              const colors: Record<string, string> = { mood: '#22c55e', journal: '#6366f1', followup: '#f59e0b', crisis: '#ef4444' }
-              const borderLeft = `3px solid ${colors[ev.type] || '#6a6474'}`
-              return (
-                <div key={i} style={{ borderLeft, background: '#111827', borderRadius: '6px', padding: '8px 12px', margin: '4px 0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#e0e8f0', fontWeight: 600, fontSize: '0.8rem' }}>
-                      {ev.type === 'mood' ? `${MOOD_ICONS[ev.data?.label?.toLowerCase()] || ''} [${ev.data?.label?.toUpperCase()}]` :
-                       ev.type === 'journal' ? `\u{1F4DD} ${ev.data?.title || 'Journal Entry'}` :
-                       ev.type === 'followup' ? `${ev.data?.status === 'completed' ? '\u2705' : '\u23F3'} ${ev.data?.title || 'Task'}` :
-                       `\u{1F6A8} ${(ev.data?.event || 'Crisis').toUpperCase()}`}
-                    </span>
-                    <span style={{ color: '#6a6474', fontSize: '0.65rem' }}>{formatTime(ev.timestamp)}</span>
-                  </div>
-                  <div style={{ color: '#7a8aaa', fontSize: '0.7rem', marginTop: '2px' }}>
-                    {ev.type === 'mood' ? `Mood: ${ev.data?.label || 'N/A'} on ${ev.data?.date || ''}` :
-                     ev.type === 'journal' ? (ev.data?.summary || '').slice(0, 150) :
-                     ev.data?.description || ev.data?.details || ''}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>CLINICAL BRIEF</div>
+          {overview.clinical_brief ? (
+            <>
+              <div style={{ color: '#f0f4ff', fontSize: '0.72rem', fontWeight: 600 }}>{formatTime(overview.clinical_brief.timestamp)}</div>
+              <div style={{ color: '#7a8aaa', fontSize: '0.68rem', marginTop: '4px', lineHeight: 1.5 }}>
+                {(overview.clinical_brief.clinical_summary || overview.clinical_brief.summary || '').slice(0, 260)}
+              </div>
+              {(overview.clinical_brief.emotions || '').length > 0 && (
+                <div style={{ color: '#6a6474', fontSize: '0.62rem', marginTop: '4px' }}>Emotions: {overview.clinical_brief.emotions}</div>
+              )}
+            </>
+          ) : (
+            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No recent journals.</div>
+          )}
+        </div>
+
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>LAST APPOINTMENT</div>
+          {overview.last_appointment ? (
+            <>
+              <div style={{ color: '#f0f4ff', fontSize: '0.72rem', fontWeight: 600 }}>
+                {formatDate(overview.last_appointment.date)} {overview.last_appointment.time}
+              </div>
+              <div style={{ color: '#7a8aaa', fontSize: '0.68rem', marginTop: '2px' }}>
+                {overview.last_appointment.session_type || 'Session'} &middot; {overview.last_appointment.status}
+              </div>
+              <div style={{ color: '#6a6474', fontSize: '0.62rem', marginTop: '2px' }}>{overview.last_appointment.psychologist_username}</div>
+            </>
+          ) : (
+            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No appointments yet.</div>
+          )}
+          {crisis && (
+            <div style={{ marginTop: '8px', background: '#2a0f1c', border: '1px solid #ef444455', borderRadius: '6px', padding: '6px 8px' }}>
+              <span style={{ color: '#ef4444', fontSize: '0.65rem', fontWeight: 700 }}>{'\u{1F6A8}'} CRISIS ACTIVE</span>
+              <div style={{ color: '#7a8aaa', fontSize: '0.6rem', marginTop: '2px' }}>
+                triggered {formatTime(crisis.triggered_at)} &middot; {crisis.acknowledged ? 'acknowledged' : 'NOT acknowledged'}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {latestMood && (
+        <div className="card" style={{ padding: '10px', marginBottom: '16px' }}>
+          <div style={{ color: '#6a6474', fontSize: '0.6rem', marginBottom: '4px' }}>LATEST MOOD &middot; MOOD TREND (14d)</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.4rem' }}>{MOOD_ICONS[latestMood.label?.toLowerCase()] || '\u2753'}</span>
+            <span style={{ color: '#e0e8f0', fontWeight: 600, fontSize: '0.75rem' }}>{latestMood.label}</span>
+            <span style={{ color: '#6a6474', fontSize: '0.65rem' }}>{formatTime(latestMood.timestamp)}</span>
+            <div style={{ flex: 1, display: 'flex', gap: '3px' }}>
+              {moodTrend.map((m: any, i: number) => (
+                <div key={i} style={{ flex: 1, fontSize: '0.8rem', opacity: m.timestamp === latestMood.timestamp ? 1 : 0.55 }} title={`${m.label} ${formatDate(m.timestamp)}`}>
+                  {MOOD_ICONS[m.label?.toLowerCase()] || '\u25AB'}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <h3 style={{ marginTop: '4px' }}>{'\u{1F4C5}'} Recent Activity</h3>
+      {events.length === 0 ? (
+        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>No events in the last 30 days.</div>
+      ) : (
+        <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+          {events.slice(0, 40).map((ev: any, i: number) => {
+            const colors: Record<string, string> = { mood: '#22c55e', journal: '#6366f1', followup: '#f59e0b', crisis: '#ef4444' }
+            const borderLeft = `3px solid ${colors[ev.type] || '#6a6474'}`
+            return (
+              <div key={i} style={{ borderLeft, background: '#111827', borderRadius: '6px', padding: '8px 12px', margin: '4px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#e0e8f0', fontWeight: 600, fontSize: '0.8rem' }}>
+                    {ev.type === 'mood' ? `${MOOD_ICONS[ev.data?.label?.toLowerCase()] || ''} [${ev.data?.label?.toUpperCase()}]` :
+                     ev.type === 'journal' ? `\u{1F4DD} ${ev.data?.title || 'Journal Entry'}` :
+                     ev.type === 'followup' ? `${ev.data?.status === 'completed' ? '\u2705' : '\u23F3'} ${ev.data?.title || 'Task'}` :
+                     `\u{1F6A8} ${(ev.data?.event || 'Crisis').toUpperCase()}`}
+                  </span>
+                  <span style={{ color: '#6a6474', fontSize: '0.65rem' }}>{formatTime(ev.timestamp)}</span>
+                </div>
+                <div style={{ color: '#7a8aaa', fontSize: '0.7rem', marginTop: '2px' }}>
+                  {ev.type === 'mood' ? `Mood: ${ev.data?.label || 'N/A'} on ${ev.data?.date || ''}` :
+                   ev.type === 'journal' ? (ev.data?.summary || '').slice(0, 150) :
+                   ev.data?.description || ev.data?.details || ''}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </>
   )
 }
 
@@ -322,26 +464,31 @@ function AITraceSection({ patient }: { patient: string }) {
   )
 }
 
-function PatternsSection({ patient }: { patient: string }) {
+function PatternsSection({ patient, overview }: { patient: string; overview: any }) {
   const [patterns, setPatterns] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
+    const timelineRaw = overview?.timeline || []
+    const timeline = Array.isArray(timelineRaw) ? timelineRaw : timelineRaw.events || []
+
     Promise.allSettled([
-      api.getMetrics(patient),
+      overview?.changes_since_last_visit
+        ? Promise.resolve(overview.changes_since_last_visit)
+        : api.getMetrics(patient),
       api.getEmotionTimeline(patient, 30),
       api.getRiskAssessmentsForPatient(patient),
-      api.getTimeline(patient, 30),
+      overview?.timeline ? Promise.resolve({ events: timeline }) : api.getTimeline(patient, 30),
     ]).then(([metricsRes, emoRes, riskRes, timelineRes]) => {
       const metrics = metricsRes.status === 'fulfilled' ? metricsRes.value : null
       const emoData = emoRes.status === 'fulfilled' ? emoRes.value : null
       const risks = riskRes.status === 'fulfilled' ? (riskRes.value || []) : []
-      const timelineRaw = timelineRes.status === 'fulfilled' ? timelineRes.value : []
-      const timeline = timelineRaw?.events || timelineRaw || []
+      const tl = timelineRes.status === 'fulfilled' ? timelineRes.value : []
+      const timelineEvents = tl?.events || tl || timeline
 
-      const moodEvents = (timeline as any[]).filter((e: any) => e.type === 'mood')
-      const journalEvents = (timeline as any[]).filter((e: any) => e.type === 'journal')
+      const moodEvents = (timelineEvents as any[]).filter((e: any) => e.type === 'mood')
+      const journalEvents = (timelineEvents as any[]).filter((e: any) => e.type === 'journal')
 
       const moodCounts: Record<string, number> = {}
       moodEvents.forEach((e: any) => {
@@ -386,7 +533,7 @@ function PatternsSection({ patient }: { patient: string }) {
       })
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [patient])
+  }, [patient, overview])
 
   if (loading) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>Analyzing patterns...</div>
   if (!patterns) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>No data available.</div>

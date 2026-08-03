@@ -99,6 +99,7 @@ export const api = {
   getMe: () => request('/patients/me'),
   getPatientProfile: (username: string) => request(`/patients/${username}/profile`),
   getPatientSummary: (username: string) => request(`/patients/${username}/summary`),
+  getPatientOverview: (username: string) => request(`/patients/${username}/overview`),
   getWellness: () => request('/patients/me/wellness'),
   updateOnboarding: (step: number) => request('/patients/me/onboarding', { method: 'PUT', body: JSON.stringify({ step }) }),
   assignPsychologist: (username: string, psychUsername: string) =>
