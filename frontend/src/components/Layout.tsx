@@ -28,6 +28,7 @@ const patientTabs: Tab[] = [
   { to: '/crisis', label: '🚨 Emergency' },
 ]
 const psychTabs: Tab[] = [
+  { to: '/open-session', label: '🧑‍⚕️ Open Session' },
   { to: '/triage', label: '📋 Patient Triage' },
   { to: '/clinical-notes', label: '📝 Clinical Notes' },
   { to: '/patient-insights', label: '📊 Patient Insights' },

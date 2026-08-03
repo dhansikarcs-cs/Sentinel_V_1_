@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { EmotionBars } from '../components/EmotionBar'
 import PatientSelector, { usePatientContext } from '../components/PatientSelector'
+import PrioritiesPanel from '../components/PrioritiesPanel'
 import { moodIcon, formatTime, formatDate } from '../constants'
 
 const SUB_TABS = [
@@ -103,6 +104,8 @@ function OverviewSection({ overview, loading }: { overview: any; loading: boolea
           ))}
         </div>
       )}
+
+      <PrioritiesPanel priorities={overview.priorities} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div className="card" style={{ padding: '14px' }}>

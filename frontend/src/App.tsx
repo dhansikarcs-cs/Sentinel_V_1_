@@ -15,6 +15,7 @@ import PatientInsightsPage from './pages/PatientInsightsPage'
 import ProfilePage from './pages/ProfilePage'
 import PsychTriagePage from './pages/PsychTriagePage'
 import ClinicalNotesPage from './pages/ClinicalNotesPage'
+import ConsultationPage from './pages/ConsultationPage'
 import PsychJournalPage from './pages/PsychJournalPage'
 import ExportPage from './pages/ExportPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/triage" element={<RequireRole roles={['psychologist']}><PsychTriagePage /></RequireRole>} />
         <Route path="/clinical-notes" element={<RequireRole roles={['psychologist']}><ClinicalNotesPage /></RequireRole>} />
+        <Route path="/open-session" element={<RequireRole roles={['psychologist']}><ConsultationPage /></RequireRole>} />
         <Route path="/patient-insights" element={<RequireRole roles={['psychologist']}><PatientInsightsPage /></RequireRole>} />
         <Route path="/psych-journal" element={<RequireRole roles={['psychologist']}><PsychJournalPage /></RequireRole>} />
         <Route path="/export" element={<RequireRole roles={['psychologist']}><ExportPage /></RequireRole>} />

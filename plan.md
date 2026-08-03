@@ -302,3 +302,16 @@ Composed from existing services/repositories **only** (reuses Phase 2 builder). 
 ---
 
 *Generated as the single decision document for the refinement effort. Code changes begin only after approval.*
+
+---
+
+## 10. Phase 8 — Reviewer-Approved UX Refinements (architecture frozen)
+
+Reviewer verdict on the Phase 1–7 code: **architecture frozen (~98%)**, no Phase 8 architecture work, no new agents/services/abstractions. Two refinements only (user approved both in one go):
+
+1. **Decision Prioritization** — pure composition, no new intelligence. The overview endpoint already carries every signal (AIAnalysis.priority, triage tier, crisis state, overdue follow-ups, mood trend, `changes_since_last_visit`); they were scattered. Now `GET /patients/{username}/overview` returns a derived `priorities[]` (backend derives, frontend displays — Constitution #6). Each item is explainable: `{level, title, reason, evidence, action}`. Red/amber/green panel renders the top 3 in both Patient Insights and the workspace. No `PriorityService/Engine` classes.
+2. **Consultation Workspace ("Open Session")** — one screen composing existing components (PatientSelector / `usePatientContext`, the clinical-note save + AI-draft flow from Clinical Notes, `updateFollowup` for follow-up actions). Route `/open-session`, first entry in `psychTabs` (consultation-first nav). Reuses components; not a rewrite.
+
+**Execution:** `derive_priorities` in `backend/app/api/patients.py` (thresholds: overdue 5d/7d, sleep drop 1.5h, stress ≥70, bpm ≥100, SpO2 <94; bands reuse `CrisisPolicy.should_*`); tests in `backend/tests/test_overview_priorities.py`; shared `PrioritiesPanel` component; `ConsultationPage.tsx`. Verified: `ruff check`/`format --check`, `pytest` (17 passed), frontend `tsc -b && vite build`.
+
+**Remaining external blocker (dashboard-side, not in repo):** Render's manual `Sentinel_V_1_` service is stale (points at the phase-1-deleted layout) and fails with "Exited with status 1"; repo Docker path is verified good locally. Fix = delete the manual service and deploy the Blueprint (`render.yaml`), or reconfigure the dashboard Build/Start/Root.

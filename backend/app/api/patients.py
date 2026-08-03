@@ -1,5 +1,5 @@
 import os
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
@@ -111,6 +111,193 @@ def get_patient_summary(username: str, user: User = Depends(get_current_user), d
 class ContactUpdate(BaseModel):
     contact_info: str = ""
     trusted_contact: str = ""
+
+
+# Decision-prioritization thresholds (single owner for the overview derivation).
+PRIORITY_OVERDUE_MEDIUM_DAYS = 5
+PRIORITY_OVERDUE_HIGH_DAYS = 7
+SLEEP_DROP_HOURS = 1.5
+STRESS_HIGH = 70
+BPM_HIGH = 100
+SPO2_LOW = 94
+_LEVEL_ORDER = {"high": 0, "medium": 1, "low": 2}
+
+
+def derive_priorities(
+    crisis: dict | None,
+    risk: dict | None,
+    followups: list[dict],
+    changes: dict,
+    ring_logs: list[RingSensorLog],
+) -> list[dict]:
+    """Rank the handful of things a clinician must attend to right now.
+
+    Pure composition of already-derived overview data (Constitution #6: the
+    backend derives, the frontend displays). Every item is explainable —
+    it carries its own {reason, evidence, action} so the clinician can see
+    *why* it was surfaced and *what* to do, without trusting a black box.
+    Returns a sorted, de-duplicated list capped at 6.
+    """
+    items: list[dict] = []
+
+    if crisis and crisis["active"]:
+        items.append(
+            {
+                "level": "high",
+                "title": "Active crisis",
+                "reason": "Crisis protocol is active for this patient",
+                "evidence": f"Triggered {crisis.get('triggered_at', '')[:10]} · "
+                f"{'acknowledged' if crisis.get('acknowledged') else 'NOT acknowledged'}",
+                "action": "Acknowledge or escalate immediately",
+            }
+        )
+
+    if risk:
+        score = risk.get("risk_score") or 0
+        if risk.get("triggered") or score >= CRISIS_POLICY.auto_trigger_threshold:
+            items.append(
+                {
+                    "level": "high",
+                    "title": f"Crisis-level risk ({score}/10)",
+                    "reason": f"Latest risk assessment scored {score}/10",
+                    "evidence": f"Engine v{risk.get('algorithm_version') or '?'} · "
+                    f"confidence {(risk.get('confidence') or 0) * 100:.0f}%",
+                    "action": "Review latest journal now",
+                }
+            )
+        elif CRISIS_POLICY.should_notify(score):
+            items.append(
+                {
+                    "level": "high",
+                    "title": f"Elevated risk score ({score}/10)",
+                    "reason": f"Latest risk assessment scored {score}/10",
+                    "evidence": f"Engine v{risk.get('algorithm_version') or '?'} · "
+                    f"confidence {(risk.get('confidence') or 0) * 100:.0f}%",
+                    "action": "Review latest journal during consultation",
+                }
+            )
+        elif CRISIS_POLICY.should_warn(score):
+            items.append(
+                {
+                    "level": "medium",
+                    "title": f"Rising risk score ({score}/10)",
+                    "reason": f"Latest risk assessment scored {score}/10",
+                    "evidence": f"Engine v{risk.get('algorithm_version') or '?'}",
+                    "action": "Monitor latest journal",
+                }
+            )
+
+    overdue = []
+    today = date.today()
+    for f in followups:
+        if f.get("status") != "pending" or not f.get("assigned_at"):
+            continue
+        try:
+            days = (today - date.fromisoformat(f["assigned_at"][:10])).days
+        except ValueError:
+            days = 0
+        if days >= PRIORITY_OVERDUE_MEDIUM_DAYS:
+            overdue.append((f, days))
+    if overdue:
+        worst, worst_days = max(overdue, key=lambda x: x[1])
+        items.append(
+            {
+                "level": "high" if worst_days >= PRIORITY_OVERDUE_HIGH_DAYS else "medium",
+                "title": f"Follow-up overdue ({worst_days}d)",
+                "reason": f"Pending homework task assigned {worst_days} days ago",
+                "evidence": worst.get("title", ""),
+                "action": "Review with patient or update the task",
+            }
+        )
+
+    if changes.get("mood_trend") == "declining":
+        pct = abs(changes.get("mood_change_pct") or 0)
+        items.append(
+            {
+                "level": "medium",
+                "title": "Mood declining",
+                "reason": f"Mood score down {pct:.1f}% vs previous period",
+                "evidence": f"Now {changes.get('current_mood_avg') or '—'}/5 vs previous "
+                f"{changes.get('previous_mood_avg') or '—'}/5",
+                "action": "Review during consultation",
+            }
+        )
+
+    if len(ring_logs) >= 2:
+        prev, latest = ring_logs[1], ring_logs[0]
+        if prev.sleep_hours and latest.sleep_hours and prev.sleep_hours - latest.sleep_hours >= SLEEP_DROP_HOURS:
+            items.append(
+                {
+                    "level": "medium",
+                    "title": "Sleep dropped",
+                    "reason": "Latest ring reading shows less sleep than the previous one",
+                    "evidence": f"{prev.sleep_hours:.1f}h → {latest.sleep_hours:.1f}h",
+                    "action": "Discuss sleep pattern in session",
+                }
+            )
+        if latest.stress and latest.stress >= STRESS_HIGH:
+            items.append(
+                {
+                    "level": "medium",
+                    "title": f"Elevated stress ({latest.stress}/100)",
+                    "reason": "Latest ring reading shows high stress",
+                    "evidence": f"Stress {latest.stress}/100",
+                    "action": "Check in on current stressors",
+                }
+            )
+        if latest.bpm and latest.bpm >= BPM_HIGH:
+            items.append(
+                {
+                    "level": "medium",
+                    "title": f"Elevated heart rate ({latest.bpm} bpm)",
+                    "reason": "Latest ring reading shows high heart rate",
+                    "evidence": f"{latest.bpm} bpm",
+                    "action": "Verify reading with patient",
+                }
+            )
+        if latest.spo2 is not None and latest.spo2 and latest.spo2 < SPO2_LOW:
+            items.append(
+                {
+                    "level": "medium",
+                    "title": f"Low SpO2 ({latest.spo2}%)",
+                    "reason": "Latest ring reading shows low oxygen saturation",
+                    "evidence": f"SpO2 {latest.spo2}%",
+                    "action": "Flag for clinical follow-up",
+                }
+            )
+
+    if changes.get("journal_count_14") and changes.get("journal_count_7", 0) < changes["journal_count_14"] / 2:
+        items.append(
+            {
+                "level": "medium",
+                "title": "Engagement declining",
+                "reason": "Journal activity is down vs the previous week",
+                "evidence": f"{changes.get('journal_count_7', 0)} entries in 7d vs "
+                f"{changes.get('journal_count_14', 0)} in 14d",
+                "action": "Encourage re-engagement after the session",
+            }
+        )
+
+    if not items:
+        items.append(
+            {
+                "level": "low",
+                "title": "No urgent items",
+                "reason": "No signals crossed attention thresholds",
+                "evidence": "Risk, mood, ring and follow-up signals are stable",
+                "action": "Continue standard follow-up",
+            }
+        )
+
+    seen = set()
+    ranked = []
+    for item in items:
+        if item["title"] in seen:
+            continue
+        seen.add(item["title"])
+        ranked.append(item)
+    ranked.sort(key=lambda item: _LEVEL_ORDER.get(item["level"], 2))
+    return ranked[:6]
 
 
 @router.get("/{username}/overview")
@@ -277,6 +464,7 @@ def get_patient_overview(username: str, user: User = Depends(get_current_user), 
             "risk": risk,
             "crisis": crisis,
             "alerts": alerts,
+            "priorities": derive_priorities(crisis, risk, followup_list, changes, ctx.ring_logs),
         }
     )
 
