@@ -1,5 +1,5 @@
-import json
 import logging
+
 from app.services.event_store_service import event_store
 
 logger = logging.getLogger("sentinel.subscribers.event_store")
@@ -17,10 +17,14 @@ def register_event_store_subscribers(event_bus) -> None:
         )
 
     for event_type in [
-        "journal:submitted", "journal:summarized", "journal:viewed",
-        "crisis:triggered", "crisis:resolved",
+        "journal:submitted",
+        "journal:summarized",
+        "journal:viewed",
+        "crisis:triggered",
+        "crisis:resolved",
         "mood:logged",
-        "booking:created", "booking:status_changed",
+        "booking:created",
+        "booking:status_changed",
         "followup:created",
     ]:
         event_bus.subscribe(event_type, lambda et=event_type, **kw: _persist_event(et, **kw))

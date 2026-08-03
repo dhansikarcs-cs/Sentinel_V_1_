@@ -1,4 +1,5 @@
 import re
+
 from fastapi import HTTPException, status
 
 
@@ -11,9 +12,20 @@ class PasswordPolicy:
     MIN_SPECIAL = 1
     SPECIAL_CHARS = r"[!@#$%^&*(),.?\":{}|<>]"
     COMMON_PASSWORDS = {
-        "password", "12345678", "qwerty123", "letmein", "admin",
-        "welcome", "monkey", "dragon", "login", "abc123",
-        "password1", "123456789", "1234567890", "iloveyou",
+        "password",
+        "12345678",
+        "qwerty123",
+        "letmein",
+        "admin",
+        "welcome",
+        "monkey",
+        "dragon",
+        "login",
+        "abc123",
+        "password1",
+        "123456789",
+        "1234567890",
+        "iloveyou",
     }
 
     @classmethod

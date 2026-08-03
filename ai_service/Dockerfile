@@ -2,8 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY ../backend/app/ml /app/app/ml
-COPY ../backend/requirements.txt /app/requirements.txt
+COPY ai_service/app /app/app
+COPY backend/app/__init__.py /app/app/__init__.py
+COPY backend/app/ml /app/app/ml
 
 RUN pip install --no-cache-dir fastapi uvicorn scikit-learn joblib numpy
 

@@ -1,4 +1,4 @@
-from sqlalchemy.types import TypeDecorator, Text
+from sqlalchemy.types import Text, TypeDecorator
 
 
 class EncryptedText(TypeDecorator):
@@ -8,10 +8,12 @@ class EncryptedText(TypeDecorator):
         if value is None:
             return None
         from app.core.security import encrypt_text
+
         return encrypt_text(value)
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
         from app.core.security import decrypt_text
+
         return decrypt_text(value)

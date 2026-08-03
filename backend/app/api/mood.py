@@ -1,12 +1,13 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.api_response import ok
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.api_response import ok
-from app.models.user import User
 from app.models.mood import MoodLog
+from app.models.user import User
 from app.schemas.mood import MoodCreate, MoodResponse
 from app.services.audit import log_audit
 
@@ -20,18 +21,27 @@ def log_mood(entry: MoodCreate, user: User = Depends(require_role("patient")), d
         date=entry.date,
         emoji=entry.emoji,
         label=entry.label,
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
     )
     db.add(mood)
     db.commit()
     db.refresh(mood)
-    log_audit("mood_logged", user=user.username, role=user.role, severity="INFO", status="success", details=f"{entry.emoji} ({entry.label})", db=db)
+    log_audit(
+        "mood_logged",
+        user=user.username,
+        role=user.role,
+        severity="INFO",
+        status="success",
+        details=f"{entry.emoji} ({entry.label})",
+        db=db,
+    )
     return mood
 
 
 @router.get("/today/check")
 def check_today_mood(user: User = Depends(require_role("patient")), db: Session = Depends(get_db)):
     from datetime import date
+
     today = date.today().isoformat()
     existing = db.query(MoodLog).filter(MoodLog.patient_username == user.username, MoodLog.date == today).first()
     return ok(data={"logged": existing is not None})
@@ -39,11 +49,23 @@ def check_today_mood(user: User = Depends(require_role("patient")), db: Session 
 
 @router.get("", response_model=list[MoodResponse])
 def get_moods(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    moods = db.query(MoodLog).filter(MoodLog.patient_username == user.username).order_by(MoodLog.timestamp.desc()).limit(30).all()
+    moods = (
+        db.query(MoodLog)
+        .filter(MoodLog.patient_username == user.username)
+        .order_by(MoodLog.timestamp.desc())
+        .limit(30)
+        .all()
+    )
     return moods
 
 
 @router.get("/{username}", response_model=list[MoodResponse])
 def get_patient_moods(username: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    moods = db.query(MoodLog).filter(MoodLog.patient_username == username).order_by(MoodLog.timestamp.desc()).limit(30).all()
+    moods = (
+        db.query(MoodLog)
+        .filter(MoodLog.patient_username == username)
+        .order_by(MoodLog.timestamp.desc())
+        .limit(30)
+        .all()
+    )
     return moods

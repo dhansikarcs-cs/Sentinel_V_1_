@@ -1,7 +1,9 @@
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy.orm import Session
+
 from app.core.database import SessionLocal
 from app.models.event_store import EventRecord
 
@@ -12,7 +14,15 @@ class EventStore:
     def __init__(self):
         self._sequence = 0
 
-    def append(self, event_type: str, payload: dict, aggregate_type: str = "", aggregate_id: str = "", metadata: dict = None, db: Session = None):
+    def append(
+        self,
+        event_type: str,
+        payload: dict,
+        aggregate_type: str = "",
+        aggregate_id: str = "",
+        metadata: dict = None,
+        db: Session = None,
+    ):
         own_session = db is None
         if own_session:
             db = SessionLocal()
@@ -25,7 +35,7 @@ class EventStore:
                 payload=json.dumps(payload),
                 extra_metadata=json.dumps(metadata or {}),
                 sequence=self._sequence,
-                created_at=datetime.now(timezone.utc).isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             db.add(record)
             if own_session:

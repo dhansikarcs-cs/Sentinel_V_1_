@@ -1,10 +1,9 @@
-import hashlib
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 
-from jose import JWTError, jwt
 import bcrypt as _bcrypt
+from jose import JWTError, jwt
 
 from app.core.config import settings
 
@@ -27,25 +26,29 @@ REFRESH_SECRET = SECRET + ":refresh"
 REFRESH_EXPIRE_DAYS = 30
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
-    now_ts = int(datetime.now(timezone.utc).timestamp())
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
+    now_ts = int(datetime.now(UTC).timestamp())
     import uuid as _uuid
-    to_encode.update({
-        "exp": expire,
-        "iat": now_ts,
-        "iss": "sentinel-health",
-        "jti": _uuid.uuid4().hex[:16],
-        "type": "access",
-    })
+
+    to_encode.update(
+        {
+            "exp": expire,
+            "iat": now_ts,
+            "iss": "sentinel-health",
+            "jti": _uuid.uuid4().hex[:16],
+            "type": "access",
+        }
+    )
     return jwt.encode(to_encode, SECRET, algorithm=ALGORITHM)
 
 
 def create_refresh_token(username: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRE_DAYS)
-    now_ts = int(datetime.now(timezone.utc).timestamp())
+    expire = datetime.now(UTC) + timedelta(days=REFRESH_EXPIRE_DAYS)
+    now_ts = int(datetime.now(UTC).timestamp())
     import uuid as _uuid
+
     payload = {
         "sub": username,
         "exp": expire,
@@ -57,7 +60,7 @@ def create_refresh_token(username: str) -> str:
     return jwt.encode(payload, REFRESH_SECRET, algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str) -> Optional[dict]:
+def decode_access_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
         if payload.get("type") != "access":
@@ -67,7 +70,7 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
-def decode_refresh_token(token: str) -> Optional[dict]:
+def decode_refresh_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, REFRESH_SECRET, algorithms=[ALGORITHM])
         if payload.get("type") != "refresh":
@@ -80,7 +83,7 @@ def decode_refresh_token(token: str) -> Optional[dict]:
 # TODO: swap PBKDF2 for Argon2id once the Samsung SFT funding lands
 # ── Encryption (passphrase-derived) ──
 
-_MASTER_KEY: Optional[bytes] = None
+_MASTER_KEY: bytes | None = None
 
 
 def is_encryption_ready() -> bool:
@@ -88,8 +91,9 @@ def is_encryption_ready() -> bool:
 
 
 def initialize_encryption(passphrase: str):
-    global _MASTER_KEY
+    global _MASTER_KEY, _FERNET, _HMAC_KEY
     import base64
+
     from cryptography.fernet import Fernet
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -106,6 +110,7 @@ def initialize_encryption(passphrase: str):
     _MASTER_KEY = kdf.derive(passphrase.encode())
 
     from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
+
     hkdf = HKDFExpand(algorithm=hashes.SHA256(), length=32, info=b"sentinel-fernet-key-v1")
     fernet_key = base64.urlsafe_b64encode(hkdf.derive(_MASTER_KEY))
     _FERNET = Fernet(fernet_key)
@@ -115,7 +120,7 @@ def initialize_encryption(passphrase: str):
 
 
 _FERNET: Optional = None
-_HMAC_KEY: Optional[bytes] = None
+_HMAC_KEY: bytes | None = None
 
 
 def encrypt_text(plain: str) -> str:
@@ -135,6 +140,7 @@ def decrypt_text(cipher: str) -> str:
 
 def compute_hmac(data: str) -> str:
     import hmac as hmac_mod
+
     if not _HMAC_KEY:
         return ""
     return hmac_mod.new(_HMAC_KEY, data.encode(), "sha256").hexdigest()
@@ -142,6 +148,7 @@ def compute_hmac(data: str) -> str:
 
 def verify_hmac(data: str, hmac_val: str) -> bool:
     import hmac as hmac_mod
+
     if not _HMAC_KEY:
         return False
     expected = compute_hmac(data)

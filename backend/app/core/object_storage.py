@@ -1,7 +1,5 @@
-import os
 import logging
-from typing import Optional
-from pathlib import Path
+import os
 
 logger = logging.getLogger("sentinel.storage")
 
@@ -10,7 +8,7 @@ class ObjectStorage:
     def put(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         raise NotImplementedError
 
-    def get(self, key: str) -> Optional[bytes]:
+    def get(self, key: str) -> bytes | None:
         raise NotImplementedError
 
     def delete(self, key: str) -> bool:
@@ -32,7 +30,7 @@ class LocalObjectStorage(ObjectStorage):
             f.write(data)
         return path
 
-    def get(self, key: str) -> Optional[bytes]:
+    def get(self, key: str) -> bytes | None:
         path = os.path.join(self.base_dir, key)
         if os.path.exists(path):
             with open(path, "rb") as f:
@@ -58,6 +56,7 @@ class S3ObjectStorage(ObjectStorage):
     def put(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         try:
             import boto3
+
             s3 = boto3.client("s3", region_name=self.region)
             s3.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
             return f"s3://{self.bucket}/{key}"
@@ -65,9 +64,10 @@ class S3ObjectStorage(ObjectStorage):
             logger.error("S3 put failed: %s", e)
             raise
 
-    def get(self, key: str) -> Optional[bytes]:
+    def get(self, key: str) -> bytes | None:
         try:
             import boto3
+
             s3 = boto3.client("s3", region_name=self.region)
             resp = s3.get_object(Bucket=self.bucket, Key=key)
             return resp["Body"].read()
@@ -78,6 +78,7 @@ class S3ObjectStorage(ObjectStorage):
     def delete(self, key: str) -> bool:
         try:
             import boto3
+
             s3 = boto3.client("s3", region_name=self.region)
             s3.delete_object(Bucket=self.bucket, Key=key)
             return True
@@ -87,8 +88,11 @@ class S3ObjectStorage(ObjectStorage):
     def get_url(self, key: str, expires: int = 3600) -> str:
         try:
             import boto3
+
             s3 = boto3.client("s3", region_name=self.region)
-            return s3.generate_presigned_url("get_object", Params={"Bucket": self.bucket, "Key": key}, ExpiresIn=expires)
+            return s3.generate_presigned_url(
+                "get_object", Params={"Bucket": self.bucket, "Key": key}, ExpiresIn=expires
+            )
         except Exception:
             return ""
 

@@ -1,5 +1,5 @@
-from typing import Optional
 from sqlalchemy.orm import Session
+
 from app.models.booking import Booking, PsychAvailability
 from app.repositories.base import BaseRepository
 
@@ -8,23 +8,15 @@ class BookingRepository(BaseRepository[Booking]):
     def __init__(self, db: Session):
         super().__init__(Booking, db)
 
-    def get_by_id(self, booking_id: int) -> Optional[Booking]:
+    def get_by_id(self, booking_id: int) -> Booking | None:
         return self.db.query(Booking).filter(Booking.id == booking_id).first()
 
     def get_for_patient(self, username: str) -> list[Booking]:
-        return (
-            self.db.query(Booking)
-            .filter(Booking.patient_username == username)
-            .order_by(Booking.date.desc())
-            .all()
-        )
+        return self.db.query(Booking).filter(Booking.patient_username == username).order_by(Booking.date.desc()).all()
 
     def get_for_psychologist(self, username: str) -> list[Booking]:
         return (
-            self.db.query(Booking)
-            .filter(Booking.psychologist_username == username)
-            .order_by(Booking.date.desc())
-            .all()
+            self.db.query(Booking).filter(Booking.psychologist_username == username).order_by(Booking.date.desc()).all()
         )
 
 
@@ -32,7 +24,7 @@ class AvailabilityRepository(BaseRepository[PsychAvailability]):
     def __init__(self, db: Session):
         super().__init__(PsychAvailability, db)
 
-    def get_by_psych_and_date(self, psych_username: str, date: str) -> Optional[PsychAvailability]:
+    def get_by_psych_and_date(self, psych_username: str, date: str) -> PsychAvailability | None:
         return (
             self.db.query(PsychAvailability)
             .filter(
@@ -50,7 +42,7 @@ class AvailabilityRepository(BaseRepository[PsychAvailability]):
             .all()
         )
 
-    def get_by_slot_id(self, slot_id: int, psych_username: str) -> Optional[PsychAvailability]:
+    def get_by_slot_id(self, slot_id: int, psych_username: str) -> PsychAvailability | None:
         return (
             self.db.query(PsychAvailability)
             .filter(
@@ -60,7 +52,7 @@ class AvailabilityRepository(BaseRepository[PsychAvailability]):
             .first()
         )
 
-    def get_by_date(self, date: str, psych_username: str) -> Optional[PsychAvailability]:
+    def get_by_date(self, date: str, psych_username: str) -> PsychAvailability | None:
         return (
             self.db.query(PsychAvailability)
             .filter(

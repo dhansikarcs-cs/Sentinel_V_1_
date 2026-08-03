@@ -16,7 +16,7 @@ Example:
             }
 """
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from app.services.ring.base import RingSource, SensorData
 
@@ -27,7 +27,7 @@ class VendorAPIRingSource(RingSource):
     def __init__(
         self,
         device_id: str,
-        fetch_fn: Optional[Callable[[], dict]] = None,
+        fetch_fn: Callable[[], dict] | None = None,
         access_token: str = "",
     ):
         self.device_id = device_id
@@ -37,9 +37,7 @@ class VendorAPIRingSource(RingSource):
 
     def connect(self) -> bool:
         if not self.access_token and not self._fetch_fn:
-            raise RuntimeError(
-                "VendorAPIRingSource needs an access_token or a fetch_fn to authenticate"
-            )
+            raise RuntimeError("VendorAPIRingSource needs an access_token or a fetch_fn to authenticate")
         self._connected = True
         return True
 
@@ -54,6 +52,4 @@ class VendorAPIRingSource(RingSource):
 
     def _fetch(self) -> dict:
         """Override with the vendor SDK/API call. Must return a dict of sensor fields."""
-        raise NotImplementedError(
-            "Implement _fetch() in a VendorAPIRingSource subclass, or pass fetch_fn"
-        )
+        raise NotImplementedError("Implement _fetch() in a VendorAPIRingSource subclass, or pass fetch_fn")

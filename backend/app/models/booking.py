@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Index, CheckConstraint
+from sqlalchemy import CheckConstraint, Column, ForeignKey, Index, Integer, String
 
 from app.core.database import Base
 from app.core.encrypted_fields import EncryptedText
@@ -11,7 +11,10 @@ class Booking(Base):
         Index("ix_booking_psychologist_username", "psychologist_username"),
         Index("ix_booking_status", "status"),
         Index("ix_booking_date", "date"),
-        CheckConstraint("status IN ('Pending', 'Approved', 'Rejected', 'Cancelled', 'Proposed', 'Completed')", name="ck_booking_status"),
+        CheckConstraint(
+            "status IN ('Pending', 'Approved', 'Rejected', 'Cancelled', 'Proposed', 'Completed')",
+            name="ck_booking_status",
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)

@@ -1,7 +1,7 @@
-from typing import Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+
 from app.models.journal import JournalEntry
 from app.repositories.base import BaseRepository
 
@@ -36,7 +36,7 @@ class JournalRepository(BaseRepository[JournalEntry]):
             q = q.limit(limit)
         return q.all()
 
-    def get_by_id(self, journal_id: int) -> Optional[JournalEntry]:
+    def get_by_id(self, journal_id: int) -> JournalEntry | None:
         return self.db.query(JournalEntry).filter(JournalEntry.id == journal_id).first()
 
     def get_recent_summaries(self, username: str, limit: int = 20) -> list[JournalEntry]:
@@ -46,7 +46,7 @@ class JournalRepository(BaseRepository[JournalEntry]):
         entry = self.get_by_id(journal_id)
         if not entry or entry.deleted_at:
             return False
-        entry.deleted_at = datetime.now(timezone.utc).isoformat()
+        entry.deleted_at = datetime.now(UTC).isoformat()
         entry.deleted_by = deleted_by
         self.db.commit()
         return True
@@ -65,6 +65,6 @@ class JournalRepository(BaseRepository[JournalEntry]):
         if not entry:
             return 0
         entry.version = (entry.version or 1) + 1
-        entry.updated_at = datetime.now(timezone.utc).isoformat()
+        entry.updated_at = datetime.now(UTC).isoformat()
         self.db.commit()
         return entry.version

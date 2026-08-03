@@ -1,8 +1,9 @@
 """WebSocket endpoints — delegates to ConnectionManager."""
 
 from fastapi import APIRouter, WebSocket, WebSocketException, status
-from app.services.websocket_manager import manager
+
 from app.core.security import decode_access_token
+from app.services.websocket_manager import manager
 
 router = APIRouter()
 

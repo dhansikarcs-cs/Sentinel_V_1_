@@ -1,18 +1,19 @@
-import smtplib
-import os
 import logging
-from datetime import datetime, timezone
+import os
+import smtplib
+from datetime import UTC, datetime
 from email.message import EmailMessage
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.api_response import ok
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.config import settings
-from app.core.api_response import ok
+from app.models.crisis import CrisisLog, CrisisState
 from app.models.user import User
-from app.models.crisis import CrisisState, CrisisLog
-from app.schemas.crisis import CrisisStateResponse, CrisisRiskResponse, CrisisLogResponse, RiskAssessmentRequest
+from app.schemas.crisis import CrisisLogResponse, CrisisRiskResponse, CrisisStateResponse, RiskAssessmentRequest
 from app.services.ai_service import assess_crisis_risk
 from app.services.audit import log_audit
 
@@ -48,7 +49,9 @@ def _send_email(to: str, subject: str, body: str) -> bool:
         logger.info("Email sent successfully to %s", to)
         return True
     except smtplib.SMTPAuthenticationError:
-        logger.error("SMTP auth failed — app password may be expired. Generate new one at https://myaccount.google.com/apppasswords")
+        logger.error(
+            "SMTP auth failed — app password may be expired. Generate new one at https://myaccount.google.com/apppasswords"
+        )
         return False
     except Exception as e:
         logger.error("Email send failed: %s: %s", type(e).__name__, e)
@@ -86,7 +89,7 @@ def get_crisis_state(user: User = Depends(get_current_user), db: Session = Depen
 @router.post("/trigger")
 def trigger_crisis(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     state = _get_or_create_state(db)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     state.active = 1
     state.patient_username = user.username
     state.triggered_at = now
@@ -108,14 +111,22 @@ def acknowledge_crisis(user: User = Depends(require_role("psychologist")), db: S
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     state.acknowledged = 1
     state.acknowledged_by = user.username
     state.acknowledged_at = now
     log = CrisisLog(event="acknowledged", patient=state.patient_username, timestamp=now, source=user.username)
     db.add(log)
     db.commit()
-    log_audit("crisis_acknowledged", user=user.username, role=user.role, severity="HIGH", status="success", resource=state.patient_username, db=db)
+    log_audit(
+        "crisis_acknowledged",
+        user=user.username,
+        role=user.role,
+        severity="HIGH",
+        status="success",
+        resource=state.patient_username,
+        db=db,
+    )
     return ok(message="Crisis acknowledged")
 
 
@@ -124,9 +135,11 @@ def resolve_crisis(user: User = Depends(require_role("psychologist")), db: Sessi
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     patient = state.patient_username
-    log = CrisisLog(event="resolved", patient=patient, timestamp=now, source=user.username, details=f"by {user.username}")
+    log = CrisisLog(
+        event="resolved", patient=patient, timestamp=now, source=user.username, details=f"by {user.username}"
+    )
     state.active = 0
     state.patient_username = ""
     state.triggered_at = ""
@@ -142,7 +155,15 @@ def resolve_crisis(user: User = Depends(require_role("psychologist")), db: Sessi
     state.helpline_ack_emailed = 0
     db.add(log)
     db.commit()
-    log_audit("crisis_resolved", user=user.username, role=user.role, severity="HIGH", status="success", resource=patient, db=db)
+    log_audit(
+        "crisis_resolved",
+        user=user.username,
+        role=user.role,
+        severity="HIGH",
+        status="success",
+        resource=patient,
+        db=db,
+    )
     return ok(message="Crisis resolved")
 
 
@@ -151,9 +172,15 @@ def trustee_acknowledge(user: User = Depends(get_current_user), db: Session = De
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     state.trustee_acknowledged = 1
-    log = CrisisLog(event="trustee_acknowledged", patient=state.patient_username, timestamp=now, source=user.username, details="Trusted contact acknowledged")
+    log = CrisisLog(
+        event="trustee_acknowledged",
+        patient=state.patient_username,
+        timestamp=now,
+        source=user.username,
+        details="Trusted contact acknowledged",
+    )
     db.add(log)
     db.commit()
     return ok(message="Trustee acknowledged")
@@ -164,9 +191,15 @@ def trustee_clicked(user: User = Depends(get_current_user), db: Session = Depend
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     state.trustee_clicked = 1
-    log = CrisisLog(event="trustee_clicked", patient=state.patient_username, timestamp=now, source=user.username, details="Trusted contact clicked notification")
+    log = CrisisLog(
+        event="trustee_clicked",
+        patient=state.patient_username,
+        timestamp=now,
+        source=user.username,
+        details="Trusted contact clicked notification",
+    )
     db.add(log)
     db.commit()
     return ok(message="Trustee clicked")
@@ -177,7 +210,7 @@ def notify_trusted_contact(user: User = Depends(get_current_user), db: Session =
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     patient = db.query(User).filter(User.username == state.patient_username).first()
     tc_email = patient.trusted_contact if patient else ""
     email_sent = False
@@ -189,7 +222,13 @@ def notify_trusted_contact(user: User = Depends(get_current_user), db: Session =
             body=f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {now}\n\nYour loved one has triggered a crisis alert through Sentinel. Please reach out to them as soon as possible.\n\nAcknowledge this alert: {trustee_link}\n\n- Sentinel Safety System",
         )
     state.trusted_contact_notified = 1
-    log = CrisisLog(event="trusted_contact_notified", patient=state.patient_username, timestamp=now, source=user.username, details=f"Trusted contact {'emailed' if email_sent else 'logged (no SMTP)'}")
+    log = CrisisLog(
+        event="trusted_contact_notified",
+        patient=state.patient_username,
+        timestamp=now,
+        source=user.username,
+        details=f"Trusted contact {'emailed' if email_sent else 'logged (no SMTP)'}",
+    )
     db.add(log)
     db.commit()
     return ok(data={"email_sent": email_sent}, message="Trusted contact notified")
@@ -213,9 +252,15 @@ def public_trustee_acknowledge(db: Session = Depends(get_db)):
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     state.trustee_acknowledged = 1
-    log = CrisisLog(event="trustee_acknowledged", patient=state.patient_username, timestamp=now, source="trustee_portal", details="Trusted contact acknowledged via portal")
+    log = CrisisLog(
+        event="trustee_acknowledged",
+        patient=state.patient_username,
+        timestamp=now,
+        source="trustee_portal",
+        details="Trusted contact acknowledged via portal",
+    )
     db.add(log)
     db.commit()
     return ok(message="Trustee acknowledged")
@@ -226,10 +271,16 @@ def public_trustee_clicked(db: Session = Depends(get_db)):
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     if not state.trustee_clicked:
         state.trustee_clicked = 1
-        log = CrisisLog(event="trustee_clicked", patient=state.patient_username, timestamp=now, source="trustee_portal", details="Trusted contact clicked notification link")
+        log = CrisisLog(
+            event="trustee_clicked",
+            patient=state.patient_username,
+            timestamp=now,
+            source="trustee_portal",
+            details="Trusted contact clicked notification link",
+        )
         db.add(log)
         db.commit()
     return ok(message="Trustee clicked")
@@ -240,7 +291,7 @@ def helpline_escalate(user: User = Depends(get_current_user), db: Session = Depe
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     helpline = settings.helpline_email or settings.email_from
     email_sent = _send_email(
         to=helpline,
@@ -248,10 +299,24 @@ def helpline_escalate(user: User = Depends(get_current_user), db: Session = Depe
         body=f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nThis patient has not been acknowledged within the safety window. Immediate helpline intervention is required.\n\nAcknowledge: {TRUSTEE_PORTAL_BASE}?patient={state.patient_username}\n\n- Sentinel Safety System",
     )
     state.helpline_escalated = 1
-    log = CrisisLog(event="helpline_escalated", patient=state.patient_username, timestamp=now, source=user.username, details=f"Helpline {'emailed' if email_sent else 'logged (no SMTP)'}")
+    log = CrisisLog(
+        event="helpline_escalated",
+        patient=state.patient_username,
+        timestamp=now,
+        source=user.username,
+        details=f"Helpline {'emailed' if email_sent else 'logged (no SMTP)'}",
+    )
     db.add(log)
     db.commit()
-    log_audit("crisis_helpline_escalated", user=user.username, role=user.role, severity="HIGH", status="success", resource=state.patient_username, db=db)
+    log_audit(
+        "crisis_helpline_escalated",
+        user=user.username,
+        role=user.role,
+        severity="HIGH",
+        status="success",
+        resource=state.patient_username,
+        db=db,
+    )
     return ok(data={"email_sent": email_sent}, message="Helpline escalated")
 
 
@@ -260,8 +325,8 @@ def _handle_escalation(state: CrisisState, db: Session):
         return
     try:
         triggered = datetime.fromisoformat(state.triggered_at)
-        elapsed = int((datetime.now(timezone.utc) - triggered).total_seconds())
-    except:
+        elapsed = int((datetime.now(UTC) - triggered).total_seconds())
+    except Exception:
         return
 
     if elapsed >= 30 and not state.trusted_contact_notified:
@@ -270,19 +335,33 @@ def _handle_escalation(state: CrisisState, db: Session):
         tc_email = patient.trusted_contact if patient else ""
         if tc_email:
             trustee_link = f"{TRUSTEE_PORTAL_BASE}?patient={state.patient_username}"
-            _send_email(tc_email,
+            _send_email(
+                tc_email,
                 "[Sentinel] Crisis Alert — Your loved one needs you",
-                f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {datetime.now(timezone.utc).isoformat()}\n\nYour loved one has triggered a crisis alert. Please reach out to them as soon as possible.\n\nAcknowledge this alert: {trustee_link}\n\n- Sentinel Safety System")
-        log = CrisisLog(event="trustee_notified_auto", patient=state.patient_username, timestamp=datetime.now(timezone.utc).isoformat(), source="system")
+                f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {datetime.now(UTC).isoformat()}\n\nYour loved one has triggered a crisis alert. Please reach out to them as soon as possible.\n\nAcknowledge this alert: {trustee_link}\n\n- Sentinel Safety System",
+            )
+        log = CrisisLog(
+            event="trustee_notified_auto",
+            patient=state.patient_username,
+            timestamp=datetime.now(UTC).isoformat(),
+            source="system",
+        )
         db.add(log)
 
     if elapsed >= 60 and not state.helpline_escalated:
         state.helpline_escalated = 1
         helpline = settings.helpline_email or settings.email_from
-        _send_email(helpline,
+        _send_email(
+            helpline,
             "[Sentinel] CRISIS ESCALATION — Immediate attention required",
-            f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nNo acknowledgement within 60s. Immediate helpline intervention required.\n\nAcknowledge: {TRUSTEE_PORTAL_BASE}?patient={state.patient_username}\n\n- Sentinel Safety System")
-        log = CrisisLog(event="helpline_escalated_auto", patient=state.patient_username, timestamp=datetime.now(timezone.utc).isoformat(), source="system")
+            f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nNo acknowledgement within 60s. Immediate helpline intervention required.\n\nAcknowledge: {TRUSTEE_PORTAL_BASE}?patient={state.patient_username}\n\n- Sentinel Safety System",
+        )
+        log = CrisisLog(
+            event="helpline_escalated_auto",
+            patient=state.patient_username,
+            timestamp=datetime.now(UTC).isoformat(),
+            source="system",
+        )
         db.add(log)
 
     db.commit()
@@ -296,8 +375,8 @@ def crisis_elapsed(user: User = Depends(get_current_user), db: Session = Depends
         return {"elapsed": 0, "stage": "inactive", "is_active": False}
     try:
         triggered = datetime.fromisoformat(state.triggered_at)
-        elapsed = int((datetime.now(timezone.utc) - triggered).total_seconds())
-    except:
+        elapsed = int((datetime.now(UTC) - triggered).total_seconds())
+    except Exception:
         elapsed = 0
 
     if state.acknowledged:

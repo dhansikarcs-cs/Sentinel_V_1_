@@ -1,16 +1,16 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.models.user import User
+from app.events import get_event_bus
 from app.models.booking import Booking, PsychAvailability
-from app.schemas.booking import BookingCreate, BookingResponse, BookingUpdate, AvailabilityCreate
+from app.models.user import User
 from app.repositories import BookingRepository
 from app.repositories.booking_repository import AvailabilityRepository
-from app.events import get_event_bus
-from app.services.audit import log_audit
+from app.schemas.booking import AvailabilityCreate, BookingCreate, BookingResponse, BookingUpdate
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -28,10 +28,16 @@ def create_booking(entry: BookingCreate, user: User = Depends(require_role("pati
         contact=entry.contact,
         explanation=entry.explanation,
         status="Pending",
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
     )
     repo.add(booking)
-    get_event_bus().emit("booking:created", booking_id=booking.id, patient=user.username, psych=entry.psychologist_username, date=entry.date)
+    get_event_bus().emit(
+        "booking:created",
+        booking_id=booking.id,
+        patient=user.username,
+        psych=entry.psychologist_username,
+        date=entry.date,
+    )
     return booking
 
 
@@ -44,7 +50,12 @@ def get_bookings(user: User = Depends(get_current_user), db: Session = Depends(g
 
 
 @router.put("/{booking_id}/status")
-def update_booking_status(booking_id: int, update: BookingUpdate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def update_booking_status(
+    booking_id: int,
+    update: BookingUpdate,
+    user: User = Depends(require_role("psychologist")),
+    db: Session = Depends(get_db),
+):
     repo = BookingRepository(db)
     booking = repo.get_by_id(booking_id)
     if not booking:
@@ -56,7 +67,9 @@ def update_booking_status(booking_id: int, update: BookingUpdate, user: User = D
 
 
 @router.post("/availability")
-def set_availability(entry: AvailabilityCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def set_availability(
+    entry: AvailabilityCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     avail_repo = AvailabilityRepository(db)
     existing = avail_repo.get_by_psych_and_date(user.username, entry.date)
     if existing:
@@ -68,7 +81,7 @@ def set_availability(entry: AvailabilityCreate, user: User = Depends(require_rol
             date=entry.date,
             start_time=entry.start_time,
             end_time=entry.end_time,
-            created_at=datetime.now(timezone.utc).isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         db.add(avail)
     db.commit()
@@ -90,7 +103,9 @@ def get_availability(psych_username: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/availability/id/{slot_id}")
-def delete_availability(slot_id: int, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def delete_availability(
+    slot_id: int, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     avail_repo = AvailabilityRepository(db)
     slot = avail_repo.get_by_slot_id(slot_id, user.username)
     if not slot:
@@ -100,7 +115,9 @@ def delete_availability(slot_id: int, user: User = Depends(require_role("psychol
 
 
 @router.delete("/availability/date/{date}")
-def delete_availability_date(date: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def delete_availability_date(
+    date: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     avail_repo = AvailabilityRepository(db)
     slot = avail_repo.get_by_date(date, user.username)
     if not slot:

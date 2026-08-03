@@ -1,6 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import Optional
-
 
 VALID_MOOD_LABELS = {"great", "good", "okay", "bad", "awful", "terrible"}
 

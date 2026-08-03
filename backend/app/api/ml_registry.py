@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
+
 from app.core.dependencies import get_current_user
-from app.models.user import User
 from app.ml.model_registry import registry
+from app.models.user import User
 
 router = APIRouter(prefix="/ml", tags=["ml_registry"])
 

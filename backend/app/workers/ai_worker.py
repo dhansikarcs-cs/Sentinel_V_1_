@@ -1,11 +1,11 @@
-import json
 import asyncio
+import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from app.services.ai_service import summarize_journal
-from app.ml.risk_engine import assess_risk_with_history
 from app.events import get_event_bus
+from app.ml.risk_engine import assess_risk_with_history
+from app.services.ai_service import summarize_journal
 
 logger = logging.getLogger("sentinel.workers.ai")
 
@@ -15,18 +15,23 @@ RISK_ENGINE_VERSION = "1.0.0"
 
 def analyze_journal_background(journal_id: int, raw_content: str, patient_username: str) -> None:
     logger.info("Background AI analysis started for journal %s", journal_id)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     patient_result = summarize_journal(raw_content, mode="patient")
     clinical_result = summarize_journal(raw_content, mode="clinical")
 
     from app.core.database import SessionLocal as _PreSessionDB
-    from app.models.journal import JournalEntry as _JE
+    from app.models.journal import JournalEntry
+
     _pre_db = _PreSessionDB()
     try:
-        _recent = _pre_db.query(_JE).filter(
-            _JE.patient_username == patient_username
-        ).order_by(_JE.timestamp.desc()).limit(10).all()
+        _recent = (
+            _pre_db.query(JournalEntry)
+            .filter(JournalEntry.patient_username == patient_username)
+            .order_by(JournalEntry.timestamp.desc())
+            .limit(10)
+            .all()
+        )
         _recent_texts = [j.raw_content for j in reversed(_recent) if j.id != journal_id]
     except Exception:
         _recent_texts = []
@@ -41,14 +46,19 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
             emotion_probs = json.loads(emotion_probs)
         except (json.JSONDecodeError, TypeError):
             emotion_probs = {}
-    emotion_probs_json = json.dumps(emotion_probs) if isinstance(emotion_probs, dict) else patient_result.get("emotion_probabilities", "{}")
+    emotion_probs_json = (
+        json.dumps(emotion_probs)
+        if isinstance(emotion_probs, dict)
+        else patient_result.get("emotion_probabilities", "{}")
+    )
 
     from app.core.database import SessionLocal
-    from app.models.journal import JournalEntry
-    from app.models.emotion_result import EmotionResult
     from app.models.ai_analysis import AIAnalysis
-    from app.models.risk_assessment import RiskAssessment
+    from app.models.emotion_result import EmotionResult
+    from app.models.journal import JournalEntry
     from app.models.notification import Notification
+    from app.models.risk_assessment import RiskAssessment
+
     db = SessionLocal()
     try:
         entry = db.query(JournalEntry).filter(JournalEntry.id == journal_id).first()
@@ -99,7 +109,9 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
             patient_username=patient_username,
             risk_score=risk_score,
             triggered=1 if risk.get("triggered", False) else 0,
-            confidence=round(risk.get("confidence", 0.0), 4) if isinstance(risk.get("confidence"), (int, float)) else 0.0,
+            confidence=round(risk.get("confidence", 0.0), 4)
+            if isinstance(risk.get("confidence"), (int, float))
+            else 0.0,
             explanation=json.dumps(risk.get("explainability", {})),
             algorithm_version=RISK_ENGINE_VERSION,
             created_at=now,
@@ -118,7 +130,8 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
             db.add(notif)
 
         if risk.get("triggered", False) and risk_score >= 8:
-            from app.models.crisis import CrisisState, CrisisLog
+            from app.models.crisis import CrisisLog, CrisisState
+
             existing = db.query(CrisisState).first()
             if not existing:
                 existing = CrisisState(active=0)
@@ -133,7 +146,13 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
                 existing.trustee_acknowledged = 0
                 existing.trustee_clicked = 0
                 existing.helpline_escalated = 0
-                log = CrisisLog(event="crisis_auto_triggered", patient=patient_username, timestamp=now, source="ai_detection", details=f"Risk score {risk_score}/10, triggered by AI emotion+keyword analysis")
+                log = CrisisLog(
+                    event="crisis_auto_triggered",
+                    patient=patient_username,
+                    timestamp=now,
+                    source="ai_detection",
+                    details=f"Risk score {risk_score}/10, triggered by AI emotion+keyword analysis",
+                )
                 db.add(log)
                 notif_psych = Notification(
                     patient_username=patient_username,
@@ -146,25 +165,42 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
                 db.add(notif_psych)
 
                 from app.services.websocket_manager import manager
+
                 loop = asyncio.get_event_loop()
-                loop.create_task(manager.broadcast_to_psych("crisis_alert", {
-                    "patient": patient_username,
-                    "risk_score": risk_score,
-                    "message": f"Auto-detected crisis for {patient_username} (risk: {risk_score}/10)",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                }))
+                loop.create_task(
+                    manager.broadcast_to_psych(
+                        "crisis_alert",
+                        {
+                            "patient": patient_username,
+                            "risk_score": risk_score,
+                            "message": f"Auto-detected crisis for {patient_username} (risk: {risk_score}/10)",
+                            "timestamp": datetime.now(UTC).isoformat(),
+                        },
+                    )
+                )
         elif risk_score >= 6:
             from app.services.websocket_manager import manager
+
             loop = asyncio.get_event_loop()
-            loop.create_task(manager.broadcast_to_psych("risk_warning", {
-                "patient": patient_username,
-                "risk_score": risk_score,
-                "message": f"High risk detected for {patient_username} (risk: {risk_score}/10)",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }))
+            loop.create_task(
+                manager.broadcast_to_psych(
+                    "risk_warning",
+                    {
+                        "patient": patient_username,
+                        "risk_score": risk_score,
+                        "message": f"High risk detected for {patient_username} (risk: {risk_score}/10)",
+                        "timestamp": datetime.now(UTC).isoformat(),
+                    },
+                )
+            )
 
         db.commit()
-        logger.info("AI analysis complete for journal %s (emotion_result=%d, risk=%d)", journal_id, emotion_result.id, risk_score)
+        logger.info(
+            "AI analysis complete for journal %s (emotion_result=%d, risk=%d)",
+            journal_id,
+            emotion_result.id,
+            risk_score,
+        )
 
         bus = get_event_bus()
         bus.emit(

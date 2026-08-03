@@ -1,6 +1,6 @@
 import re
-from fastapi import HTTPException, status, UploadFile
 
+from fastapi import HTTPException, UploadFile, status
 
 MAX_JOURNAL_LENGTH = 50000
 MAX_NOTE_LENGTH = 20000

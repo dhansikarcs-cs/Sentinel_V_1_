@@ -1,20 +1,21 @@
-from datetime import datetime, timezone
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Header
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from pydantic import BaseModel
+from app.core.api_response import ok
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.pagination import paginate
 from app.core.idempotency import idempotency_store
-from app.core.api_response import ok
 from app.core.input_validator import validate_journal_content
-from app.models.user import User
-from app.models.journal import JournalEntry
-from app.schemas.journal import JournalCreate, JournalResponse
-from app.repositories import JournalRepository
-from app.services.ai_service import synthesize_clinical_notes
+from app.core.pagination import paginate
 from app.events import get_event_bus
+from app.models.journal import JournalEntry
+from app.models.user import User
+from app.repositories import JournalRepository
+from app.schemas.journal import JournalCreate, JournalResponse
+from app.services.ai_service import synthesize_clinical_notes
 from app.workers.ai_worker import analyze_journal_background
 
 router = APIRouter(prefix="/journal", tags=["journal"])
@@ -43,8 +44,8 @@ def create_journal(
         clinical_summary="",
         ai_source="pending",
         emotions="",
-        timestamp=datetime.now(timezone.utc).isoformat(),
-        created_at=datetime.now(timezone.utc).isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         version=1,
     )
     db.add(journal)
@@ -117,18 +118,33 @@ def get_patient_journals(
 
 
 @router.get("/{username}/summaries")
-def get_patient_summaries(username: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def get_patient_summaries(
+    username: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     repo = JournalRepository(db)
     entries = repo.get_recent_summaries(username, limit=20)
     get_event_bus().emit("journal:summaries_viewed", viewer_username=user.username, patient_username=username)
     return [
-        {"id": e.id, "summary": e.clinical_summary or e.summary, "patient_summary": e.summary, "clinical_summary": e.clinical_summary or e.summary, "ai_source": e.ai_source, "emotions": e.emotions, "timestamp": e.timestamp}
+        {
+            "id": e.id,
+            "summary": e.clinical_summary or e.summary,
+            "patient_summary": e.summary,
+            "clinical_summary": e.clinical_summary or e.summary,
+            "ai_source": e.ai_source,
+            "emotions": e.emotions,
+            "timestamp": e.timestamp,
+        }
         for e in entries
     ]
 
 
 @router.post("/{journal_id}/resummarize", response_model=JournalResponse)
-def resummarize_journal(journal_id: int, background_tasks: BackgroundTasks, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def resummarize_journal(
+    journal_id: int,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     repo = JournalRepository(db)
     journal = repo.get_by_id(journal_id)
     if not journal:
@@ -163,7 +179,9 @@ class SynthesizeNoteRequest(BaseModel):
 
 
 @router.post("/synthesize-note")
-def synthesize_note(req: SynthesizeNoteRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def synthesize_note(
+    req: SynthesizeNoteRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     combined = req.journal_text + ("\n\nClinical context: " + req.clinical_summary if req.clinical_summary else "")
     note = synthesize_clinical_notes(combined)
     get_event_bus().emit("clinical_note:synthesized", psychologist=user.username)

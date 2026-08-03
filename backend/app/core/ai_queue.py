@@ -2,7 +2,8 @@ import logging
 import threading
 import time
 from collections import deque
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger("sentinel.ai_queue")
 

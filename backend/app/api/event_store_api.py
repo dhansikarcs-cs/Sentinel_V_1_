@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query
-from app.core.dependencies import get_current_user, require_role
+
+from app.core.dependencies import require_role
 from app.models.user import User
 from app.services.event_store_service import event_store
 

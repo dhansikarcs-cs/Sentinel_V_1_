@@ -1,5 +1,5 @@
-import time
 import logging
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -9,7 +9,6 @@ logger = logging.getLogger("sentinel.gateway")
 class APIGatewayMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        method = request.method
 
         if path.startswith("/api/"):
             version = self._extract_version(path)

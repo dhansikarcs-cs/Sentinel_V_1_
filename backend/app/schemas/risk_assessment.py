@@ -1,11 +1,10 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
 class RiskAssessmentCreate(BaseModel):
-    journal_id: Optional[int] = None
-    emotion_result_id: Optional[int] = None
-    sensor_reading_id: Optional[int] = None
+    journal_id: int | None = None
+    emotion_result_id: int | None = None
+    sensor_reading_id: int | None = None
     patient_username: str
     risk_score: int = 0
     triggered: bool = False
@@ -15,9 +14,9 @@ class RiskAssessmentCreate(BaseModel):
 
 class RiskAssessmentResponse(BaseModel):
     id: int
-    journal_id: Optional[int] = None
-    emotion_result_id: Optional[int] = None
-    sensor_reading_id: Optional[int] = None
+    journal_id: int | None = None
+    emotion_result_id: int | None = None
+    sensor_reading_id: int | None = None
     patient_username: str
     risk_score: int
     triggered: bool

@@ -1,6 +1,7 @@
 """Text-biometric mismatch detection + WS broadcast."""
 
 import time
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -8,22 +9,82 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.services.websocket_manager import manager
 from app.services.audit import log_audit
+from app.services.websocket_manager import manager
 
 router = APIRouter(prefix="/discrepancy", tags=["discrepancy"])
 
-POSITIVE_SET = {"great", "happy", "good", "wonderful", "amazing", "fantastic",
-                "energetic", "refreshed", "joy", "love", "beautiful", "perfect",
-                "cured", "better", "peaceful", "content", "grateful", "optimistic"}
-NEGATIVE_SET = {"anxious", "scared", "terrified", "panic", "fear", "afraid",
-                "hopeless", "die", "kill", "suicide", "disappear", "worried",
-                "can't", "cannot", "unbearable", "drowning", "alone", "numb",
-                "struggling", "darkness", "terrible", "falling apart"}
-NEGATION_PREFIXES = {"not", "no", "never", "don't", "dont", "doesn't", "doesnt",
-                     "isn't", "isnt", "wasn't", "wasnt", "won't", "wont",
-                     "can't", "cant", "couldn't", "couldnt", "shouldn't", "shouldnt",
-                     "wouldn't", "wouldnt", "hardly", "barely", "neither", "nor"}
+POSITIVE_SET = {
+    "great",
+    "happy",
+    "good",
+    "wonderful",
+    "amazing",
+    "fantastic",
+    "energetic",
+    "refreshed",
+    "joy",
+    "love",
+    "beautiful",
+    "perfect",
+    "cured",
+    "better",
+    "peaceful",
+    "content",
+    "grateful",
+    "optimistic",
+}
+NEGATIVE_SET = {
+    "anxious",
+    "scared",
+    "terrified",
+    "panic",
+    "fear",
+    "afraid",
+    "hopeless",
+    "die",
+    "kill",
+    "suicide",
+    "disappear",
+    "worried",
+    "can't",
+    "cannot",
+    "unbearable",
+    "drowning",
+    "alone",
+    "numb",
+    "struggling",
+    "darkness",
+    "terrible",
+    "falling apart",
+}
+NEGATION_PREFIXES = {
+    "not",
+    "no",
+    "never",
+    "don't",
+    "dont",
+    "doesn't",
+    "doesnt",
+    "isn't",
+    "isnt",
+    "wasn't",
+    "wasnt",
+    "won't",
+    "wont",
+    "can't",
+    "cant",
+    "couldn't",
+    "couldnt",
+    "shouldn't",
+    "shouldnt",
+    "wouldn't",
+    "wouldnt",
+    "hardly",
+    "barely",
+    "neither",
+    "nor",
+}
 
 
 def _strip_negated_words(text: str, keywords: set) -> set:
@@ -84,9 +145,9 @@ def _detect(text: str, bpm: int, hrv: int) -> tuple:
         bio_state = "moderate"
 
     discrepancy = (
-        (sentiment == "positive" and high_stress) or
-        (sentiment == "negative" and low_stress) or
-        (sentiment == "neutral" and high_stress)
+        (sentiment == "positive" and high_stress)
+        or (sentiment == "negative" and low_stress)
+        or (sentiment == "neutral" and high_stress)
     )
 
     elapsed = (time.perf_counter() - t0) * 1000
@@ -103,17 +164,28 @@ async def check_discrepancy(
     alert_sent = False
 
     if detected:
-        await manager.broadcast_to_psych("discrepancy_alert", {
-            "patient": user.username,
-            "sentiment": sentiment,
-            "bpm": req.bpm,
-            "hrv": req.hrv,
-            "biometric_state": bio_state,
-            "processing_ms": round(ms, 2),
-        })
+        await manager.broadcast_to_psych(
+            "discrepancy_alert",
+            {
+                "patient": user.username,
+                "sentiment": sentiment,
+                "bpm": req.bpm,
+                "hrv": req.hrv,
+                "biometric_state": bio_state,
+                "processing_ms": round(ms, 2),
+            },
+        )
         alert_sent = True
 
-    log_audit("discrepancy_check", user=user.username, role=user.role, severity="HIGH" if detected else "INFO", status="success", details=f"sentiment={sentiment}, bio={bio_state}, detected={detected}", db=db)
+    log_audit(
+        "discrepancy_check",
+        user=user.username,
+        role=user.role,
+        severity="HIGH" if detected else "INFO",
+        status="success",
+        details=f"sentiment={sentiment}, bio={bio_state}, detected={detected}",
+        db=db,
+    )
 
     return DiscrepancyResponse(
         discrepancy_detected=detected,

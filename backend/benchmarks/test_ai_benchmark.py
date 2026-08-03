@@ -1,7 +1,9 @@
 """AI provider benchmark — Mock/Ollama/Groq TTFT + total latency."""
 
-import time, sys, os, json, threading
-from datetime import datetime, timezone
+import json
+import os
+import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from benchmarks.profiles import AI_BENCH_ENTRIES
@@ -30,8 +32,13 @@ def _try_provider(text: str, provider: str, url: str = "", model: str = "") -> d
     if provider == "ollama":
         try:
             import urllib.request
-            data = json.dumps({"model": model or "mistral", "prompt": f"Summarize: {text[:500]}", "stream": False}).encode()
-            req = urllib.request.Request(url or "http://localhost:11434/api/generate", data=data, headers={"Content-Type": "application/json"})
+
+            data = json.dumps(
+                {"model": model or "mistral", "prompt": f"Summarize: {text[:500]}", "stream": False}
+            ).encode()
+            req = urllib.request.Request(
+                url or "http://localhost:11434/api/generate", data=data, headers={"Content-Type": "application/json"}
+            )
             t_first = time.perf_counter()
             resp = urllib.request.urlopen(req, timeout=30)
             ttft = (time.perf_counter() - t_first) * 1000
@@ -49,13 +56,18 @@ def _try_provider(text: str, provider: str, url: str = "", model: str = "") -> d
     if provider == "groq":
         try:
             import urllib.request
+
             api_key = os.environ.get("GROQ_API_KEY", "")
             if not api_key:
                 return {**result, "error": "GROQ_API_KEY not set"}
-            data = json.dumps({
-                "model": model or "mixtral-8x7b-32768",
-                "messages": [{"role": "user", "content": f"Summarize this journal entry in 1-2 sentences:\n\n{text}"}],
-            }).encode()
+            data = json.dumps(
+                {
+                    "model": model or "mixtral-8x7b-32768",
+                    "messages": [
+                        {"role": "user", "content": f"Summarize this journal entry in 1-2 sentences:\n\n{text}"}
+                    ],
+                }
+            ).encode()
             req = urllib.request.Request(
                 "https://api.groq.com/openai/v1/chat/completions",
                 data=data,
@@ -83,9 +95,18 @@ def run_ai_benchmarks(log_func, quick=False):
 
     # Group by word count
     from collections import defaultdict
+
     by_wc = defaultdict(list)
     for e in entries:
-        bucket = "100w" if e.word_count <= 150 else "250w" if e.word_count <= 350 else "500w" if e.word_count <= 750 else "1000w"
+        bucket = (
+            "100w"
+            if e.word_count <= 150
+            else "250w"
+            if e.word_count <= 350
+            else "500w"
+            if e.word_count <= 750
+            else "1000w"
+        )
         by_wc[bucket].append(e)
 
     # Mock provider (always available)
@@ -99,11 +120,14 @@ def run_ai_benchmarks(log_func, quick=False):
         avg_lat = sum(latencies) / len(latencies) if latencies else 0
 
         log_func(
-            "AI Summarizer", 1, "Mock",
+            "AI Summarizer",
+            1,
+            "Mock",
             f"{bucket} ({len(items)} entries)",
-            avg_lat, "N/A",
+            avg_lat,
+            "N/A",
             True,
-            f"avg {avg_lat:.1f}ms/{bucket}"
+            f"avg {avg_lat:.1f}ms/{bucket}",
         )
 
     # Ollama (if available)
@@ -111,9 +135,10 @@ def run_ai_benchmarks(log_func, quick=False):
     ollama_ok = False
     try:
         import urllib.request
+
         r = urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3)
         ollama_ok = r.status == 200
-    except:
+    except Exception:
         pass
 
     if ollama_ok:
@@ -125,17 +150,25 @@ def run_ai_benchmarks(log_func, quick=False):
                     latencies.append(r["total_ms"])
             avg_lat = sum(latencies) / len(latencies) if latencies else 0
             log_func(
-                "AI Summarizer", 1, "Ollama (Mistral)",
+                "AI Summarizer",
+                1,
+                "Ollama (Mistral)",
                 f"{bucket}",
-                avg_lat, "Local CPU/RAM varies",
+                avg_lat,
+                "Local CPU/RAM varies",
                 len(latencies) > 0,
-                f"TTFT avg -- {avg_lat:.1f}ms total"
+                f"TTFT avg -- {avg_lat:.1f}ms total",
             )
     else:
         log_func(
-            "AI Summarizer", 1, "Ollama (Mistral)",
-            "N/A (not running)", 0, "N/A",
-            False, "Ollama not available on this host"
+            "AI Summarizer",
+            1,
+            "Ollama (Mistral)",
+            "N/A (not running)",
+            0,
+            "N/A",
+            False,
+            "Ollama not available on this host",
         )
 
     # Groq (if API key set)
@@ -149,15 +182,16 @@ def run_ai_benchmarks(log_func, quick=False):
                     latencies.append(r["total_ms"])
             avg_lat = sum(latencies) / len(latencies) if latencies else 0
             log_func(
-                "AI Summarizer", 1, "Groq Cloud",
+                "AI Summarizer",
+                1,
+                "Groq Cloud",
                 f"{bucket}",
-                avg_lat, "Cloud API",
+                avg_lat,
+                "Cloud API",
                 len(latencies) > 0,
-                f"TTFT avg -- {avg_lat:.1f}ms total"
+                f"TTFT avg -- {avg_lat:.1f}ms total",
             )
     else:
         log_func(
-            "AI Summarizer", 1, "Groq Cloud",
-            "N/A (no key)", 0, "N/A",
-            False, "Set GROQ_API_KEY env var to enable"
+            "AI Summarizer", 1, "Groq Cloud", "N/A (no key)", 0, "N/A", False, "Set GROQ_API_KEY env var to enable"
         )

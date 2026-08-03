@@ -1,19 +1,19 @@
 import os
-from datetime import datetime, timezone
 import uuid
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.api_response import ok
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.api_response import ok
-from app.core.input_validator import validate_free_text, validate_file_upload
-from app.models.user import User
-from app.models.followup import FollowupTask
-from app.schemas.followup import FollowupCreate, FollowupUpdate, FollowupResponse
-from app.repositories import FollowupRepository
+from app.core.input_validator import validate_file_upload
 from app.events import get_event_bus
-
+from app.models.followup import FollowupTask
+from app.models.user import User
+from app.repositories import FollowupRepository
+from app.schemas.followup import FollowupCreate, FollowupResponse, FollowupUpdate
 
 UPLOAD_DIR = "data/followup_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -24,7 +24,9 @@ router = APIRouter(prefix="/followups", tags=["followups"])
 
 
 @router.post("", response_model=FollowupResponse)
-def create_followup(entry: FollowupCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def create_followup(
+    entry: FollowupCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     repo = FollowupRepository(db)
     task = FollowupTask(
         id=str(uuid.uuid4())[:8],
@@ -33,10 +35,12 @@ def create_followup(entry: FollowupCreate, user: User = Depends(require_role("ps
         title=entry.title,
         description=entry.description,
         status="pending",
-        assigned_at=datetime.now(timezone.utc).isoformat(),
+        assigned_at=datetime.now(UTC).isoformat(),
     )
     repo.add(task)
-    get_event_bus().emit("followup:created", task_id=task.id, psych=user.username, patient=entry.patient_username, title=entry.title)
+    get_event_bus().emit(
+        "followup:created", task_id=task.id, psych=user.username, patient=entry.patient_username, title=entry.title
+    )
     return task
 
 
@@ -49,7 +53,9 @@ def get_followups(user: User = Depends(get_current_user), db: Session = Depends(
 
 
 @router.put("/{task_id}", response_model=FollowupResponse)
-def update_followup(task_id: str, update: FollowupUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_followup(
+    task_id: str, update: FollowupUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     repo = FollowupRepository(db)
     task = repo.get_by_id(task_id)
     if not task:
@@ -57,17 +63,21 @@ def update_followup(task_id: str, update: FollowupUpdate, user: User = Depends(g
     if update.status:
         task.status = update.status
         if update.status == "completed":
-            task.completed_at = datetime.now(timezone.utc).isoformat()
+            task.completed_at = datetime.now(UTC).isoformat()
     if update.grade:
         task.grade = update.grade
     db.commit()
     db.refresh(task)
-    get_event_bus().emit("followup:updated", task_id=task_id, user=user.username, status=update.status, grade=update.grade)
+    get_event_bus().emit(
+        "followup:updated", task_id=task_id, user=user.username, status=update.status, grade=update.grade
+    )
     return task
 
 
 @router.post("/{task_id}/upload")
-async def upload_followup_file(task_id: str, file: UploadFile = File(...), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def upload_followup_file(
+    task_id: str, file: UploadFile = File(...), user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     repo = FollowupRepository(db)
     task = repo.get_by_id(task_id)
     if not task:
@@ -85,7 +95,9 @@ async def upload_followup_file(task_id: str, file: UploadFile = File(...), user:
 
 
 @router.post("/{task_id}/upload-proof")
-async def upload_followup_proof(task_id: str, file: UploadFile = File(...), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def upload_followup_proof(
+    task_id: str, file: UploadFile = File(...), user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     repo = FollowupRepository(db)
     task = repo.get_by_id(task_id)
     if not task:
@@ -98,7 +110,7 @@ async def upload_followup_proof(task_id: str, file: UploadFile = File(...), user
         f.write(content)
     task.file_path = dest
     task.status = "completed"
-    task.completed_at = datetime.now(timezone.utc).isoformat()
+    task.completed_at = datetime.now(UTC).isoformat()
     db.commit()
     db.refresh(task)
     return ok(data={"file_path": dest, "task_id": task_id})
@@ -107,6 +119,7 @@ async def upload_followup_proof(task_id: str, file: UploadFile = File(...), user
 @router.get("/{task_id}/download")
 def download_followup_file(task_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from fastapi.responses import FileResponse
+
     repo = FollowupRepository(db)
     task = repo.get_by_id(task_id)
     if not task or not task.file_path:

@@ -1,24 +1,23 @@
-import hmac as hmac_mod
 import hashlib
-import time
-from datetime import datetime, timezone
-from typing import Optional
+import hmac as hmac_mod
+from datetime import UTC, datetime
+
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.core.token_blacklist import token_blacklist
-from app.models.user import User
 from app.models.ring_device import RingDevice
+from app.models.user import User
 
 security = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
     token = None
@@ -52,13 +51,14 @@ def require_role(*roles: str):
         if user.role not in roles:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
         return user
+
     return _check
 
 
 class RingIdentity:
     """Resolved identity for a /ring request: a patient user plus an optional device."""
 
-    def __init__(self, user: User, device: Optional[RingDevice] = None):
+    def __init__(self, user: User, device: RingDevice | None = None):
         self.user = user
         self.device = device
 
@@ -84,11 +84,7 @@ def get_ring_identity(
     token = request.headers.get("X-Device-Token") or ""
 
     if serial and token:
-        device = (
-            db.query(RingDevice)
-            .filter(RingDevice.serial == serial, RingDevice.status == "paired")
-            .first()
-        )
+        device = db.query(RingDevice).filter(RingDevice.serial == serial, RingDevice.status == "paired").first()
         if not device:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Unknown device serial")
         digest = _hash_device_token(token)
@@ -97,7 +93,7 @@ def get_ring_identity(
         user = db.query(User).filter(User.username == device.patient_username).first()
         if not user:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Device owner not found")
-        device.last_seen_at = datetime.now(timezone.utc).isoformat()
+        device.last_seen_at = datetime.now(UTC).isoformat()
         db.commit()
         return RingIdentity(user=user, device=device)
 

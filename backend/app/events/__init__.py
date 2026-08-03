@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger("sentinel.events")
 

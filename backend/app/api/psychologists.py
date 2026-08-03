@@ -1,15 +1,14 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_role
-from app.models.user import User
-from app.models.journal import JournalEntry
-from app.models.clinical_note import ClinicalNote
-from app.repositories import PatientRepository
+from app.core.dependencies import require_role
 from app.events import get_event_bus
-from app.services.audit import log_audit
+from app.models.clinical_note import ClinicalNote
+from app.models.user import User
+from app.repositories import PatientRepository
 
 router = APIRouter(prefix="/psychologists", tags=["psychologists"])
 
@@ -38,13 +37,18 @@ def get_available_psychologists(clinic: str = "", db: Session = Depends(get_db))
 
 
 @router.post("/notes")
-def save_clinical_note(patient_username: str, raw_notes: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def save_clinical_note(
+    patient_username: str,
+    raw_notes: str,
+    user: User = Depends(require_role("psychologist")),
+    db: Session = Depends(get_db),
+):
     note = ClinicalNote(
         psychologist_username=user.username,
         patient_username=patient_username,
         raw_notes=raw_notes,
         ai_synthesis=raw_notes,
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
     )
     db.add(note)
     db.commit()
@@ -53,7 +57,9 @@ def save_clinical_note(patient_username: str, raw_notes: str, user: User = Depen
 
 
 @router.get("/notes")
-def get_clinical_notes(patient: str = "", user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def get_clinical_notes(
+    patient: str = "", user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     query = db.query(ClinicalNote).filter(ClinicalNote.psychologist_username == user.username)
     if patient:
         query = query.filter(ClinicalNote.patient_username == patient)

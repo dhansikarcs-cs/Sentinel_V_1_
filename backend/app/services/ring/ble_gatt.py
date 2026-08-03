@@ -29,7 +29,8 @@ Requires `bleak` — install with:
     pip install -r backend/requirements-bridge.txt
 """
 
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Optional
 
 from app.services.ring.base import RingSource, SensorData
 
@@ -60,10 +61,7 @@ def parse_hrm(data: bytes) -> dict:
     if not data:
         return {"bpm": 0}
     flags = data[0]
-    if flags & 0x01:
-        bpm = int.from_bytes(data[1:3], "little")
-    else:
-        bpm = data[1]
+    bpm = int.from_bytes(data[1:3], "little") if flags & 1 else data[1]
     return {"bpm": bpm}
 
 
@@ -74,8 +72,8 @@ class BLEGATTRingSource(RingSource):
         self,
         device_id: str = "",
         address: str = "",
-        char_map: Optional[Dict[str, str]] = None,
-        parser: Optional[Dict[str, Callable[[bytes], dict]]] = None,
+        char_map: dict[str, str] | None = None,
+        parser: dict[str, Callable[[bytes], dict]] | None = None,
         battery_uuid: str = BATTERY_LEVEL,
         client: Optional["BleakClient"] = None,
     ):
@@ -91,9 +89,7 @@ class BLEGATTRingSource(RingSource):
 
     def _require_bleak(self):
         if not _BLEAK_AVAILABLE:
-            raise RuntimeError(
-                "bleak is not installed. Run: pip install -r backend/requirements-bridge.txt"
-            )
+            raise RuntimeError("bleak is not installed. Run: pip install -r backend/requirements-bridge.txt")
 
     def connect(self) -> bool:
         self._require_bleak()

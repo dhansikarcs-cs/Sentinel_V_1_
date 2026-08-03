@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -12,7 +11,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
 
-    encryption_passphrase: Optional[str] = None
+    encryption_passphrase: str | None = None
     encryption_salt: str = ""
 
     ollama_url: str = "http://host.docker.internal:11434"

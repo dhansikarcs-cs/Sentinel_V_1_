@@ -1,16 +1,17 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_role
-from app.models.user import User
+from app.core.dependencies import require_role
 from app.models.journal import JournalEntry
 from app.models.mood import MoodLog
 from app.models.ring import RingSensorLog
 from app.models.triage import TriageEntry
-from app.schemas.triage import TriageCreate, TriageUpdate, TriageResponse
+from app.models.user import User
+from app.schemas.triage import TriageCreate, TriageResponse, TriageUpdate
 from app.services.ai_service import _query_ai
 from app.services.audit import log_audit
 
@@ -18,10 +19,29 @@ router = APIRouter(prefix="/triage", tags=["triage"])
 
 
 @router.post("", response_model=TriageResponse)
-def create_triage_assessment(req: TriageCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    journals = db.query(JournalEntry).filter(JournalEntry.patient_username == req.patient_username).order_by(JournalEntry.timestamp.desc()).limit(5).all()
-    moods = db.query(MoodLog).filter(MoodLog.patient_username == req.patient_username).order_by(MoodLog.timestamp.desc()).limit(7).all()
-    ring = db.query(RingSensorLog).filter(RingSensorLog.patient_username == req.patient_username).order_by(RingSensorLog.logged_at.desc()).first()
+def create_triage_assessment(
+    req: TriageCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
+    journals = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.patient_username == req.patient_username)
+        .order_by(JournalEntry.timestamp.desc())
+        .limit(5)
+        .all()
+    )
+    moods = (
+        db.query(MoodLog)
+        .filter(MoodLog.patient_username == req.patient_username)
+        .order_by(MoodLog.timestamp.desc())
+        .limit(7)
+        .all()
+    )
+    ring = (
+        db.query(RingSensorLog)
+        .filter(RingSensorLog.patient_username == req.patient_username)
+        .order_by(RingSensorLog.logged_at.desc())
+        .first()
+    )
 
     recent_text = journals[0].raw_content[:500] if journals else "No recent journal entries"
     recent_mood = moods[0].label if moods else "unknown"
@@ -41,6 +61,7 @@ Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"),
     ai = _query_ai(prompt)
     try:
         import json
+
         data = json.loads(ai)
         score = data.get("score", 1)
         reasons = data.get("reasons", [])
@@ -52,7 +73,7 @@ Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"),
         priority = "low"
         suggestion = ""
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     entry = TriageEntry(
         id=str(uuid.uuid4()),
         patient_username=req.patient_username,
@@ -71,7 +92,16 @@ Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"),
     db.add(entry)
     db.commit()
     db.refresh(entry)
-    log_audit("triage_created", user=user.username, role=user.role, severity="INFO", status="success", resource=req.patient_username, details=f"priority={priority}, score={score}", db=db)
+    log_audit(
+        "triage_created",
+        user=user.username,
+        role=user.role,
+        severity="INFO",
+        status="success",
+        resource=req.patient_username,
+        details=f"priority={priority}, score={score}",
+        db=db,
+    )
     return entry
 
 
@@ -82,13 +112,23 @@ def list_triage(user: User = Depends(require_role("psychologist")), db: Session 
 
 
 @router.get("/{patient_username}", response_model=list[TriageResponse])
-def get_patient_triage(patient_username: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    entries = db.query(TriageEntry).filter(TriageEntry.patient_username == patient_username).order_by(TriageEntry.created_at.desc()).limit(20).all()
+def get_patient_triage(
+    patient_username: str, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
+    entries = (
+        db.query(TriageEntry)
+        .filter(TriageEntry.patient_username == patient_username)
+        .order_by(TriageEntry.created_at.desc())
+        .limit(20)
+        .all()
+    )
     return entries
 
 
 @router.put("/{entry_id}", response_model=TriageResponse)
-def update_triage_entry(entry_id: str, req: TriageUpdate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def update_triage_entry(
+    entry_id: str, req: TriageUpdate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     entry = db.query(TriageEntry).filter(TriageEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Triage entry not found")

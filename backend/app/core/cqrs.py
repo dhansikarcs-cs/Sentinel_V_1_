@@ -1,6 +1,6 @@
 import logging
-from typing import Any, Optional
-from sqlalchemy.orm import Session
+from typing import Any
+
 from app.core.database import SessionLocal
 
 logger = logging.getLogger("sentinel.cqrs")
@@ -43,6 +43,7 @@ def register_default_handlers():
 
     def get_journals(patient_username: str, page: int = 1, page_size: int = 20):
         from app.core.pagination import paginate
+
         db = SessionLocal()
         try:
             repo = JournalRepository(db)
@@ -53,6 +54,7 @@ def register_default_handlers():
 
     def get_risk_history(patient_username: str, limit: int = 50):
         from app.models.risk_assessment import RiskAssessment
+
         db = SessionLocal()
         try:
             return (

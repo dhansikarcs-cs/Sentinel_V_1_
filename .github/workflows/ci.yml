@@ -35,9 +35,11 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r backend/requirements.txt
-          pip install scikit-learn joblib pytest
-      - name: Run tests
-        run: cd backend && python -m pytest tests/ -v --tb=short || echo "No tests found"
+      - name: Ring SDK tests
+        run: python scripts/test_ring_api.py
+      - name: App import smoke test
+        working-directory: backend
+        run: python -c "from app.main import app; from app.core.health import health_full; h = health_full(); assert h['status'] == 'healthy', h; print('app imports OK, health:', h['status'])"
 
   security-scan:
     runs-on: ubuntu-latest

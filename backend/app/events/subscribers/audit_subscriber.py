@@ -1,4 +1,5 @@
 import logging
+
 from app.events import EventBus
 from app.services.audit import log_audit
 

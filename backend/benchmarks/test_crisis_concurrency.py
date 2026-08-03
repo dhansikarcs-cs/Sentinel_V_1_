@@ -1,7 +1,9 @@
 """Crisis concurrency stress test — compressed-time stage transitions."""
 
-import time, threading, sys, os, random
-from datetime import datetime, timezone
+import os
+import sys
+import threading
+import time
 from dataclasses import dataclass, field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -107,21 +109,24 @@ def run_crisis_concurrency_tests(log_func, quick=False):
         stage2_hits = sum(1 for s in sims if s.stage2_email_sent)
 
         log_func(
-            "Crisis Engine", n, "N/A",
+            "Crisis Engine",
+            n,
+            "N/A",
             f"{n} concurrent",
-            elapsed, f"{dropped} dropped threads",
+            elapsed,
+            f"{dropped} dropped threads",
             dropped == 0,
-            f"Stage2 fired={stage2_hits}/{n} (none expected before ack)"
+            f"Stage2 fired={stage2_hits}/{n} (none expected before ack)",
         )
 
     # Halt Protocol Interruption (compressed time)
     print("  Halt Protocol Interruption...")
     test_cases = [
         ("early (15 sim-s)", 15.0 / TIME_FACTOR, False, False),  # ack before stage 2
-        ("mid (45 sim-s)", 45.0 / TIME_FACTOR, True, False),     # ack after stage 2, before stage 3
-        ("late (65 sim-s)", 65.0 / TIME_FACTOR, True, True),      # ack after both
+        ("mid (45 sim-s)", 45.0 / TIME_FACTOR, True, False),  # ack after stage 2, before stage 3
+        ("late (65 sim-s)", 65.0 / TIME_FACTOR, True, True),  # ack after both
     ]
-    for label, real_delay, expect_s2, expect_s3 in test_cases:
+    for _label, real_delay, expect_s2, expect_s3 in test_cases:
         sim = CrisisSimulator()
         sim.trigger()
         t = threading.Thread(target=sim.run_countdown, daemon=True)
@@ -140,15 +145,15 @@ def run_crisis_concurrency_tests(log_func, quick=False):
         stage3 = sim.stage3_escalation_sent
         halt_elapsed = next((e[2] for e in sim.timing_log if e[0] == "HALT"), 0)
 
-        ok = (halted and
-              (stage2 == expect_s2) and
-              (stage3 == expect_s3))
+        ok = halted and (stage2 == expect_s2) and (stage3 == expect_s3)
 
         log_func(
-            "Halt Protocol", 1, "N/A (compressed)",
-            f"ack @ {real_delay*TIME_FACTOR:.0f} sim-s",
+            "Halt Protocol",
+            1,
+            "N/A (compressed)",
+            f"ack @ {real_delay * TIME_FACTOR:.0f} sim-s",
             halt_elapsed * 1000 / TIME_FACTOR if halt_elapsed else 0,
             f"s2={'y' if stage2 else 'n'} s3={'y' if stage3 else 'n'}",
             ok,
-            f"halt_sim_elapsed={halt_elapsed:.1f}s"
+            f"halt_sim_elapsed={halt_elapsed:.1f}s",
         )

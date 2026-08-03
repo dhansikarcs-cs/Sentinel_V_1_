@@ -1,4 +1,3 @@
-import re
 import json
 from typing import Any
 
@@ -33,8 +32,32 @@ EMOTION_RISK_WEIGHTS: dict[str, float] = {
     "neutral": 0.0,
 }
 
-CRISIS_KW = ["suicide", "kill myself", "end my life", "want to die", "not worth living", "self-harm", "hurt myself", "emergency", "can't take it", "overdose"]
-HIGH_KW = ["panic", "hopeless", "desperate", "terrified", "screaming", "can't breathe", "alone", "scared", "anxiety", "afraid", "worthless", "numb"]
+CRISIS_KW = [
+    "suicide",
+    "kill myself",
+    "end my life",
+    "want to die",
+    "not worth living",
+    "self-harm",
+    "hurt myself",
+    "emergency",
+    "can't take it",
+    "overdose",
+]
+HIGH_KW = [
+    "panic",
+    "hopeless",
+    "desperate",
+    "terrified",
+    "screaming",
+    "can't breathe",
+    "alone",
+    "scared",
+    "anxiety",
+    "afraid",
+    "worthless",
+    "numb",
+]
 MEDIUM_KW = ["sad", "worried", "tired", "stress", "overwhelmed", "frustrated", "angry", "upset", "crying", "lost"]
 SOCIAL_KW = ["friends", "family", "people", "nobody", "alone", "isolated", "no one", "lonely", "withdrew"]
 SLEEP_KW = ["sleep", "insomnia", "tired", "exhausted", "can't sleep", "wake up", "nightmare"]
@@ -51,12 +74,14 @@ def _emotion_risk_contribution(emotion_probs: dict[str, float]) -> dict[str, Any
         weighted_sum += contribution
         total_weight += prob
         if prob > 0.1:
-            contributions.append({
-                "emotion": emotion,
-                "probability": prob,
-                "weight": weight,
-                "contribution": round(contribution, 4),
-            })
+            contributions.append(
+                {
+                    "emotion": emotion,
+                    "probability": prob,
+                    "weight": weight,
+                    "contribution": round(contribution, 4),
+                }
+            )
     avg_risk = weighted_sum / total_weight if total_weight > 0 else 0.0
     contributions.sort(key=lambda c: c["contribution"], reverse=True)
     return {
@@ -100,6 +125,7 @@ def assess_risk_with_explainability(text: str, emotion_probs: dict[str, float] |
         return {"risk_score": 1, "triggered": False, "reasoning": "No content to assess.", "explainability": {}}
 
     from app.ml.emotion_classifier import classifier
+
     if emotion_probs is None:
         emotion_probs = classifier.predict_proba(text)
 
@@ -123,9 +149,13 @@ def assess_risk_with_explainability(text: str, emotion_probs: dict[str, float] |
     explain_parts = []
     if emotion_analysis["top_contributors"]:
         top = emotion_analysis["top_contributors"][0]
-        explain_parts.append(f"Primary emotion signal: {top['emotion']} (P={top['probability']:.2f}, weight={top['weight']:.1f})")
+        explain_parts.append(
+            f"Primary emotion signal: {top['emotion']} (P={top['probability']:.2f}, weight={top['weight']:.1f})"
+        )
         if len(emotion_analysis["top_contributors"]) > 1:
-            explain_parts.append(f"Secondary: {emotion_analysis['top_contributors'][1]['emotion']} (P={emotion_analysis['top_contributors'][1]['probability']:.2f})")
+            explain_parts.append(
+                f"Secondary: {emotion_analysis['top_contributors'][1]['emotion']} (P={emotion_analysis['top_contributors'][1]['probability']:.2f})"
+            )
     if keyword_analysis["crisis_keywords"]:
         explain_parts.append(f"CRISIS keywords detected: {', '.join(keyword_analysis['crisis_keywords'])}")
     if keyword_analysis["high_risk_keywords"]:
@@ -159,60 +189,96 @@ def assess_risk_with_explainability(text: str, emotion_probs: dict[str, float] |
     }
 
 
-def assess_risk_with_history(text: str, emotion_probs: dict = None, sensor_data: dict = None, recent_texts: list = None) -> dict:
+def assess_risk_with_history(
+    text: str, emotion_probs: dict = None, sensor_data: dict = None, recent_texts: list = None
+) -> dict:
     """Enhanced risk assessment with temporal trend analysis."""
     base_result = assess_risk_with_explainability(text, emotion_probs)
-    
+
     if not recent_texts or len(recent_texts) < 3:
         return base_result
-    
-    negative_signals = ["suicide", "kill", "die", "hopeless", "worthless", "can't", 
-                        "panic", "desperate", "numb", "empty", "alone", "hurt",
-                        "sleep", "insomnia", "nightmare", "crying", "lost"]
-    positive_signals = ["better", "hopeful", "good", "calm", "grateful", "progress",
-                       "proud", "happy", "peaceful", "strong", "safe", "help"]
-    
+
+    negative_signals = [
+        "suicide",
+        "kill",
+        "die",
+        "hopeless",
+        "worthless",
+        "can't",
+        "panic",
+        "desperate",
+        "numb",
+        "empty",
+        "alone",
+        "hurt",
+        "sleep",
+        "insomnia",
+        "nightmare",
+        "crying",
+        "lost",
+    ]
+    positive_signals = [
+        "better",
+        "hopeful",
+        "good",
+        "calm",
+        "grateful",
+        "progress",
+        "proud",
+        "happy",
+        "peaceful",
+        "strong",
+        "safe",
+        "help",
+    ]
+
     recent = recent_texts[-3:]  # Last 3 entries
     older = recent_texts[:-3] if len(recent_texts) > 3 else []
-    
+
     def count_signals(texts, signals):
         total = 0
         for t in texts:
             t_lower = t.lower()
             total += sum(1 for s in signals if s in t_lower)
         return total
-    
+
     recent_neg = count_signals(recent, negative_signals)
     recent_pos = count_signals(recent, positive_signals)
     older_neg = count_signals(older, negative_signals) if older else 0
     older_pos = count_signals(older, positive_signals) if older else 0
-    
+
     trend_multiplier = 1.0
     trend_notes = []
-    
+
     if len(older) > 0:
         recent_neg_rate = recent_neg / max(len(recent), 1)
         older_neg_rate = older_neg / max(len(older), 1)
         if recent_neg_rate > older_neg_rate * 1.5 and recent_neg >= 3:
             trend_multiplier = 1.3
-            trend_notes.append(f"Negative signals increasing ({recent_neg_rate:.1f}/entry vs {older_neg_rate:.1f}/entry)")
-        
+            trend_notes.append(
+                f"Negative signals increasing ({recent_neg_rate:.1f}/entry vs {older_neg_rate:.1f}/entry)"
+            )
+
         recent_pos_rate = recent_pos / max(len(recent), 1)
         older_pos_rate = older_pos / max(len(older), 1)
         if recent_pos_rate < older_pos_rate * 0.5 and older_pos >= 2:
             trend_multiplier = max(trend_multiplier, 1.2)
-            trend_notes.append(f"Positive signals declining ({recent_pos_rate:.1f}/entry vs {older_pos_rate:.1f}/entry)")
-    
-    crisis_entries = sum(1 for t in recent if any(kw in t.lower() for kw in ["suicide", "kill myself", "end my life", "want to die"]))
+            trend_notes.append(
+                f"Positive signals declining ({recent_pos_rate:.1f}/entry vs {older_pos_rate:.1f}/entry)"
+            )
+
+    crisis_entries = sum(
+        1 for t in recent if any(kw in t.lower() for kw in ["suicide", "kill myself", "end my life", "want to die"])
+    )
     if crisis_entries >= 2:
         trend_multiplier = max(trend_multiplier, 1.5)
         trend_notes.append(f"Crisis language in {crisis_entries}/{len(recent)} recent entries")
-    
+
     original_score = base_result["risk_score"]
     new_score = min(10, round(original_score * trend_multiplier))
     base_result["risk_score"] = new_score
     base_result["triggered"] = new_score >= 8
-    
+
     if trend_notes:
         explanation = base_result.get("explainability", {})
         if isinstance(explanation, str):
@@ -227,5 +293,5 @@ def assess_risk_with_history(text: str, emotion_probs: dict = None, sensor_data:
             "adjusted_score": new_score,
         }
         base_result["explainability"] = explanation
-    
+
     return base_result

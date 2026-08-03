@@ -1,28 +1,56 @@
-import os
-import sys
 import logging
-import uuid
+import os
 import traceback
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi import APIRouter
 
+from app.api import (
+    activity,
+    agents,
+    ai_analyses,
+    auth,
+    bookings,
+    crisis,
+    discrepancy,
+    emotion_results,
+    emotions,
+    event_store_api,
+    export_data,
+    feature_flags_api,
+    followups,
+    journal,
+    ml_registry,
+    mood,
+    notifications,
+    patients,
+    psych_journal,
+    psychologists,
+    ring,
+    risk_assessments,
+    search_api,
+    sensor_readings,
+    sync_api,
+    timeline,
+    triage,
+    ws,
+)
+from app.core.api_gateway import APIGatewayMiddleware
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import Base, engine
+from app.core.health import health_ai, health_full, health_live, health_ready
 from app.core.rate_limiter import RateLimiterMiddleware
 from app.core.request_id import RequestIDMiddleware
-from app.core.api_gateway import APIGatewayMiddleware
 from app.core.security_headers import SecurityHeadersMiddleware
-from app.core.health import health_full, health_live, health_ready, health_ai
-from app.core.structured_errors import make_error, ErrorCode
+from app.core.structured_errors import ErrorCode, make_error
 from app.events import get_event_bus
 from app.events.subscribers import register_all_subscribers
-from app.api import auth, patients, psychologists, journal, mood, crisis, bookings, followups, ring, timeline, ws, discrepancy, agents, triage, activity, export_data, psych_journal, emotions, emotion_results, ai_analyses, sensor_readings, risk_assessments, notifications, ml_registry, event_store_api, feature_flags_api, search_api, sync_api
 
 logger = logging.getLogger("sentinel")
 
@@ -61,6 +89,7 @@ app.add_middleware(
 
 # ----- Global exception handlers (prevents stack trace leakage) -----
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_handler(request: Request, exc: RequestValidationError):
     rid = getattr(request.state, "request_id", "")
@@ -70,23 +99,33 @@ async def validation_handler(request: Request, exc: RequestValidationError):
         content=make_error(ErrorCode.VALIDATION_ERROR, "Invalid request parameters", rid),
     )
 
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     rid = getattr(request.state, "request_id", "")
-    code_map = {404: ErrorCode.NOT_FOUND, 401: ErrorCode.UNAUTHORIZED, 403: ErrorCode.FORBIDDEN, 429: ErrorCode.RATE_LIMITED}
+    code_map = {
+        404: ErrorCode.NOT_FOUND,
+        401: ErrorCode.UNAUTHORIZED,
+        403: ErrorCode.FORBIDDEN,
+        429: ErrorCode.RATE_LIMITED,
+    }
     return JSONResponse(
         status_code=exc.status_code,
         content=make_error(code_map.get(exc.status_code, ErrorCode.INTERNAL_ERROR), str(exc.detail), rid),
     )
 
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     rid = getattr(request.state, "request_id", str(uuid.uuid4()))
-    logger.error("Unhandled exception on %s %s request_id=%s: %s", request.method, request.url.path, rid, traceback.format_exc())
+    logger.error(
+        "Unhandled exception on %s %s request_id=%s: %s", request.method, request.url.path, rid, traceback.format_exc()
+    )
     return JSONResponse(
         status_code=500,
         content=make_error(ErrorCode.INTERNAL_ERROR, "Internal server error — the team has been notified.", rid),
     )
+
 
 # ── API v1 versioned router ──────────────────────────────────────
 v1_router = APIRouter(prefix="/api")

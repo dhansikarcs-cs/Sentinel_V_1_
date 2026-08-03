@@ -1,7 +1,10 @@
 """Centralized audit service with hash-chained tamper detection."""
+
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy.orm import Session
+
 from app.core.database import SessionLocal
 from app.models.audit import AuditLog
 
@@ -53,7 +56,7 @@ def log_audit(
             rich_details = json.dumps(payload) if payload else details
 
         entry = AuditLog(
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             user=user,
             role=role,
             action=action,

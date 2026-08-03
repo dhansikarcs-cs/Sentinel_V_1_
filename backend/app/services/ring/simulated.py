@@ -6,7 +6,7 @@ mirrors the original Streamlit `SimulatedRing` contract.
 """
 
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.services.ring.base import RingSource, SensorData
 
@@ -43,7 +43,7 @@ class SimulatedRing(RingSource):
         if not self._connected:
             self.connect()
         cfg = SCENARIOS[self.scenario]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         rng = _hour_seed(self.username or self.device_id, now.strftime("%Y-%m-%d-%H"))
 
         bpm = rng.randint(cfg["bpm_lo"], cfg["bpm_hi"])
@@ -53,7 +53,7 @@ class SimulatedRing(RingSource):
         hrv = rng.randint(cfg["hrv_lo"], 90)
 
         # Sleep only makes sense at night; daytime readings report 0.
-        if not (22 <= now.hour or now.hour <= 6):
+        if not (now.hour >= 22 or now.hour <= 6):
             sleep_hours = 0.0
 
         moods = ["calm", "neutral", "focused", "anxious"]

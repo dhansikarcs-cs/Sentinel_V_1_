@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text
+from sqlalchemy import Column, Integer, String
 
 from app.core.database import Base
 from app.core.encrypted_fields import EncryptedText

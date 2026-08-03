@@ -1,8 +1,7 @@
-import os
 import json
 import logging
+import os
 import threading
-from typing import Optional
 
 logger = logging.getLogger("sentinel.feature_flags")
 

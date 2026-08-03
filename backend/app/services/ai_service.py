@@ -4,10 +4,9 @@ import time
 import urllib.request
 from collections import deque
 from threading import Lock
-from typing import Optional
 
 from app.core.config import settings
-from app.ml.emotion_classifier import EmotionClassifier, GOEMOTIONS
+from app.ml.emotion_classifier import EmotionClassifier
 from app.ml.risk_engine import assess_risk_with_explainability
 
 _ollama_lock = Lock()
@@ -17,7 +16,7 @@ _ollama_last_call = 0.0
 _emotion_clf = EmotionClassifier()
 
 
-def _query_ollama(prompt: str, timeout: int = 20) -> Optional[str]:
+def _query_ollama(prompt: str, timeout: int = 20) -> str | None:
     global _ollama_last_call
     with _ollama_lock:
         now = time.time()
@@ -43,12 +42,14 @@ def _query_groq(prompt: str, timeout: int = 20) -> str:
     if not key or key == "gsk_your_key_here":
         return ""
     try:
-        data = json.dumps({
-            "model": "llama-3.1-8b-instant",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-            "max_tokens": 512,
-        }).encode()
+        data = json.dumps(
+            {
+                "model": "llama-3.1-8b-instant",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 512,
+            }
+        ).encode()
         req = urllib.request.Request(
             "https://api.groq.com/openai/v1/chat/completions",
             data=data,
@@ -82,8 +83,8 @@ def _is_raw_echo(output: str, original: str) -> bool:
         return True
     if orig_clean in cleaned:
         return True
-    out_words = set(re.findall(r'\w+', cleaned))
-    orig_words = set(re.findall(r'\w+', orig_clean))
+    out_words = set(re.findall(r"\w+", cleaned))
+    orig_words = set(re.findall(r"\w+", orig_clean))
     if not orig_words:
         return False
     overlap = len(out_words & orig_words) / len(orig_words)
@@ -130,7 +131,7 @@ def summarize_journal(text: str, mode: str = "patient") -> dict:
             "and write a brief clinical summary (2-4 sentences)."
             f"{emotion_hint}"
             " Use clinical tone, third person, past tense. Do not quote verbatim."
-            " Return valid JSON: {\"summary\": \"...\"}."
+            ' Return valid JSON: {"summary": "..."}.'
             f"\n\nJournal Entry:\n{text}"
         )
     else:
@@ -145,7 +146,7 @@ def summarize_journal(text: str, mode: str = "patient") -> dict:
             "No advice whatsoever — "
             "no suggestions, no 'try this', no 'consider that', no 'remember to', "
             "no coping techniques, no deep breaths. Zero prescription. Just be there for them."
-            " Return valid JSON: {\"summary\": \"...\"}."
+            ' Return valid JSON: {"summary": "..."}.'
             f"\n\nJournal Entry:\n{text}"
         )
 
@@ -155,7 +156,7 @@ def summarize_journal(text: str, mode: str = "patient") -> dict:
         raw = _query_groq(prompt)
         source = "groq"
     if raw and not _is_raw_echo(raw, text):
-        match = re.search(r'\{[^{}]+\}', raw, re.DOTALL)
+        match = re.search(r"\{[^{}]+\}", raw, re.DOTALL)
         if match:
             try:
                 result = json.loads(match.group())

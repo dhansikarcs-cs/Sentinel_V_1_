@@ -1,17 +1,19 @@
-from typing import Generic, TypeVar, Type, Optional, Any
+from typing import Any, Generic, TypeVar
+
 from sqlalchemy.orm import Session
+
 from app.core.database import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 
 
 class BaseRepository(Generic[ModelType]):
-    def __init__(self, model: Type[ModelType], db: Session):
+    def __init__(self, model: type[ModelType], db: Session):
         self.model = model
         self.db = db
 
-    def get(self, id: Any) -> Optional[ModelType]:
-        return self.db.query(self.model).filter(self.model.id == id).first()
+    def get(self, record_id: Any) -> ModelType | None:
+        return self.db.query(self.model).filter(self.model.id == record_id).first()
 
     def get_all(self) -> list[ModelType]:
         return self.db.query(self.model).all()

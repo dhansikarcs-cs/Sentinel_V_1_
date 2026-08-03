@@ -1,6 +1,7 @@
-from typing import Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy.orm import Session
+
 from app.models.user import User
 from app.repositories.base import BaseRepository
 
@@ -9,10 +10,10 @@ class PatientRepository(BaseRepository[User]):
     def __init__(self, db: Session):
         super().__init__(User, db)
 
-    def get_by_username(self, username: str) -> Optional[User]:
+    def get_by_username(self, username: str) -> User | None:
         return self.db.query(User).filter(User.username == username, User.deleted_at.is_(None)).first()
 
-    def get_by_username_raw(self, username: str) -> Optional[User]:
+    def get_by_username_raw(self, username: str) -> User | None:
         return self.db.query(User).filter(User.username == username).first()
 
     def get_assigned_patients(self, psych_username: str) -> list[User]:
@@ -28,14 +29,14 @@ class PatientRepository(BaseRepository[User]):
             query = query.filter(User.clinic_code == clinic)
         return query.all()
 
-    def get_patient_summary_data(self, username: str) -> Optional[User]:
+    def get_patient_summary_data(self, username: str) -> User | None:
         return self.get_by_username(username)
 
     def soft_delete(self, username: str, deleted_by: str = "") -> bool:
         user = self.get_by_username(username)
         if not user or user.deleted_at:
             return False
-        user.deleted_at = datetime.now(timezone.utc).isoformat()
+        user.deleted_at = datetime.now(UTC).isoformat()
         user.deleted_by = deleted_by
         self.db.commit()
         return True

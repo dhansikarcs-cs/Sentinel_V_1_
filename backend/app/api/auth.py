@@ -1,18 +1,27 @@
-from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
+from datetime import UTC, datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
+from app.core.api_response import ok
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_refresh_token, initialize_encryption, is_encryption_ready
-from app.core.token_blacklist import token_blacklist
-from app.core.password_validator import PasswordPolicy
-from app.core.login_rate_limiter import login_rate_limiter
 from app.core.device_tracker import parse_user_agent
-from app.core.api_response import ok, fail
-from app.schemas.auth import LoginRequest, RegisterRequest, UnlockRequest, TokenResponse, RefreshRequest
+from app.core.login_rate_limiter import login_rate_limiter
+from app.core.password_validator import PasswordPolicy
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+    hash_password,
+    initialize_encryption,
+    is_encryption_ready,
+    verify_password,
+)
+from app.core.token_blacklist import token_blacklist
+from app.events import get_event_bus
 from app.models.user import User
 from app.repositories import PatientRepository
-from app.events import get_event_bus
+from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse, UnlockRequest
 from app.services.audit import log_audit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -29,9 +38,16 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
 
     is_locked, lockout_remaining = login_rate_limiter.is_locked(req.username)
     if is_locked:
-        log_audit("login_rate_limited", user=req.username, severity="WARNING", status="failure",
-                  details=f"Rate limited from {client_ip}, {lockout_remaining}s remaining",
-                  device=device_info.device, browser=device_info.browser, db=db)
+        log_audit(
+            "login_rate_limited",
+            user=req.username,
+            severity="WARNING",
+            status="failure",
+            details=f"Rate limited from {client_ip}, {lockout_remaining}s remaining",
+            device=device_info.device,
+            browser=device_info.browser,
+            db=db,
+        )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Too many login attempts. Try again in {lockout_remaining} seconds.",
@@ -41,20 +57,37 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
     user = repo.get_by_username(req.username)
     if not user:
         login_rate_limiter.record_attempt(req.username, success=False)
-        log_audit("login_failed", user=req.username, severity="WARNING", status="failure",
-                  details=f"User not found from {client_ip}",
-                  device=device_info.device, browser=device_info.browser, db=db)
+        log_audit(
+            "login_failed",
+            user=req.username,
+            severity="WARNING",
+            status="failure",
+            details=f"User not found from {client_ip}",
+            device=device_info.device,
+            browser=device_info.browser,
+            db=db,
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     if user.locked_until:
         try:
             lockout_end = datetime.fromisoformat(user.locked_until)
-            if datetime.now(timezone.utc) < lockout_end:
-                remaining = int((lockout_end - datetime.now(timezone.utc)).total_seconds() / 60)
-                log_audit("login_locked", user=req.username, severity="WARNING", status="failure",
-                          details=f"Account locked, retry in {remaining}m",
-                          device=device_info.device, browser=device_info.browser, db=db)
-                raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=f"Account locked. Try again in {remaining} minutes.")
+            if datetime.now(UTC) < lockout_end:
+                remaining = int((lockout_end - datetime.now(UTC)).total_seconds() / 60)
+                log_audit(
+                    "login_locked",
+                    user=req.username,
+                    severity="WARNING",
+                    status="failure",
+                    details=f"Account locked, retry in {remaining}m",
+                    device=device_info.device,
+                    browser=device_info.browser,
+                    db=db,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Account locked. Try again in {remaining} minutes.",
+                )
         except ValueError:
             pass
 
@@ -62,14 +95,28 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
         login_rate_limiter.record_attempt(req.username, success=False)
         user.failed_attempts = (user.failed_attempts or 0) + 1
         if user.failed_attempts >= MAX_FAILED_ATTEMPTS:
-            user.locked_until = (datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_MINUTES)).isoformat()
-            log_audit("account_locked", user=req.username, severity="WARNING", status="failure",
-                      details=f"Locked after {MAX_FAILED_ATTEMPTS} failed attempts from {client_ip}",
-                      device=device_info.device, browser=device_info.browser, db=db)
+            user.locked_until = (datetime.now(UTC) + timedelta(minutes=LOCKOUT_MINUTES)).isoformat()
+            log_audit(
+                "account_locked",
+                user=req.username,
+                severity="WARNING",
+                status="failure",
+                details=f"Locked after {MAX_FAILED_ATTEMPTS} failed attempts from {client_ip}",
+                device=device_info.device,
+                browser=device_info.browser,
+                db=db,
+            )
         else:
-            log_audit("login", user=req.username, severity="WARNING", status="failure",
-                      details=f"Attempt {user.failed_attempts}/{MAX_FAILED_ATTEMPTS} from {client_ip}",
-                      device=device_info.device, browser=device_info.browser, db=db)
+            log_audit(
+                "login",
+                user=req.username,
+                severity="WARNING",
+                status="failure",
+                details=f"Attempt {user.failed_attempts}/{MAX_FAILED_ATTEMPTS} from {client_ip}",
+                device=device_info.device,
+                browser=device_info.browser,
+                db=db,
+            )
         db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
@@ -79,12 +126,14 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
     db.commit()
 
     get_event_bus().emit("auth:login_success", username=user.username, role=user.role)
-    access_token = create_access_token({
-        "sub": user.username,
-        "role": user.role,
-        "user_id": user.username,
-        "name": user.name,
-    })
+    access_token = create_access_token(
+        {
+            "sub": user.username,
+            "role": user.role,
+            "user_id": user.username,
+            "name": user.name,
+        }
+    )
     refresh_token = create_refresh_token(user.username)
 
     response.set_cookie(
@@ -105,9 +154,16 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
     )
 
     role_label = "Patient" if user.role == "patient" else "Psychologist"
-    log_audit("login_success", user=user.username, severity="INFO", status="success",
-              details=f"Login from {device_info.device} / {device_info.browser}",
-              device=device_info.device, browser=device_info.browser, db=db)
+    log_audit(
+        "login_success",
+        user=user.username,
+        severity="INFO",
+        status="success",
+        details=f"Login from {device_info.device} / {device_info.browser}",
+        device=device_info.device,
+        browser=device_info.browser,
+        db=db,
+    )
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, role=role_label, name=user.name)
 
 
@@ -128,12 +184,14 @@ def refresh_token(req: RefreshRequest, response: Response, db: Session = Depends
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
-    new_access = create_access_token({
-        "sub": user.username,
-        "role": user.role,
-        "user_id": user.username,
-        "name": user.name,
-    })
+    new_access = create_access_token(
+        {
+            "sub": user.username,
+            "role": user.role,
+            "user_id": user.username,
+            "name": user.name,
+        }
+    )
 
     role_label = "Patient" if user.role == "patient" else "Psychologist"
     response.set_cookie(
@@ -156,11 +214,19 @@ def register(req: RegisterRequest, request: Request, db: Session = Depends(get_d
     repo = PatientRepository(db)
     existing = repo.get_by_username(req.username)
     if existing:
-        log_audit("registration_failed", user=req.username, severity="WARNING", status="failure",
-                  details="Username taken",
-                  device=device_info.device, browser=device_info.browser, db=db)
+        log_audit(
+            "registration_failed",
+            user=req.username,
+            severity="WARNING",
+            status="failure",
+            details="Username taken",
+            device=device_info.device,
+            browser=device_info.browser,
+            db=db,
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username taken")
     import os as _os
+
     user = User(
         username=req.username,
         password_hash=hash_password(req.password),
@@ -171,12 +237,19 @@ def register(req: RegisterRequest, request: Request, db: Session = Depends(get_d
         clinic_code=req.clinic_code,
         onboarding_step=0,
         encryption_salt=_os.urandom(16).hex(),
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
     )
     repo.add(user)
     get_event_bus().emit("auth:registered", username=req.username, role=req.role, clinic=req.clinic_code)
-    log_audit("registration_success", user=req.username, severity="INFO", status="success",
-              device=device_info.device, browser=device_info.browser, db=db)
+    log_audit(
+        "registration_success",
+        user=req.username,
+        severity="INFO",
+        status="success",
+        device=device_info.device,
+        browser=device_info.browser,
+        db=db,
+    )
     return ok(message="Registered")
 
 
@@ -188,7 +261,7 @@ def unlock(req: UnlockRequest):
         return ok(data={"ready": True})
     except Exception as e:
         log_audit("encryption_unlock_failed", severity="ERROR", status="failure", details=str(e))
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unlock failed")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unlock failed") from None
 
 
 @router.post("/logout")
@@ -196,9 +269,11 @@ def logout(request: Request, response: Response):
     token = request.cookies.get("access_token")
     if token:
         from app.core.security import decode_access_token as _decode
+
         payload = _decode(token)
         if payload and payload.get("jti"):
             import time as _time
+
             token_blacklist.revoke(payload["jti"], _time.time() + (payload.get("exp", 0) - _time.time()))
     response.delete_cookie("access_token", path="/")
     response.delete_cookie("refresh_token", path="/auth/refresh")

@@ -1,12 +1,14 @@
 import json
 from collections import Counter
+from datetime import UTC
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.models.user import User
 from app.models.journal import JournalEntry
+from app.models.user import User
 
 router = APIRouter(prefix="/emotions", tags=["emotions"])
 
@@ -18,8 +20,9 @@ def get_emotion_timeline(
     user: User = Depends(require_role("psychologist")),
     db: Session = Depends(get_db),
 ):
-    from datetime import datetime, timedelta, timezone
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    from datetime import datetime, timedelta
+
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
     entries = (
         db.query(JournalEntry)
         .filter(
@@ -78,8 +81,9 @@ def get_emotion_summary(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    from datetime import datetime, timedelta, timezone
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    from datetime import datetime, timedelta
+
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
     entries = (
         db.query(JournalEntry)
         .filter(
@@ -103,5 +107,7 @@ def get_emotion_summary(
         "patient_username": username,
         "days": days,
         "total_entries": len(entries),
-        "top_emotions": [{"emotion": e, "count": c, "percentage": round(c / total * 100, 1) if total else 0} for e, c in dominant],
+        "top_emotions": [
+            {"emotion": e, "count": c, "percentage": round(c / total * 100, 1) if total else 0} for e, c in dominant
+        ],
     }

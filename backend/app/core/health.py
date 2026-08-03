@@ -1,6 +1,8 @@
-import time
 import logging
+import time
+
 from sqlalchemy import text
+
 from app.core.database import SessionLocal
 
 logger = logging.getLogger("sentinel.health")
@@ -22,6 +24,7 @@ def check_database() -> dict:
 
 def check_ai() -> dict:
     import os
+
     try:
         model_path = os.path.join(os.path.dirname(__file__), "..", "ml", "emotion_model.pkl")
         exists = os.path.exists(model_path)
@@ -32,6 +35,7 @@ def check_ai() -> dict:
 
 def health_ai() -> dict:
     import os
+
     import requests
 
     # Check Ollama
@@ -51,6 +55,7 @@ def health_ai() -> dict:
     classifier_available = False
     try:
         from app.ml.emotion_classifier import classifier
+
         classifier_available = classifier is not None
     except Exception:
         pass

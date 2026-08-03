@@ -1,15 +1,15 @@
 """WS broadcast for crisis/discrepancy alerts to dashboard clients."""
 
 import json
-from typing import Set
+
 from fastapi import WebSocket
 
 
 # TODO: replace with Redis pub/sub if we ever go multi-process behind nginx
 class ConnectionManager:
     def __init__(self):
-        self._psych_clients: Set[WebSocket] = set()
-        self._admin_clients: Set[WebSocket] = set()
+        self._psych_clients: set[WebSocket] = set()
+        self._admin_clients: set[WebSocket] = set()
 
     async def connect_psych(self, ws: WebSocket):
         await ws.accept()

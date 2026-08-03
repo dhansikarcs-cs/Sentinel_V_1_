@@ -21,6 +21,7 @@ def require_owner_or_role(*roles: str):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this resource",
         )
+
     return _check
 
 
@@ -42,6 +43,7 @@ def verify_patient_owns_or_psychologist(
 def log_idor_attempt(attacker_username: str, target_username: str):
     try:
         from app.services.audit import log_audit
+
         log_audit(
             "idor_blocked",
             user=attacker_username,

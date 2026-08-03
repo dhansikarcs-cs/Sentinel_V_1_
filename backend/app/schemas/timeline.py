@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
 class TimelineEvent(BaseModel):
@@ -9,10 +8,10 @@ class TimelineEvent(BaseModel):
 
 
 class ChangeMetrics(BaseModel):
-    current_mood_avg: Optional[float] = None
-    previous_mood_avg: Optional[float] = None
+    current_mood_avg: float | None = None
+    previous_mood_avg: float | None = None
     mood_trend: str = "insufficient_data"
-    mood_change_pct: Optional[float] = None
+    mood_change_pct: float | None = None
     journal_count_7: int = 0
     journal_count_14: int = 0
     engagement_trend: str = "none"

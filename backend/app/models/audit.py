@@ -1,6 +1,7 @@
-import hashlib, json
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, BigInteger
+import hashlib
+
+from sqlalchemy import Column, Integer, String, Text
+
 from app.core.database import Base
 
 

@@ -1,20 +1,24 @@
+import contextlib
 import json
-import random
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
+
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_role
-from app.models.user import User
+from app.core.dependencies import require_role
+from app.models.booking import Booking, PsychAvailability
+from app.models.followup import FollowupTask
 from app.models.journal import JournalEntry
 from app.models.mood import MoodLog
-from app.models.followup import FollowupTask
 from app.models.ring import RingSensorLog
-from app.models.booking import Booking, PsychAvailability
-from app.services.ai_service import summarize_journal, assess_crisis_risk, classify_emotions, synthesize_clinical_notes, _query_ai
+from app.models.user import User
+from app.services.ai_service import (
+    _query_ai,
+    synthesize_clinical_notes,
+)
 from app.services.audit import log_audit
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -46,15 +50,34 @@ class PreSessionBriefRequest(BaseModel):
 
 
 @router.post("/triage-summary")
-def triage_summary(req: TriageSummaryRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def triage_summary(
+    req: TriageSummaryRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     cache_key = f"triage:{req.patient_username}"
     cached = _triage_cache.get(cache_key)
     if cached and (time.time() - cached[0]) < TRIAGE_CACHE_TTL:
         return cached[1]
 
-    journals = db.query(JournalEntry).filter(JournalEntry.patient_username == req.patient_username).order_by(JournalEntry.timestamp.desc()).limit(5).all()
-    moods = db.query(MoodLog).filter(MoodLog.patient_username == req.patient_username).order_by(MoodLog.timestamp.desc()).limit(7).all()
-    ring = db.query(RingSensorLog).filter(RingSensorLog.patient_username == req.patient_username).order_by(RingSensorLog.logged_at.desc()).first()
+    journals = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.patient_username == req.patient_username)
+        .order_by(JournalEntry.timestamp.desc())
+        .limit(5)
+        .all()
+    )
+    moods = (
+        db.query(MoodLog)
+        .filter(MoodLog.patient_username == req.patient_username)
+        .order_by(MoodLog.timestamp.desc())
+        .limit(7)
+        .all()
+    )
+    ring = (
+        db.query(RingSensorLog)
+        .filter(RingSensorLog.patient_username == req.patient_username)
+        .order_by(RingSensorLog.logged_at.desc())
+        .first()
+    )
 
     recent_text = journals[0].raw_content[:500] if journals else "No recent journal entries"
     recent_mood = moods[0].label if moods else "unknown"
@@ -82,7 +105,16 @@ Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"),
         reasons = ["AI unavailable, used rule fallback"]
         priority = "low"
 
-    log_audit("agent_triage_summary", user=user.username, role=user.role, severity="INFO", status="success", resource=req.patient_username, details=f"score={score}, priority={priority}", db=db)
+    log_audit(
+        "agent_triage_summary",
+        user=user.username,
+        role=user.role,
+        severity="INFO",
+        status="success",
+        resource=req.patient_username,
+        details=f"score={score}, priority={priority}",
+        db=db,
+    )
 
     result = {
         "patient": req.patient_username,
@@ -99,7 +131,9 @@ Return ONLY valid JSON with keys: score (int), priority ("low"/"medium"/"high"),
 
 
 @router.post("/suggest-slots")
-def suggest_slots(req: SlotSuggestionRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def suggest_slots(
+    req: SlotSuggestionRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     now = datetime.now()
     available_dates = db.query(PsychAvailability).filter(PsychAvailability.psychologist_username == user.username).all()
 
@@ -124,7 +158,11 @@ def suggest_slots(req: SlotSuggestionRequest, user: User = Depends(require_role(
     future.sort(key=lambda s: (s["date"], s["time"]))
     selected = future[:3]
 
-    bookings = db.query(Booking).filter(Booking.patient_username == req.patient_username, Booking.status.in_(["Pending", "Proposed"])).count()
+    bookings = (
+        db.query(Booking)
+        .filter(Booking.patient_username == req.patient_username, Booking.status.in_(["Pending", "Proposed"]))
+        .count()
+    )
 
     prompt = f"""Patient "{req.patient_username}" has {bookings} pending booking(s).
 Proposed slots: {json.dumps([s["label"] for s in selected])}.
@@ -133,8 +171,14 @@ Give a priority assessment ("low"/"medium"/"high") and urgency score (1-10).
 Return ONLY valid JSON with keys: priority (str), urgency_score (int), reasoning (str)."""
 
     ai = _query_ai(prompt)
-    try: data = json.loads(ai)
-    except Exception: data = {"priority": "medium" if bookings > 0 else "low", "urgency_score": min(bookings * 2, 10), "reasoning": f"Rule-based: {bookings} pending."}
+    try:
+        data = json.loads(ai)
+    except Exception:
+        data = {
+            "priority": "medium" if bookings > 0 else "low",
+            "urgency_score": min(bookings * 2, 10),
+            "reasoning": f"Rule-based: {bookings} pending.",
+        }
 
     return {
         "patient": req.patient_username,
@@ -147,9 +191,21 @@ Return ONLY valid JSON with keys: priority (str), urgency_score (int), reasoning
 
 
 @router.post("/draft-followup")
-def draft_followup(req: DraftFollowupRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    journals = db.query(JournalEntry).filter(JournalEntry.patient_username == req.patient_username).order_by(JournalEntry.timestamp.desc()).limit(3).all()
-    existing = db.query(FollowupTask).filter(FollowupTask.patient_username == req.patient_username, FollowupTask.status == "pending").count()
+def draft_followup(
+    req: DraftFollowupRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
+    journals = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.patient_username == req.patient_username)
+        .order_by(JournalEntry.timestamp.desc())
+        .limit(3)
+        .all()
+    )
+    existing = (
+        db.query(FollowupTask)
+        .filter(FollowupTask.patient_username == req.patient_username, FollowupTask.status == "pending")
+        .count()
+    )
 
     recent_text = journals[0].raw_content[:500] if journals else "No journal entries yet"
 
@@ -164,7 +220,8 @@ Return ONLY valid JSON with keys:
 - reasoning: str"""
 
     ai = _query_ai(prompt)
-    try: data = json.loads(ai)
+    try:
+        data = json.loads(ai)
     except Exception:
         data = {
             "tasks": [{"title": "Daily Reflection", "description": "Write three things you're grateful for today."}],
@@ -184,7 +241,9 @@ Return ONLY valid JSON with keys:
 
 
 @router.post("/journal-to-note")
-def journal_to_note(req: JournalToNoteRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
+def journal_to_note(
+    req: JournalToNoteRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
     combined = req.journal_text + ("\n\nClinical context: " + req.clinical_summary if req.clinical_summary else "")
     note_text = synthesize_clinical_notes(combined)
 
@@ -213,11 +272,36 @@ def journal_to_note(req: JournalToNoteRequest, user: User = Depends(require_role
 
 
 @router.post("/pre-session-brief")
-def pre_session_brief(req: PreSessionBriefRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    journals = db.query(JournalEntry).filter(JournalEntry.patient_username == req.patient_username).order_by(JournalEntry.timestamp.desc()).limit(10).all()
-    moods = db.query(MoodLog).filter(MoodLog.patient_username == req.patient_username).order_by(MoodLog.timestamp.desc()).limit(14).all()
-    followups = db.query(FollowupTask).filter(FollowupTask.patient_username == req.patient_username).order_by(FollowupTask.assigned_at.desc()).all()
-    ring_data = db.query(RingSensorLog).filter(RingSensorLog.patient_username == req.patient_username).order_by(RingSensorLog.logged_at.desc()).limit(7).all()
+def pre_session_brief(
+    req: PreSessionBriefRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
+    journals = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.patient_username == req.patient_username)
+        .order_by(JournalEntry.timestamp.desc())
+        .limit(10)
+        .all()
+    )
+    moods = (
+        db.query(MoodLog)
+        .filter(MoodLog.patient_username == req.patient_username)
+        .order_by(MoodLog.timestamp.desc())
+        .limit(14)
+        .all()
+    )
+    followups = (
+        db.query(FollowupTask)
+        .filter(FollowupTask.patient_username == req.patient_username)
+        .order_by(FollowupTask.assigned_at.desc())
+        .all()
+    )
+    ring_data = (
+        db.query(RingSensorLog)
+        .filter(RingSensorLog.patient_username == req.patient_username)
+        .order_by(RingSensorLog.logged_at.desc())
+        .limit(7)
+        .all()
+    )
 
     mood_trend = "stable"
     if len(moods) >= 2:
@@ -249,14 +333,20 @@ Return ONLY valid JSON with: concerns (list of str), summary (str), suggested_fo
 Keep summary to 2-3 sentences suitable for a psychologist's pre-session review."""
 
     ai = _query_ai(prompt)
-    try: data = json.loads(ai)
-    except Exception: data = {}
+    try:
+        data = json.loads(ai)
+    except Exception:
+        data = {}
 
     concerns = data.get("concerns", [])
-    if mood_trend == "declining": concerns.append("Mood declining over past 2 weeks")
-    if pending_followups > 3: concerns.append(f"{pending_followups} pending follow-ups")
-    if avg_bpm > 90: concerns.append(f"Elevated heart rate ({avg_bpm} BPM)")
-    if total_journals < 3: concerns.append("Low journal engagement")
+    if mood_trend == "declining":
+        concerns.append("Mood declining over past 2 weeks")
+    if pending_followups > 3:
+        concerns.append(f"{pending_followups} pending follow-ups")
+    if avg_bpm > 90:
+        concerns.append(f"Elevated heart rate ({avg_bpm} BPM)")
+    if total_journals < 3:
+        concerns.append("Low journal engagement")
 
     return {
         "patient": req.patient_username,
@@ -276,18 +366,30 @@ def compliance_radar(user: User = Depends(require_role("psychologist")), db: Ses
     patients = db.query(User).filter(User.assigned_psych == user.username, User.role == "patient").all()
     results = []
     for p in patients:
-        journals_7d = db.query(JournalEntry).filter(
-            JournalEntry.patient_username == p.username,
-            JournalEntry.timestamp >= (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-        ).count()
-        moods_7d = db.query(MoodLog).filter(
-            MoodLog.patient_username == p.username,
-            MoodLog.timestamp >= (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-        ).count()
-        ring_7d = db.query(RingSensorLog).filter(
-            RingSensorLog.patient_username == p.username,
-            RingSensorLog.logged_at >= (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-        ).count()
+        journals_7d = (
+            db.query(JournalEntry)
+            .filter(
+                JournalEntry.patient_username == p.username,
+                JournalEntry.timestamp >= (datetime.now(UTC) - timedelta(days=7)).isoformat(),
+            )
+            .count()
+        )
+        moods_7d = (
+            db.query(MoodLog)
+            .filter(
+                MoodLog.patient_username == p.username,
+                MoodLog.timestamp >= (datetime.now(UTC) - timedelta(days=7)).isoformat(),
+            )
+            .count()
+        )
+        ring_7d = (
+            db.query(RingSensorLog)
+            .filter(
+                RingSensorLog.patient_username == p.username,
+                RingSensorLog.logged_at >= (datetime.now(UTC) - timedelta(days=7)).isoformat(),
+            )
+            .count()
+        )
 
         engagement = "high"
         if journals_7d == 0 and moods_7d == 0:
@@ -295,61 +397,76 @@ def compliance_radar(user: User = Depends(require_role("psychologist")), db: Ses
         elif journals_7d < 2 or moods_7d < 2:
             engagement = "low"
 
-        results.append({
-            "patient": p.username,
-            "journals_7d": journals_7d,
-            "moods_7d": moods_7d,
-            "ring_readings_7d": ring_7d,
-            "engagement": engagement,
-            "flagged": engagement in ("low", "none"),
-        })
+        results.append(
+            {
+                "patient": p.username,
+                "journals_7d": journals_7d,
+                "moods_7d": moods_7d,
+                "ring_readings_7d": ring_7d,
+                "engagement": engagement,
+                "flagged": engagement in ("low", "none"),
+            }
+        )
     return {"patients": sorted(results, key=lambda r: r["engagement"] != "none")}
 
 
 @router.post("/silent-period-watch")
 def silent_period_watch(user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
     patients = db.query(User).filter(User.assigned_psych == user.username, User.role == "patient").all()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     alerts = []
     for p in patients:
-        last_journal = db.query(JournalEntry).filter(JournalEntry.patient_username == p.username).order_by(JournalEntry.timestamp.desc()).first()
-        last_mood = db.query(MoodLog).filter(MoodLog.patient_username == p.username).order_by(MoodLog.timestamp.desc()).first()
+        last_journal = (
+            db.query(JournalEntry)
+            .filter(JournalEntry.patient_username == p.username)
+            .order_by(JournalEntry.timestamp.desc())
+            .first()
+        )
+        last_mood = (
+            db.query(MoodLog).filter(MoodLog.patient_username == p.username).order_by(MoodLog.timestamp.desc()).first()
+        )
 
         last_activity = None
         if last_journal:
-            try:
+            with contextlib.suppress(Exception):
                 last_activity = datetime.fromisoformat(last_journal.timestamp)
-            except Exception: pass
         if last_mood:
             try:
                 mood_ts = datetime.fromisoformat(last_mood.timestamp)
                 if not last_activity or mood_ts > last_activity:
                     last_activity = mood_ts
-            except Exception: pass
+            except Exception:
+                pass
 
         if last_activity:
             hours_since = (now - last_activity).total_seconds() / 3600
             if hours_since > 72:
-                alerts.append({
-                    "patient": p.username,
-                    "hours_since": round(hours_since),
-                    "severity": "high",
-                    "message": f"No activity for {round(hours_since)} hours",
-                })
+                alerts.append(
+                    {
+                        "patient": p.username,
+                        "hours_since": round(hours_since),
+                        "severity": "high",
+                        "message": f"No activity for {round(hours_since)} hours",
+                    }
+                )
             elif hours_since > 48:
-                alerts.append({
-                    "patient": p.username,
-                    "hours_since": round(hours_since),
-                    "severity": "medium",
-                    "message": f"No activity for {round(hours_since)} hours",
-                })
+                alerts.append(
+                    {
+                        "patient": p.username,
+                        "hours_since": round(hours_since),
+                        "severity": "medium",
+                        "message": f"No activity for {round(hours_since)} hours",
+                    }
+                )
         else:
-            alerts.append({
-                "patient": p.username,
-                "hours_since": 0,
-                "severity": "info",
-                "message": "No activity recorded yet",
-            })
+            alerts.append(
+                {
+                    "patient": p.username,
+                    "hours_since": 0,
+                    "severity": "info",
+                    "message": "No activity recorded yet",
+                }
+            )
     return {"alerts": sorted(alerts, key=lambda a: a["hours_since"], reverse=True)}
 
 
@@ -358,8 +475,20 @@ def relapse_indicators(user: User = Depends(require_role("psychologist")), db: S
     patients = db.query(User).filter(User.assigned_psych == user.username, User.role == "patient").all()
     results = []
     for p in patients:
-        journals = db.query(JournalEntry).filter(JournalEntry.patient_username == p.username).order_by(JournalEntry.timestamp.desc()).limit(10).all()
-        moods = db.query(MoodLog).filter(MoodLog.patient_username == p.username).order_by(MoodLog.timestamp.desc()).limit(14).all()
+        journals = (
+            db.query(JournalEntry)
+            .filter(JournalEntry.patient_username == p.username)
+            .order_by(JournalEntry.timestamp.desc())
+            .limit(10)
+            .all()
+        )
+        moods = (
+            db.query(MoodLog)
+            .filter(MoodLog.patient_username == p.username)
+            .order_by(MoodLog.timestamp.desc())
+            .limit(14)
+            .all()
+        )
 
         indicators = []
         if journals:
@@ -380,12 +509,14 @@ def relapse_indicators(user: User = Depends(require_role("psychologist")), db: S
 
         risk = "high" if len(indicators) >= 2 else "moderate" if len(indicators) >= 1 else "low"
 
-        results.append({
-            "patient": p.username,
-            "indicators": indicators,
-            "indicator_count": len(indicators),
-            "risk": risk,
-        })
+        results.append(
+            {
+                "patient": p.username,
+                "indicators": indicators,
+                "indicator_count": len(indicators),
+                "risk": risk,
+            }
+        )
     return {"patients": sorted(results, key=lambda r: r["indicator_count"], reverse=True)}
 
 
@@ -398,18 +529,21 @@ def cross_patient_patterns(user: User = Depends(require_role("psychologist")), d
     high_stress_count = 0
     low_engagement_count = 0
 
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
 
     for p in patients:
-        j_today = db.query(JournalEntry).filter(
-            JournalEntry.patient_username == p.username,
-            JournalEntry.timestamp.like(f"{today}%")
-        ).count()
-        m_today = db.query(MoodLog).filter(
-            MoodLog.patient_username == p.username,
-            MoodLog.date == today
-        ).count()
-        ring_latest = db.query(RingSensorLog).filter(RingSensorLog.patient_username == p.username).order_by(RingSensorLog.logged_at.desc()).first()
+        j_today = (
+            db.query(JournalEntry)
+            .filter(JournalEntry.patient_username == p.username, JournalEntry.timestamp.like(f"{today}%"))
+            .count()
+        )
+        m_today = db.query(MoodLog).filter(MoodLog.patient_username == p.username, MoodLog.date == today).count()
+        ring_latest = (
+            db.query(RingSensorLog)
+            .filter(RingSensorLog.patient_username == p.username)
+            .order_by(RingSensorLog.logged_at.desc())
+            .first()
+        )
 
         if j_today > 0:
             active_journal_today += 1
@@ -432,7 +566,12 @@ def cross_patient_patterns(user: User = Depends(require_role("psychologist")), d
 
 @router.post("/ring-vitals-risk")
 def ring_vitals_risk(user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    ring = db.query(RingSensorLog).filter(RingSensorLog.patient_username == user.username).order_by(RingSensorLog.logged_at.desc()).first()
+    ring = (
+        db.query(RingSensorLog)
+        .filter(RingSensorLog.patient_username == user.username)
+        .order_by(RingSensorLog.logged_at.desc())
+        .first()
+    )
     if not ring:
         return {"risk": "low", "flags": [], "bpm": 72, "stress": 35, "sleep": 7, "spo2": 98}
 
@@ -450,14 +589,20 @@ SpO2: {spo2}%
 Return ONLY valid JSON with: risk ("low"/"medium"/"high"), flags (list of str), recommendation (str)."""
 
     ai = _query_ai(prompt)
-    try: data = json.loads(ai)
-    except Exception: data = {}
+    try:
+        data = json.loads(ai)
+    except Exception:
+        data = {}
 
     flags = data.get("flags", [])
-    if bpm > 100: flags.append("elevated heart rate")
-    if stress > 70: flags.append("high stress")
-    if sleep < 5: flags.append("low sleep")
-    if spo2 < 92: flags.append("low oxygen saturation")
+    if bpm > 100:
+        flags.append("elevated heart rate")
+    if stress > 70:
+        flags.append("high stress")
+    if sleep < 5:
+        flags.append("low sleep")
+    if spo2 < 92:
+        flags.append("low oxygen saturation")
     flags = list(set(flags))
 
     risk = data.get("risk", "high" if len(flags) >= 2 else "medium" if len(flags) >= 1 else "low")
@@ -480,9 +625,22 @@ class CrisisDebriefRequest(BaseModel):
 
 
 @router.post("/crisis-debrief")
-def crisis_debrief(req: CrisisDebriefRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    journals = db.query(JournalEntry).filter(JournalEntry.patient_username == req.patient_username).order_by(JournalEntry.timestamp.desc()).limit(5).all()
-    ring = db.query(RingSensorLog).filter(RingSensorLog.patient_username == req.patient_username).order_by(RingSensorLog.logged_at.desc()).first()
+def crisis_debrief(
+    req: CrisisDebriefRequest, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
+):
+    journals = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.patient_username == req.patient_username)
+        .order_by(JournalEntry.timestamp.desc())
+        .limit(5)
+        .all()
+    )
+    ring = (
+        db.query(RingSensorLog)
+        .filter(RingSensorLog.patient_username == req.patient_username)
+        .order_by(RingSensorLog.logged_at.desc())
+        .first()
+    )
 
     trigger = req.trigger_text or (journals[0].raw_content[:300] if journals else "No specific trigger text")
     bpm = ring.bpm if ring else 72
@@ -502,10 +660,26 @@ Provide a structured debrief for the psychologist. Return ONLY valid JSON with:
 - follow_up_plan: str"""
 
     ai = _query_ai(prompt)
-    try: data = json.loads(ai)
-    except Exception: data = {"severity": "moderate", "likely_triggers": ["Unable to analyze with AI"], "recommended_interventions": ["Monitor and follow up"], "debrief_note": "AI debrief unavailable.", "follow_up_plan": "Standard follow-up"}
+    try:
+        data = json.loads(ai)
+    except Exception:
+        data = {
+            "severity": "moderate",
+            "likely_triggers": ["Unable to analyze with AI"],
+            "recommended_interventions": ["Monitor and follow up"],
+            "debrief_note": "AI debrief unavailable.",
+            "follow_up_plan": "Standard follow-up",
+        }
 
-    log_audit("agent_crisis_debrief", user=user.username, role=user.role, severity="HIGH", status="success", resource=req.patient_username, db=db)
+    log_audit(
+        "agent_crisis_debrief",
+        user=user.username,
+        role=user.role,
+        severity="HIGH",
+        status="success",
+        resource=req.patient_username,
+        db=db,
+    )
 
     return {
         "patient": req.patient_username,

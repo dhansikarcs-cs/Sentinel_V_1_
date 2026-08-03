@@ -1,7 +1,6 @@
-import os
 import json
 import logging
-from typing import Optional
+import os
 
 logger = logging.getLogger("sentinel.secrets")
 
@@ -30,6 +29,7 @@ class VaultSecretsProvider(SecretsProvider):
             return super().get(key, default)
         try:
             import urllib.request
+
             req = urllib.request.Request(
                 f"{self.vault_url}/v1/secret/data/sentinel/{key}",
                 headers={"X-Vault-Token": self.vault_token},
@@ -49,6 +49,7 @@ class AWSSecretsManager(SecretsProvider):
     def get(self, key: str, default: str = "") -> str:
         try:
             import boto3
+
             client = boto3.client("secretsmanager", region_name=self.region)
             resp = client.get_secret_value(SecretId=f"sentinel/{key}")
             return resp.get("SecretString", default)

@@ -1,8 +1,8 @@
 """Sensor reading container and RingSource base contract."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -18,7 +18,7 @@ class SensorData:
 
     @classmethod
     def from_dict(cls, data: dict, device_id: str = "") -> "SensorData":
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         return cls(
             device_id=data.get("device_id") or device_id,
             bpm=int(data.get("bpm") or 72),

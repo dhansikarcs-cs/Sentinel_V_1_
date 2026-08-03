@@ -1,6 +1,13 @@
 """JSON vs SQLite I/O benchmarks — 10/50/100/500 profiles."""
-import time, json, os, sys, tempfile, threading, shutil
-from pathlib import Path
+
+import contextlib
+import json
+import os
+import sys
+import tempfile
+import threading
+import time
+
 from cryptography.fernet import Fernet
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,6 +29,7 @@ SAMPLE_RECORD = {
 def generate_profiles(n: int) -> list[dict]:
     """Generate n patient profiles with varying parameters."""
     import random
+
     profiles = []
     for i in range(n):
         p = dict(SAMPLE_RECORD)
@@ -58,7 +66,7 @@ def test_json_io(profiles: list[dict], encrypt: bool) -> dict:
         raw = f.read()
     if encrypt:
         raw = cipher.decrypt(raw.encode()).decode()
-    loaded = json.loads(raw)
+    json.loads(raw)
     read_time = (time.perf_counter() - t0) * 1000
 
     file_size = os.path.getsize(tmp)
@@ -73,14 +81,14 @@ def test_json_io(profiles: list[dict], encrypt: bool) -> dict:
 
 def test_sqlite_io(profiles: list[dict]) -> dict:
     """Benchmark SQLite write/read via SQLAlchemy."""
-    from sqlalchemy import create_engine, Column, String, Integer, Float, Text
+    from sqlalchemy import Column, Float, Integer, String, create_engine
     from sqlalchemy.orm import declarative_base, sessionmaker
 
     tmp = tempfile.mktemp(suffix=".db")
     engine = create_engine(f"sqlite:///{tmp}", connect_args={"check_same_thread": False})
-    Base = declarative_base()
+    base = declarative_base()
 
-    class BenchProfile(Base):
+    class BenchProfile(base):
         __tablename__ = "bench_profiles"
         username = Column(String, primary_key=True)
         mood_avg = Column(Float)
@@ -93,12 +101,12 @@ def test_sqlite_io(profiles: list[dict]) -> dict:
         last_active = Column(String)
         risk_score = Column(Integer)
 
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
+    base.metadata.create_all(bind=engine)
+    session_factory = sessionmaker(bind=engine)
 
     # Write
     t0 = time.perf_counter()
-    session = Session()
+    session = session_factory()
     for p in profiles:
         session.add(BenchProfile(**p))
     session.commit()
@@ -107,18 +115,16 @@ def test_sqlite_io(profiles: list[dict]) -> dict:
 
     # Read
     t0 = time.perf_counter()
-    session = Session()
+    session = session_factory()
     rows = session.query(BenchProfile).all()
-    loaded = [r.__dict__ for r in rows]
+    [r.__dict__ for r in rows]
     session.close()
     read_time = (time.perf_counter() - t0) * 1000
 
     engine.dispose()
     file_size = os.path.getsize(tmp)
-    try:
+    with contextlib.suppress(PermissionError):
         os.remove(tmp)
-    except PermissionError:
-        pass
 
     return {
         "write_ms": write_time,
@@ -138,11 +144,14 @@ def run_storage_benchmarks(log_func, quick=False):
         total_ms = r["write_ms"] + r["read_ms"]
         size_kb = r["file_size_bytes"] / 1024
         log_func(
-            "JSON Storage (unencrypted)", 1, "N/A",
+            "JSON Storage (unencrypted)",
+            1,
+            "N/A",
             f"{n} profiles | {size_kb:.1f}KB",
-            total_ms, f"{size_kb:.1f}KB",
+            total_ms,
+            f"{size_kb:.1f}KB",
             True,
-            f"write={r['write_ms']:.1f}ms read={r['read_ms']:.1f}ms"
+            f"write={r['write_ms']:.1f}ms read={r['read_ms']:.1f}ms",
         )
 
         # Encrypted JSON
@@ -150,11 +159,14 @@ def run_storage_benchmarks(log_func, quick=False):
         total_ms = r["write_ms"] + r["read_ms"]
         size_kb = r["file_size_bytes"] / 1024
         log_func(
-            "JSON Storage (encrypted)", 1, "N/A",
+            "JSON Storage (encrypted)",
+            1,
+            "N/A",
             f"{n} profiles | {size_kb:.1f}KB",
-            total_ms, f"{size_kb:.1f}KB",
+            total_ms,
+            f"{size_kb:.1f}KB",
             True,
-            f"write={r['write_ms']:.1f}ms read={r['read_ms']:.1f}ms overhead={total_ms / (r['write_ms']+r['read_ms']) * 100:.0f}%"
+            f"write={r['write_ms']:.1f}ms read={r['read_ms']:.1f}ms overhead={total_ms / (r['write_ms'] + r['read_ms']) * 100:.0f}%",
         )
 
         # SQLite (current production)
@@ -162,11 +174,14 @@ def run_storage_benchmarks(log_func, quick=False):
         total_ms = r["write_ms"] + r["read_ms"]
         size_kb = r["file_size_bytes"] / 1024
         log_func(
-            "SQLite Storage", 1, "N/A",
+            "SQLite Storage",
+            1,
+            "N/A",
             f"{n} profiles | {size_kb:.1f}KB",
-            total_ms, f"{size_kb:.1f}KB",
+            total_ms,
+            f"{size_kb:.1f}KB",
             True,
-            f"write={r['write_ms']:.1f}ms read={r['read_ms']:.1f}ms"
+            f"write={r['write_ms']:.1f}ms read={r['read_ms']:.1f}ms",
         )
 
     # Concurrency: simulate 10 simultaneous writes
@@ -177,12 +192,12 @@ def run_storage_benchmarks(log_func, quick=False):
 
     def concurrent_write(profiles_subset):
         try:
-            r = test_json_io(profiles_subset, encrypt=False)
+            test_json_io(profiles_subset, encrypt=False)
         except Exception as e:
             errors.append(str(e))
 
     for i in range(0, 100, 10):
-        t = threading.Thread(target=concurrent_write, args=(profiles[i:i + 10],))
+        t = threading.Thread(target=concurrent_write, args=(profiles[i : i + 10],))
         threads.append(t)
         t.start()
     for t in threads:
@@ -190,9 +205,12 @@ def run_storage_benchmarks(log_func, quick=False):
     elapsed = (time.perf_counter() - t0) * 1000
 
     log_func(
-        "JSON Concurrent Writes", 10, "N/A",
+        "JSON Concurrent Writes",
+        10,
+        "N/A",
         "100 profiles (10 threads x 10 each)",
-        elapsed, f"{len(errors)} errors",
+        elapsed,
+        f"{len(errors)} errors",
         len(errors) == 0,
-        f"{len(threads)} threads, {elapsed:.1f}ms total"
+        f"{len(threads)} threads, {elapsed:.1f}ms total",
     )

@@ -5,15 +5,18 @@ Revises: a059d07dd9b6
 Create Date: 2026-07-22 20:00:57.844080
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+import contextlib
+from collections.abc import Sequence
+from typing import Union
+
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '4ff25c97017e'
-down_revision: Union[str, Sequence[str], None] = 'a059d07dd9b6'
+revision: str = "4ff25c97017e"
+down_revision: Union[str, Sequence[str], None] = "a059d07dd9b6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -50,10 +53,8 @@ INDEXES = [
 
 
 def _safe_create_index(conn, index_name, table_name, columns):
-    try:
+    with contextlib.suppress(Exception):
         op.create_index(index_name, table_name, columns, unique=False)
-    except Exception:
-        pass
 
 
 def upgrade() -> None:
@@ -70,10 +71,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     for index_name, table_name, _columns in INDEXES:
-        try:
+        with contextlib.suppress(Exception):
             op.drop_index(index_name, table_name=table_name)
-        except Exception:
-            pass
 
     conn = op.get_bind()
     result = conn.execute(sa.text("PRAGMA table_info(journal_entries)"))

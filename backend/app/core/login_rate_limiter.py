@@ -1,5 +1,5 @@
-import time
 import logging
+import time
 from collections import defaultdict
 
 logger = logging.getLogger("sentinel.login_rate_limiter")

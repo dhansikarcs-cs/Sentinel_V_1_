@@ -1,8 +1,7 @@
-import time
 import hashlib
 import logging
 import threading
-from typing import Optional
+import time
 
 logger = logging.getLogger("sentinel.idempotency")
 
@@ -22,7 +21,7 @@ class IdempotencyStore:
     def _make_key(self, idempotency_key: str) -> str:
         return hashlib.sha256(idempotency_key.encode()).hexdigest()
 
-    def check(self, idempotency_key: str) -> Optional[dict]:
+    def check(self, idempotency_key: str) -> dict | None:
         key = self._make_key(idempotency_key)
         with self._lock:
             self._cleanup()

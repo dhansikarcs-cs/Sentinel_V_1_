@@ -1,47 +1,71 @@
 import os
-import re
+from pathlib import Path
+
 import joblib
 import numpy as np
-from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 
 GOEMOTIONS = [
-    "admiration","amusement","anger","annoyance","approval","caring","confusion",
-    "curiosity","desire","disappointment","disapproval","disgust","embarrassment",
-    "excitement","fear","gratitude","grief","joy","love","nervousness","optimism",
-    "pride","realization","relief","remorse","sadness","surprise","neutral",
+    "admiration",
+    "amusement",
+    "anger",
+    "annoyance",
+    "approval",
+    "caring",
+    "confusion",
+    "curiosity",
+    "desire",
+    "disappointment",
+    "disapproval",
+    "disgust",
+    "embarrassment",
+    "excitement",
+    "fear",
+    "gratitude",
+    "grief",
+    "joy",
+    "love",
+    "nervousness",
+    "optimism",
+    "pride",
+    "realization",
+    "relief",
+    "remorse",
+    "sadness",
+    "surprise",
+    "neutral",
 ]
 
 EMOTION_KEYWORDS: dict[str, list[str]] = {
-    "admiration": ["admire","inspired","proud of","respect","look up to"],
-    "amusement": ["funny","hilarious","amusing","made me laugh","humor"],
-    "anger": ["angry","furious","rage","mad","pissed off","infuriated"],
-    "annoyance": ["annoyed","irritated","frustrated","aggravated","bugging me"],
-    "approval": ["approve","good job","well done","proud","pleased with"],
-    "caring": ["care about","concerned","worried about you","take care","nurture"],
-    "confusion": ["confused","don't understand","unclear","perplexed","lost"],
-    "curiosity": ["curious","wonder","what if","interested","tell me more"],
-    "desire": ["want","wish","desire","long for","crave","yearn"],
-    "disappointment": ["disappointed","let down","failed","not what i expected"],
-    "disapproval": ["disapprove","bad idea","wrong","shouldn't","not good"],
-    "disgust": ["disgusting","gross","repulsed","revolting","sickening"],
-    "embarrassment": ["embarrassed","awkward","humiliated","shame","mortified"],
-    "excitement": ["excited","thrilled","can't wait","looking forward","amazing"],
-    "fear": ["scared","afraid","terrified","fear","panic","anxious","dread"],
-    "gratitude": ["grateful","thankful","appreciate","blessed","thank you"],
-    "grief": ["grief","mourning","loss","miss them","passed away","bereaved"],
-    "joy": ["joy","happy","delighted","wonderful","beautiful","fantastic"],
-    "love": ["love","adore","cherish","beloved","dear"],
-    "nervousness": ["nervous","anxious","worried","uneasy","restless","tense"],
-    "optimism": ["optimistic","hopeful","positive","looking up","bright future"],
-    "pride": ["proud","accomplished","achievement","milestone","congratulate"],
-    "realization": ["realize","understand now","it clicked","epiphany","aware"],
-    "relief": ["relieved","finally","thank goodness","weight off","at ease"],
-    "remorse": ["sorry","regret","apologize","remorse","guilty","shouldn't have"],
-    "sadness": ["sad","depressed","heartbroken","lonely","crying","miserable"],
-    "surprise": ["surprised","shocked","unexpected","astonished","amazed"],
+    "admiration": ["admire", "inspired", "proud of", "respect", "look up to"],
+    "amusement": ["funny", "hilarious", "amusing", "made me laugh", "humor"],
+    "anger": ["angry", "furious", "rage", "mad", "pissed off", "infuriated"],
+    "annoyance": ["annoyed", "irritated", "frustrated", "aggravated", "bugging me"],
+    "approval": ["approve", "good job", "well done", "proud", "pleased with"],
+    "caring": ["care about", "concerned", "worried about you", "take care", "nurture"],
+    "confusion": ["confused", "don't understand", "unclear", "perplexed", "lost"],
+    "curiosity": ["curious", "wonder", "what if", "interested", "tell me more"],
+    "desire": ["want", "wish", "desire", "long for", "crave", "yearn"],
+    "disappointment": ["disappointed", "let down", "failed", "not what i expected"],
+    "disapproval": ["disapprove", "bad idea", "wrong", "shouldn't", "not good"],
+    "disgust": ["disgusting", "gross", "repulsed", "revolting", "sickening"],
+    "embarrassment": ["embarrassed", "awkward", "humiliated", "shame", "mortified"],
+    "excitement": ["excited", "thrilled", "can't wait", "looking forward", "amazing"],
+    "fear": ["scared", "afraid", "terrified", "fear", "panic", "anxious", "dread"],
+    "gratitude": ["grateful", "thankful", "appreciate", "blessed", "thank you"],
+    "grief": ["grief", "mourning", "loss", "miss them", "passed away", "bereaved"],
+    "joy": ["joy", "happy", "delighted", "wonderful", "beautiful", "fantastic"],
+    "love": ["love", "adore", "cherish", "beloved", "dear"],
+    "nervousness": ["nervous", "anxious", "worried", "uneasy", "restless", "tense"],
+    "optimism": ["optimistic", "hopeful", "positive", "looking up", "bright future"],
+    "pride": ["proud", "accomplished", "achievement", "milestone", "congratulate"],
+    "realization": ["realize", "understand now", "it clicked", "epiphany", "aware"],
+    "relief": ["relieved", "finally", "thank goodness", "weight off", "at ease"],
+    "remorse": ["sorry", "regret", "apologize", "remorse", "guilty", "shouldn't have"],
+    "sadness": ["sad", "depressed", "heartbroken", "lonely", "crying", "miserable"],
+    "surprise": ["surprised", "shocked", "unexpected", "astonished", "amazed"],
     "neutral": [],
 }
 
@@ -65,7 +89,7 @@ def _generate_training_data() -> tuple[list[str], list[list[int]]]:
         "Today I feel {}",
     ]
 
-    CRISIS_EMOTION_TEMPLATES = {
+    crisis_emotion_templates = {
         "fear": [
             "I am terrified of what might happen next",
             "My heart races when I think about the future",
@@ -390,79 +414,6 @@ def _generate_training_data() -> tuple[list[str], list[list[int]]]:
         ],
     }
 
-    clinical_emotion_templates = {
-        "admiration": [
-            "She inspires me to be a better person every day",
-            "I look up to my mentor more than anyone",
-            "The way she handled that situation was incredible",
-            "I'm in awe of their dedication and talent",
-            "They set the perfect example for all of us",
-        ],
-        "amusement": [
-            "That joke was absolutely hilarious",
-            "I couldn't stop laughing at that comedy show",
-            "The way they told that story was so funny",
-            "I was cracking up the entire time",
-            "That meme perfectly captures how I feel",
-        ],
-        "anger": [
-            "I'm so frustrated I could scream",
-            "The rage inside me is barely contained",
-            "I feel a burning anger that won't dissipate",
-            "Everything makes me irritable and on edge",
-            "I want to break something, anything to release this",
-        ],
-        "excitement": [
-            "I can't wait for the concert next week",
-            "I'm thrilled about starting this new project",
-            "The anticipation is killing me in the best way",
-            "I just got the best news of my life",
-            "I'm buzzing with energy and excitement",
-        ],
-        "fear": [
-            "I am terrified of what might happen next",
-            "My heart races when I think about the future",
-            "I feel a deep sense of dread that won't go away",
-            "Every sound makes me jump, I feel constantly on edge",
-            "I'm afraid to be alone, the thoughts consume me",
-        ],
-        "joy": [
-            "I am so happy right now, nothing could ruin this moment",
-            "My heart is overflowing with happiness",
-            "Today was one of the best days of my life",
-            "I feel pure, unadulterated joy",
-            "The smile on my face won't go away",
-        ],
-        "love": [
-            "I love them with every fiber of my being",
-            "My heart belongs to someone special",
-            "The way they look at me makes my heart flutter",
-            "I feel a deep connection that goes beyond words",
-            "Being with them feels like coming home",
-        ],
-        "optimism": [
-            "I truly believe the best is yet to come",
-            "Things are looking up and I'm hopeful about the future",
-            "I have a positive outlook on everything ahead",
-            "The future feels bright and full of promise",
-            "I know this困难 will pass and better days are coming",
-        ],
-        "sadness": [
-            "I feel a deep emptiness that nothing seems to fill",
-            "Tears come without warning, I can't stop them",
-            "Everything feels gray and meaningless",
-            "I miss who I used to be before all this",
-            "The weight of sadness is crushing me",
-        ],
-        "neutral": [
-            "I went to the store today",
-            "The weather is nice",
-            "I had lunch with a friend",
-            "I watched a movie",
-            "Nothing much happened",
-        ],
-    }
-
     for emotion in GOEMOTIONS:
         if emotion == "neutral":
             continue
@@ -475,14 +426,14 @@ def _generate_training_data() -> tuple[list[str], list[list[int]]]:
                     lbl = [0] * len(GOEMOTIONS)
                     lbl[GOEMOTIONS.index(emotion)] = 1
                     labels.append(lbl)
-        if emotion in CRISIS_EMOTION_TEMPLATES:
-            for sentence in CRISIS_EMOTION_TEMPLATES[emotion]:
+        if emotion in crisis_emotion_templates:
+            for sentence in crisis_emotion_templates[emotion]:
                 texts.append(sentence)
                 lbl = [0] * len(GOEMOTIONS)
                 lbl[GOEMOTIONS.index(emotion)] = 1
                 labels.append(lbl)
 
-    neutral_templates = CRISIS_EMOTION_TEMPLATES.get("neutral", [])
+    neutral_templates = crisis_emotion_templates.get("neutral", [])
     for t in neutral_templates:
         texts.append(t)
         lbl = [0] * len(GOEMOTIONS)
@@ -502,7 +453,7 @@ def _build_model() -> OneVsRestClassifier:
         strip_accents="unicode",
         token_pattern=r"(?u)\b\w+\b",
     )
-    X = vectorizer.fit_transform(texts)
+    X = vectorizer.fit_transform(texts)  # noqa: N806
     classifier = OneVsRestClassifier(
         LogisticRegression(C=2.0, class_weight="balanced", max_iter=1000, solver="liblinear"),
         n_jobs=-1,
@@ -527,7 +478,7 @@ class EmotionClassifier:
         self.emotions: list[str] = data["emotions"]
 
     def predict_proba(self, text: str) -> dict[str, float]:
-        X = self.vectorizer.transform([text])
+        X = self.vectorizer.transform([text])  # noqa: N806
         probs = self.classifier.predict_proba(X)
         result = {}
         sample = probs[0]

@@ -1,12 +1,13 @@
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel
 
 
 class APIError(BaseModel):
     code: str
     message: str
-    trace_id: Optional[str] = None
-    details: Optional[dict[str, Any]] = None
+    trace_id: str | None = None
+    details: dict[str, Any] | None = None
 
 
 class ErrorCode:

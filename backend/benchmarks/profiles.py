@@ -1,11 +1,10 @@
 """50 test profiles for discrepancy detection + 50 journal entries for AI benchmark."""
 
-from dataclasses import dataclass, field, asdict
-from typing import Optional
-import csv, os
-
+import csv
+from dataclasses import dataclass
 
 # ── Discrepancy Test Profiles ──
+
 
 @dataclass
 class DiscrepancyProfile:
@@ -19,17 +18,16 @@ class DiscrepancyProfile:
 
 DISCREPANCY_PROFILES: list[DiscrepancyProfile] = [
     # === MISMATCHES (text says good, biometrics say bad) ===
-    DiscrepancyProfile(1,  "I feel great today", 130, 15, True, "text-biometric mismatch"),
-    DiscrepancyProfile(2,  "Best day ever! So happy and energetic.", 125, 18, True, "text-biometric mismatch"),
-    DiscrepancyProfile(3,  "Everything is perfect, life is wonderful", 140, 12, True, "text-biometric mismatch"),
-    DiscrepancyProfile(4,  "I'm doing amazing, never been better", 118, 20, True, "text-biometric mismatch"),
-    DiscrepancyProfile(5,  "Feeling fantastic and full of energy", 135, 14, True, "text-biometric mismatch"),
-    DiscrepancyProfile(6,  "What a great morning! So refreshed.", 128, 16, True, "text-biometric mismatch"),
-    DiscrepancyProfile(7,  "I'm so happy I could dance all day", 142, 11, True, "text-biometric mismatch"),
-    DiscrepancyProfile(8,  "Life is good, really good", 120, 19, True, "text-biometric mismatch"),
-    DiscrepancyProfile(9,  "Feeling on top of the world", 145, 10, True, "text-biometric mismatch"),
+    DiscrepancyProfile(1, "I feel great today", 130, 15, True, "text-biometric mismatch"),
+    DiscrepancyProfile(2, "Best day ever! So happy and energetic.", 125, 18, True, "text-biometric mismatch"),
+    DiscrepancyProfile(3, "Everything is perfect, life is wonderful", 140, 12, True, "text-biometric mismatch"),
+    DiscrepancyProfile(4, "I'm doing amazing, never been better", 118, 20, True, "text-biometric mismatch"),
+    DiscrepancyProfile(5, "Feeling fantastic and full of energy", 135, 14, True, "text-biometric mismatch"),
+    DiscrepancyProfile(6, "What a great morning! So refreshed.", 128, 16, True, "text-biometric mismatch"),
+    DiscrepancyProfile(7, "I'm so happy I could dance all day", 142, 11, True, "text-biometric mismatch"),
+    DiscrepancyProfile(8, "Life is good, really good", 120, 19, True, "text-biometric mismatch"),
+    DiscrepancyProfile(9, "Feeling on top of the world", 145, 10, True, "text-biometric mismatch"),
     DiscrepancyProfile(10, "I'm cured. Therapy worked perfectly.", 122, 17, True, "text-biometric mismatch"),
-
     # === MISMATCHES (text says bad, biometrics say calm) ===
     DiscrepancyProfile(11, "I'm extremely anxious and can't cope", 65, 70, True, "text-biometric mismatch"),
     DiscrepancyProfile(12, "I want to disappear, I'm so scared", 68, 72, True, "text-biometric mismatch"),
@@ -41,7 +39,6 @@ DISCREPANCY_PROFILES: list[DiscrepancyProfile] = [
     DiscrepancyProfile(18, "I think I'm going crazy", 64, 73, False, "text-biometric mismatch"),
     DiscrepancyProfile(19, "My heart is racing from fear", 67, 69, True, "text-biometric mismatch"),
     DiscrepancyProfile(20, "I'm terrified of what's happening to me", 61, 77, True, "text-biometric mismatch"),
-
     # === MATCHES (positive text + calm biometrics) ===
     DiscrepancyProfile(21, "I feel great today", 72, 65, False, "text-biometric match"),
     DiscrepancyProfile(22, "Happy and relaxed", 70, 68, False, "text-biometric match"),
@@ -53,7 +50,6 @@ DISCREPANCY_PROFILES: list[DiscrepancyProfile] = [
     DiscrepancyProfile(28, "Had a good therapy session", 72, 71, False, "text-biometric match"),
     DiscrepancyProfile(29, "Feeling grateful today", 68, 73, False, "text-biometric match"),
     DiscrepancyProfile(30, "I'm optimistic about the future", 71, 67, False, "text-biometric match"),
-
     # === MATCHES (negative text + high stress biometrics) ===
     DiscrepancyProfile(31, "I'm extremely anxious and can't cope", 128, 18, False, "text-biometric match"),
     DiscrepancyProfile(32, "I feel terrible today", 132, 14, False, "text-biometric match"),
@@ -65,7 +61,6 @@ DISCREPANCY_PROFILES: list[DiscrepancyProfile] = [
     DiscrepancyProfile(38, "I'm drowning in anxiety", 145, 9, False, "text-biometric match"),
     DiscrepancyProfile(39, "Today is unbearable", 136, 15, False, "text-biometric match"),
     DiscrepancyProfile(40, "I just want to sleep forever", 129, 17, False, "text-biometric match"),
-
     # === EDGE CASES ===
     DiscrepancyProfile(41, "", 72, 65, False, "edge-empty text"),
     DiscrepancyProfile(42, "Fine.", 130, 15, True, "edge-minimal text + high stress"),
@@ -82,6 +77,7 @@ DISCREPANCY_PROFILES: list[DiscrepancyProfile] = [
 
 # ── AI Benchmark Journal Entries ──
 
+
 @dataclass
 class JournalBenchEntry:
     id: int
@@ -96,47 +92,48 @@ def _generate_entries() -> list[JournalBenchEntry]:
         "My heart was racing as I thought about presenting to the team. I took some deep breaths "
         "and tried to focus on the present moment. The meeting went better than expected, "
         "but I still felt on edge afterwards. I'm learning to manage these feelings.",
-
         "I had a wonderful day today. The sun was shining and I went for a long walk in the park. "
         "I saw children playing and couples laughing. It made me feel hopeful about life. "
         "I called my sister and we talked for an hour. She always knows how to make me feel better. "
         "I'm grateful for these small moments of peace.",
-
         "I'm struggling. The darkness feels like it's closing in and I can't find a way out. "
         "I tried to reach out to a friend but they didn't answer. I feel so alone in this. "
         "The medication doesn't seem to be working anymore. I don't know how much longer "
         "I can keep fighting this battle. Every day feels like an uphill climb.",
-
         "Therapy session was intense today. We talked about my childhood and I had a breakthrough "
         "about why I struggle with trust. It was painful but cathartic. Dr. X said I'm making "
         "real progress. I've been consistent with my journaling and mindfulness exercises. "
         "Small steps forward every day.",
-
         "I feel numb. Not sad, not happy, just... nothing. I went through the motions today. "
         "Ate breakfast, went to work, came home, watched TV, went to bed. Is this what life is? "
         "I keep waiting for something to change but nothing does. Maybe this is just how it is.",
     ]
 
-    for i, bt in enumerate(base_texts):
-        for multiplier, desc in [(1, "100w"), (2, "250w"), (5, "500w"), (10, "1000w")]:
+    for _, bt in enumerate(base_texts):
+        for multiplier, _ in [(1, "100w"), (2, "250w"), (5, "500w"), (10, "1000w")]:
             text = " ".join([bt] * multiplier)
             wc = len(text.split())
-            entries.append(JournalBenchEntry(
-                id=len(entries) + 1,
-                text=text,
-                word_count=wc,
-            ))
+            entries.append(
+                JournalBenchEntry(
+                    id=len(entries) + 1,
+                    text=text,
+                    word_count=wc,
+                )
+            )
     # Fill remaining up to 50 with variations
     while len(entries) < 50:
         i = len(entries) % len(base_texts)
         bt = base_texts[i]
         import random
+
         noise = " " + " ".join(["word"] * random.randint(10, 50))
-        entries.append(JournalBenchEntry(
-            id=len(entries) + 1,
-            text=bt + noise,
-            word_count=len((bt + noise).split()),
-        ))
+        entries.append(
+            JournalBenchEntry(
+                id=len(entries) + 1,
+                text=bt + noise,
+                word_count=len((bt + noise).split()),
+            )
+        )
 
     return entries[:50]
 
@@ -147,9 +144,15 @@ AI_BENCH_ENTRIES = _generate_entries()
 # ── CSV Writer ──
 
 LOGBOOK_HEADERS = [
-    "Run ID", "Component Tested", "Concurrency Load", "AI Mode",
-    "Input Size (Words/Bytes)", "Latency (ms)", "CPU/RAM Peak",
-    "Pass/Fail", "Notes / Error Caught",
+    "Run ID",
+    "Component Tested",
+    "Concurrency Load",
+    "AI Mode",
+    "Input Size (Words/Bytes)",
+    "Latency (ms)",
+    "CPU/RAM Peak",
+    "Pass/Fail",
+    "Notes / Error Caught",
 ]
 
 

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger("sentinel.di")
 
@@ -32,9 +32,9 @@ container = ServiceContainer()
 
 
 def register_default_services():
+    from app.core.cqrs import command_bus, query_bus
     from app.ml.emotion_classifier import classifier
     from app.ml.model_registry import registry
-    from app.core.cqrs import query_bus, command_bus
 
     container.register_singleton("emotion_classifier", classifier)
     container.register_singleton("model_registry", registry)
