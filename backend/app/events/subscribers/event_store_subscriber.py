@@ -20,12 +20,16 @@ def register_event_store_subscribers(event_bus) -> None:
         "journal:submitted",
         "journal:summarized",
         "journal:viewed",
-        "crisis:triggered",
-        "crisis:resolved",
-        "mood:logged",
+        "journal:summaries_viewed",
+        "clinical_note:synthesized",
+        "clinical_note:saved",
         "booking:created",
-        "booking:status_changed",
+        "booking:status_updated",
         "followup:created",
+        "followup:updated",
+        "patient:contact_updated",
+        "patient:onboarding_updated",
+        "patient:psych_assigned",
     ]:
         event_bus.subscribe(event_type, lambda et=event_type, **kw: _persist_event(et, **kw))
 

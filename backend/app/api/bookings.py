@@ -34,7 +34,7 @@ def create_booking(entry: BookingCreate, user: User = Depends(require_role("pati
     get_event_bus().emit(
         "booking:created",
         booking_id=booking.id,
-        patient=user.username,
+        patient_username=user.username,
         psych=entry.psychologist_username,
         date=entry.date,
     )
@@ -62,7 +62,13 @@ def update_booking_status(
         return {"error": "Not found"}
     booking.status = update.status
     db.commit()
-    get_event_bus().emit("booking:status_updated", booking_id=booking_id, psych=user.username, status=update.status)
+    get_event_bus().emit(
+        "booking:status_updated",
+        booking_id=booking_id,
+        patient_username=booking.patient_username,
+        psych=user.username,
+        status=update.status,
+    )
     return {"message": "Updated"}
 
 

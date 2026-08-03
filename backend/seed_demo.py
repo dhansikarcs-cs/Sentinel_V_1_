@@ -43,33 +43,14 @@ print("=== DELETING ALL EXISTING DATA ===")
 Base.metadata.create_all(bind=engine)
 insp = inspect(engine)
 tables = insp.get_table_names()
-# drop in reverse FK-safe order (simple: delete all rows)
-ordered = [
-    "risk_assessments",
-    "ai_analyses",
-    "emotion_results",
-    "sensor_readings",
-    "psych_journal_entries",
-    "clinical_notes",
-    "notifications",
-    "triage_queue",
-    "crisis_logs",
-    "crisis_states",
-    "followups",
-    "bookings",
-    "psych_availability",
-    "ring_sensor_log",
-    "mood_log",
-    "journal_entries",
-    "patient_profiles",
-    "audit_logs",
-    "event_store",
-]
+# drop in reverse FK-safe order: sorted_tables lists parents before
+# dependents, so reversing clears children first. Derived from the models,
+# so new tables are auto-covered instead of hardcoded.
 with engine.begin() as conn:
-    for t in ordered:
-        if t in tables:
-            conn.execute(text(f'DELETE FROM "{t}"'))
-            print(f"  cleared: {t}")
+    for t in reversed(Base.metadata.sorted_tables):
+        if t.name in tables:
+            conn.execute(text(f'DELETE FROM "{t.name}"'))
+            print(f"  cleared: {t.name}")
 print()
 
 db = SessionLocal()
@@ -407,7 +388,7 @@ for jr in journal_rows[1:4]:
         RiskAssessment(
             journal_id=jr.id,
             patient_username="alaya",
-            risk_score=random.choice([15, 20, 10]),
+            risk_score=random.randint(5, 7),
             triggered=0,
             confidence=round(random.uniform(0.7, 0.9), 2),
             explanation="Somatic anxiety indicators present; no suicidality markers detected. Moderate monitor flag.",

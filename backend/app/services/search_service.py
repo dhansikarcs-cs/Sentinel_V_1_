@@ -38,6 +38,16 @@ class SearchService:
                 END
             """)
             )
+            db.execute(
+                text("""
+                CREATE TRIGGER IF NOT EXISTS journal_au AFTER UPDATE ON journal_entries BEGIN
+                    INSERT INTO journal_fts(journal_fts, rowid, patient_username, raw_content, summary, emotions)
+                    VALUES('delete', old.id, old.patient_username, old.raw_content, old.summary, old.emotions);
+                    INSERT INTO journal_fts(rowid, patient_username, raw_content, summary, emotions)
+                    VALUES (new.id, new.patient_username, new.raw_content, new.summary, new.emotions);
+                END
+            """)
+            )
             db.commit()
             self._initialized = True
         except Exception as e:
@@ -64,10 +74,6 @@ class SearchService:
         except Exception as e:
             logger.warning("FTS search failed: %s", e)
             return []
-
-    def sync_index(self, db: Session):
-        self._initialized = False
-        self.ensure_fts(db)
 
 
 search_service = SearchService()

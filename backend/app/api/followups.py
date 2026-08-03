@@ -39,7 +39,11 @@ def create_followup(
     )
     repo.add(task)
     get_event_bus().emit(
-        "followup:created", task_id=task.id, psych=user.username, patient=entry.patient_username, title=entry.title
+        "followup:created",
+        task_id=task.id,
+        psych=user.username,
+        patient_username=entry.patient_username,
+        title=entry.title,
     )
     return task
 
@@ -69,7 +73,12 @@ def update_followup(
     db.commit()
     db.refresh(task)
     get_event_bus().emit(
-        "followup:updated", task_id=task_id, user=user.username, status=update.status, grade=update.grade
+        "followup:updated",
+        task_id=task_id,
+        patient_username=task.patient_username,
+        user=user.username,
+        status=update.status,
+        grade=update.grade,
     )
     return task
 

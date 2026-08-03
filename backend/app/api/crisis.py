@@ -1,8 +1,6 @@
 import logging
 import os
-import smtplib
 from datetime import UTC, datetime
-from email.message import EmailMessage
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -16,46 +14,13 @@ from app.models.user import User
 from app.schemas.crisis import CrisisLogResponse, CrisisRiskResponse, CrisisStateResponse, RiskAssessmentRequest
 from app.services.ai_service import assess_crisis_risk
 from app.services.audit import log_audit
+from app.services.notification import send_email
 
 logger = logging.getLogger("sentinel.crisis")
 
 router = APIRouter(prefix="/crisis", tags=["crisis"])
 
 TRUSTEE_PORTAL_BASE = os.environ.get("SENTINEL_ACK_LINK", "http://localhost:5173/trustee")
-
-
-def _send_email(to: str, subject: str, body: str) -> bool:
-    logger.info("=== CRISIS EMAIL ===")
-    logger.info("To: %s", to)
-    logger.info("Subject: %s", subject)
-    logger.info("Body:\n%s", body)
-    logger.info("====================")
-
-    if not settings.smtp_host:
-        logger.warning("SMTP not configured — email logged only")
-        return False
-    try:
-        msg = EmailMessage()
-        msg.set_content(body)
-        msg["Subject"] = subject
-        msg["From"] = settings.email_from
-        msg["To"] = to
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as s:
-            s.ehlo()
-            s.starttls()
-            s.ehlo()
-            s.login(settings.smtp_user, settings.smtp_password)
-            s.send_message(msg)
-        logger.info("Email sent successfully to %s", to)
-        return True
-    except smtplib.SMTPAuthenticationError:
-        logger.error(
-            "SMTP auth failed — app password may be expired. Generate new one at https://myaccount.google.com/apppasswords"
-        )
-        return False
-    except Exception as e:
-        logger.error("Email send failed: %s: %s", type(e).__name__, e)
-        return False
 
 
 def _get_or_create_state(db: Session) -> CrisisState:
@@ -216,7 +181,7 @@ def notify_trusted_contact(user: User = Depends(get_current_user), db: Session =
     email_sent = False
     if tc_email:
         trustee_link = f"{TRUSTEE_PORTAL_BASE}?patient={state.patient_username}"
-        email_sent = _send_email(
+        email_sent = send_email(
             to=tc_email,
             subject="[Sentinel] Crisis Alert — Your loved one needs you",
             body=f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {now}\n\nYour loved one has triggered a crisis alert through Sentinel. Please reach out to them as soon as possible.\n\nAcknowledge this alert: {trustee_link}\n\n- Sentinel Safety System",
@@ -293,7 +258,7 @@ def helpline_escalate(user: User = Depends(get_current_user), db: Session = Depe
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
     helpline = settings.helpline_email or settings.email_from
-    email_sent = _send_email(
+    email_sent = send_email(
         to=helpline,
         subject="[Sentinel] CRISIS ESCALATION — Immediate attention required",
         body=f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nThis patient has not been acknowledged within the safety window. Immediate helpline intervention is required.\n\nAcknowledge: {TRUSTEE_PORTAL_BASE}?patient={state.patient_username}\n\n- Sentinel Safety System",
@@ -335,7 +300,7 @@ def _handle_escalation(state: CrisisState, db: Session):
         tc_email = patient.trusted_contact if patient else ""
         if tc_email:
             trustee_link = f"{TRUSTEE_PORTAL_BASE}?patient={state.patient_username}"
-            _send_email(
+            send_email(
                 tc_email,
                 "[Sentinel] Crisis Alert — Your loved one needs you",
                 f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {datetime.now(UTC).isoformat()}\n\nYour loved one has triggered a crisis alert. Please reach out to them as soon as possible.\n\nAcknowledge this alert: {trustee_link}\n\n- Sentinel Safety System",
@@ -351,7 +316,7 @@ def _handle_escalation(state: CrisisState, db: Session):
     if elapsed >= 60 and not state.helpline_escalated:
         state.helpline_escalated = 1
         helpline = settings.helpline_email or settings.email_from
-        _send_email(
+        send_email(
             helpline,
             "[Sentinel] CRISIS ESCALATION — Immediate attention required",
             f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nNo acknowledgement within 60s. Immediate helpline intervention required.\n\nAcknowledge: {TRUSTEE_PORTAL_BASE}?patient={state.patient_username}\n\n- Sentinel Safety System",

@@ -52,7 +52,7 @@ def save_clinical_note(
     )
     db.add(note)
     db.commit()
-    get_event_bus().emit("clinical_note:saved", psych=user.username, patient=patient_username)
+    get_event_bus().emit("clinical_note:saved", psych=user.username, patient_username=patient_username)
     return {"message": "Saved"}
 
 

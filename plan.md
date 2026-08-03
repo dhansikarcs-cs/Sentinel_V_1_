@@ -141,7 +141,7 @@ Each phase is an independent commit; each is revertible; order is low-risk → h
 
 ---
 
-### PHASE 3 — Correctness & drift fixes
+### PHASE 3 — Correctness & drift fixes — ✅ DONE
 
 **Goal:** Make existing mechanisms honest. Improves *maintainability, trust, data quality*.
 
@@ -155,6 +155,15 @@ Each phase is an independent commit; each is revertible; order is low-risk → h
 4. **Search freshness:** FTS5 index built once (`search_service.py:19-40`) but AI writes summaries/emotions after insert (`ai_worker.py:66-71`). Add AFTER UPDATE trigger on `journal_entries`, or call the now-wired `sync_index` post-commit.
 
 **Risk:** low-medium. **Effort:** medium.
+
+**Execution notes (committed `refactor(phase3)`):**
+- Subscriber list now mirrors actual emissions exactly (13 types). Added 7 emitted-but-unsubscribed events (`journal:summaries_viewed`, `clinical_note:synthesized`, `clinical_note:saved`, `booking:status_updated`, `followup:updated`, `patient:contact_updated`, `patient:onboarding_updated`, `patient:psych_assigned`); dropped 3 never-emitted (`crisis:triggered`, `crisis:resolved`, `mood:logged`).
+- Attribution fix: 6 emission sites now pass `patient_username` so `aggregate_id` is the patient (was `""` for `booking:created`, `booking:status_updated`, `followup:created`, `followup:updated`, `clinical_note:saved`, `patient:psych_assigned`). `clinical_note:synthesized` has no patient in scope and stays aggregate_id-less.
+- `replay()` kept as a plain read of the append-only store (no projections exist to rebuild; frontend `client.ts:191` calls it). Not fake event sourcing — the store is now a truthful audit log.
+- `seed_demo.py`: hardcoded 19-table delete list replaced with `reversed(Base.metadata.sorted_tables)` (FK-safe, auto-covers new tables e.g. `ring_devices`); risk scores `random.choice([15,20,10])` → `random.randint(5,7)`.
+- SMTP: `services/notification.py::send_email(to, subject, body)` is now the single owner (kept the richer crisis version incl. `timeout=10`, `SMTPAuthenticationError` hint); dead duplicate deleted; 4 crisis call sites updated.
+- Search freshness: `journal_au` AFTER UPDATE trigger (delete-old + insert-new) mirrors `journal_ai`/`journal_ad`; dead `sync_index` removed (triggers now own the index).
+- Verified: ruff clean + formatted, app import OK, ring SDK tests pass, FTS update-trigger + dynamic-cleanup + event-store end-to-end smoke tests pass (temp DB), `tsc --noEmit` 0, `vite build` 0.
 
 ---
 

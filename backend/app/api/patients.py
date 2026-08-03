@@ -213,5 +213,7 @@ def assign_psychologist(
         raise HTTPException(status_code=404, detail="Patient not found")
     patient.assigned_psych = psych_username
     db.commit()
-    get_event_bus().emit("patient:psych_assigned", patient=username, psych=psych_username, assigned_by=user.username)
+    get_event_bus().emit(
+        "patient:psych_assigned", patient_username=username, psych=psych_username, assigned_by=user.username
+    )
     return ok(message=f"Assigned {psych_username} to {username}")
