@@ -2,7 +2,6 @@ import json
 import re
 import time
 import urllib.request
-from collections import deque
 from threading import Lock
 
 from app.core.config import settings
@@ -10,7 +9,6 @@ from app.ml.emotion_classifier import EmotionClassifier
 from app.ml.risk_engine import assess_risk_with_explainability
 
 _ollama_lock = Lock()
-_ollama_queue: deque = deque()
 _ollama_last_call = 0.0
 
 _emotion_clf = EmotionClassifier()

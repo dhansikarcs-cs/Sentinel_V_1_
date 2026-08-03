@@ -19,8 +19,6 @@ class Settings(BaseSettings):
 
     groq_api_key: str = ""
 
-    ai_service_url: str = ""
-
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     smtp_user: str = ""

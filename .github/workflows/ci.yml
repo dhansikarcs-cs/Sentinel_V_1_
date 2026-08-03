@@ -80,8 +80,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build backend image
         run: docker build -t sentinel-backend:latest -f backend/Dockerfile backend/
-      - name: Build AI service image
-        run: docker build -t sentinel-ai:latest -f ai_service/Dockerfile .
       - name: Build frontend image
         run: docker build -t sentinel-frontend:latest -f frontend/Dockerfile frontend/
 

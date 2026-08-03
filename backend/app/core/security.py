@@ -91,7 +91,7 @@ def is_encryption_ready() -> bool:
 
 
 def initialize_encryption(passphrase: str):
-    global _MASTER_KEY, _FERNET, _HMAC_KEY
+    global _MASTER_KEY, _FERNET
     import base64
 
     from cryptography.fernet import Fernet
@@ -115,12 +115,8 @@ def initialize_encryption(passphrase: str):
     fernet_key = base64.urlsafe_b64encode(hkdf.derive(_MASTER_KEY))
     _FERNET = Fernet(fernet_key)
 
-    hkdf_hmac = HKDFExpand(algorithm=hashes.SHA256(), length=32, info=b"sentinel-hmac-key-v1")
-    _HMAC_KEY = hkdf_hmac.derive(_MASTER_KEY)
-
 
 _FERNET: Optional = None
-_HMAC_KEY: bytes | None = None
 
 
 def encrypt_text(plain: str) -> str:
@@ -136,20 +132,3 @@ def decrypt_text(cipher: str) -> str:
         return _FERNET.decrypt(cipher.encode()).decode()
     except Exception:
         return "[ACCESS DENIED / DATA CORRUPTED]"
-
-
-def compute_hmac(data: str) -> str:
-    import hmac as hmac_mod
-
-    if not _HMAC_KEY:
-        return ""
-    return hmac_mod.new(_HMAC_KEY, data.encode(), "sha256").hexdigest()
-
-
-def verify_hmac(data: str, hmac_val: str) -> bool:
-    import hmac as hmac_mod
-
-    if not _HMAC_KEY:
-        return False
-    expected = compute_hmac(data)
-    return hmac_mod.compare_digest(expected, hmac_val)

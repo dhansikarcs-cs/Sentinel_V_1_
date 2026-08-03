@@ -3,7 +3,6 @@ import re
 from fastapi import HTTPException, UploadFile, status
 
 MAX_JOURNAL_LENGTH = 50000
-MAX_NOTE_LENGTH = 20000
 MAX_FIELD_LENGTH = 5000
 MAX_FILE_SIZE_MB = 10
 ALLOWED_FILE_EXTENSIONS = {".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png"}
@@ -68,22 +67,6 @@ def validate_journal_content(text: str) -> str:
     return text
 
 
-def validate_note_content(text: str) -> str:
-    text = sanitize_text(text, MAX_NOTE_LENGTH)
-    text = validate_no_injection(text)
-    text = validate_no_xss(text)
-    return text
-
-
-def validate_free_text(text: str, field_name: str = "field") -> str:
-    if not text:
-        return text
-    text = sanitize_text(text, MAX_FIELD_LENGTH)
-    text = validate_no_injection(text)
-    text = validate_no_xss(text)
-    return text
-
-
 def validate_sensor_value(value: float, min_val: float, max_val: float, field_name: str) -> float:
     if value < min_val or value > max_val:
         raise HTTPException(
@@ -124,41 +107,3 @@ async def validate_file_upload(file: UploadFile, max_size_mb: int = MAX_FILE_SIZ
         )
     await file.seek(0)
     return content
-
-
-def validate_username(username: str) -> str:
-    if not username or len(username) < 3 or len(username) > 64:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Username must be 3-64 characters",
-        )
-    if not re.match(r"^[a-zA-Z0-9_\-]+$", username):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Username can only contain letters, numbers, hyphens, and underscores",
-        )
-    validate_no_injection(username)
-    return username
-
-
-def validate_email(email: str) -> str:
-    if not email:
-        return email
-    if not re.match(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$", email):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid email format",
-        )
-    return email
-
-
-def validate_phone(phone: str) -> str:
-    if not phone:
-        return phone
-    cleaned = re.sub(r"[\s\-\(\)\+]", "", phone)
-    if not re.match(r"^\d{7,15}$", cleaned):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid phone number format",
-        )
-    return phone

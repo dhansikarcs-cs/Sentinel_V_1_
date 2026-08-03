@@ -40,21 +40,6 @@ class FeatureFlags:
         except Exception:
             pass
 
-    def is_enabled(self, flag_name: str, user_id: str = "") -> bool:
-        with self._lock:
-            flag = self._flags.get(flag_name)
-            if not flag:
-                return False
-            if not flag.get("enabled", False):
-                return False
-            rollout = flag.get("rollout_pct", 100)
-            if rollout >= 100:
-                return True
-            if user_id:
-                hash_val = hash(user_id) % 100
-                return hash_val < rollout
-            return True
-
     def set_flag(self, flag_name: str, enabled: bool, rollout_pct: int = 100):
         with self._lock:
             self._flags[flag_name] = {"enabled": enabled, "rollout_pct": rollout_pct}

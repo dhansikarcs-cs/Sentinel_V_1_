@@ -1,7 +1,5 @@
 from pydantic import BaseModel, Field
 
-VALID_MOOD_LABELS = {"great", "good", "okay", "bad", "awful", "terrible"}
-
 
 class MoodCreate(BaseModel):
     date: str = Field(min_length=10, max_length=10)

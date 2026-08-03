@@ -40,10 +40,10 @@ sentinel3/
 │   │   ├── core/                      # Config, DB, security, rate limiting, dependencies
 │   │   ├── models/                    # SQLAlchemy models (users, journal, ring_device, ...)
 │   │   ├── schemas/                   # Pydantic request/response schemas
-│   │   ├── services/                  # ai_service, audit, websocket, search
+│   │   ├── services/                  # audit, websocket, search
 │   │   │   └── ring/                  # RingSource SDK: base, simulated, ble_gatt, vendor_api
 │   │   ├── ml/                        # emotion_classifier, risk_engine, model_registry
-│   │   ├── events/                    # Journal events + subscribers (AI, audit, event store)
+│   │   ├── events/                    # Event subscribers (audit trail, event store)
 │   │   ├── workers/                   # AI background worker
 │   │   └── repositories/              # Data-access layer
 │   ├── benchmarks/                    # IRIS-style benchmark suite
@@ -52,7 +52,6 @@ sentinel3/
 ├── frontend/                          # React 19 + TypeScript + Vite + Tailwind (PWA)
 │   └── src/{api,components,lib,pages,stores}
 ├── scripts/                           # ring_bridge, sim_ring, test_ring_api, seeding, ML training
-├── ai_service/                        # Separate AI inference service (Docker)
 ├── docs/                              # Design, decisions, judge Q&A, hardware roadmap
 ├── generate_paper.py                  # → docs/sentinel_paper.pdf (research paper)
 ├── generate_docs_pdf.py               # → judge-prep PDFs

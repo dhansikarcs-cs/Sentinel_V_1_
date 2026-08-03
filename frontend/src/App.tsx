@@ -23,10 +23,6 @@ import TrusteePortalPage from './pages/TrusteePortalPage'
 import ActivityFeedPage from './pages/ActivityFeedPage'
 import ErrorBoundary from './ErrorBoundary'
 
-const PATIENT_ONLY = ['/dashboard', '/journal', '/mood', '/crisis', '/timeline']
-const PSYCH_ONLY = ['/triage', '/clinical-notes', '/psych-journal', '/patient-insights', '/export']
-const SHARED = ['/bookings', '/followups', '/profile']
-
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const authed = isAuthenticated()
   const [ready, setReady] = useState(false)
