@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import time
 import urllib.request
@@ -7,6 +8,8 @@ from threading import Lock
 from app.core.config import settings
 from app.ml.emotion_classifier import EmotionClassifier
 from app.ml.risk_engine import assess_risk_with_explainability
+
+logger = logging.getLogger("sentinel.ai")
 
 _ollama_lock = Lock()
 _ollama_last_call = 0.0
@@ -43,13 +46,14 @@ NOTE_SYNTHESIS_PROMPT_V1 = (
 )
 
 
-def _query_ollama(prompt: str, timeout: int = 20) -> str | None:
+def _query_ollama(prompt: str, timeout: int = 20, prompt_version: str = "") -> str | None:
     global _ollama_last_call
     with _ollama_lock:
         now = time.time()
         if now - _ollama_last_call < 0.5:
             time.sleep(0.5 - (now - _ollama_last_call))
         _ollama_last_call = time.time()
+    start = time.perf_counter()
     try:
         data = json.dumps({"model": settings.ollama_model, "prompt": prompt, "stream": False}).encode()
         req = urllib.request.Request(
@@ -59,15 +63,32 @@ def _query_ollama(prompt: str, timeout: int = 20) -> str | None:
         )
         resp = urllib.request.urlopen(req, timeout=timeout)
         result = json.loads(resp.read().decode())
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.info(
+            "ai_request provider=ollama ok=true latency_ms=%s prompt_version=%s prompt_len=%s",
+            latency_ms,
+            prompt_version,
+            len(prompt),
+            extra={"extra_fields": {"provider": "ollama", "ok": True, "latency_ms": latency_ms}},
+        )
         return result.get("response", "")
-    except Exception:
+    except Exception as e:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.info(
+            "ai_request provider=ollama ok=false latency_ms=%s prompt_version=%s error=%s",
+            latency_ms,
+            prompt_version,
+            e,
+            extra={"extra_fields": {"provider": "ollama", "ok": False, "latency_ms": latency_ms, "error": str(e)}},
+        )
         return None
 
 
-def _query_groq(prompt: str, timeout: int = 20) -> str:
+def _query_groq(prompt: str, timeout: int = 20, prompt_version: str = "") -> str:
     key = settings.groq_api_key or ""
     if not key or key == "gsk_your_key_here":
         return ""
+    start = time.perf_counter()
     try:
         data = json.dumps(
             {
@@ -84,16 +105,32 @@ def _query_groq(prompt: str, timeout: int = 20) -> str:
         )
         resp = urllib.request.urlopen(req, timeout=timeout)
         result = json.loads(resp.read().decode())
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.info(
+            "ai_request provider=groq ok=true latency_ms=%s prompt_version=%s prompt_len=%s",
+            latency_ms,
+            prompt_version,
+            len(prompt),
+            extra={"extra_fields": {"provider": "groq", "ok": True, "latency_ms": latency_ms}},
+        )
         return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-    except Exception:
+    except Exception as e:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.info(
+            "ai_request provider=groq ok=false latency_ms=%s prompt_version=%s error=%s",
+            latency_ms,
+            prompt_version,
+            e,
+            extra={"extra_fields": {"provider": "groq", "ok": False, "latency_ms": latency_ms, "error": str(e)}},
+        )
         return ""
 
 
-def _query_ai(prompt: str, timeout: int = 20) -> str:
-    result = _query_ollama(prompt, timeout=timeout)
+def _query_ai(prompt: str, timeout: int = 20, prompt_version: str = "") -> str:
+    result = _query_ollama(prompt, timeout=timeout, prompt_version=prompt_version)
     if result:
         return result
-    result = _query_groq(prompt, timeout=timeout)
+    result = _query_groq(prompt, timeout=timeout, prompt_version=prompt_version)
     if result:
         return result
     return ""
@@ -160,10 +197,10 @@ def summarize_journal(text: str, mode: str = "patient") -> dict:
         prompt = FRIENDLY_JOURNAL_SUMMARY_PROMPT_V1.format(emotion_hint=emotion_hint, text=text)
         prompt_version = "friendly_journal_summary/v1"
 
-    raw = _query_ollama(prompt, timeout=15)
+    raw = _query_ollama(prompt, timeout=15, prompt_version=prompt_version)
     source = "ollama"
     if not raw or _is_raw_echo(raw, text):
-        raw = _query_groq(prompt)
+        raw = _query_groq(prompt, prompt_version=prompt_version)
         source = "groq"
     if raw and not _is_raw_echo(raw, text):
         match = re.search(r"\{[^{}]+\}", raw, re.DOTALL)
@@ -224,8 +261,9 @@ def synthesize_clinical_notes(raw_notes: str) -> str:
         return "No notes to synthesize."
 
     prompt = NOTE_SYNTHESIS_PROMPT_V1.format(raw_notes=raw_notes)
+    prompt_version = "note_synthesis/v1"
 
-    result = _query_ai(prompt)
+    result = _query_ai(prompt, prompt_version=prompt_version)
     if result:
         return result
 

@@ -29,4 +29,8 @@ services:
     runtime: docker
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
+    healthCheckPath: /
     plan: starter
+    envVars:
+      - key: BACKEND_URL
+        value: https://sentinel-backend.onrender.com

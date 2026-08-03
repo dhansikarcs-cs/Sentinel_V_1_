@@ -45,6 +45,7 @@ from app.core.api_gateway import APIGatewayMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.health import health_ai, health_full, health_live, health_ready
+from app.core.logging_config import configure_logging
 from app.core.rate_limiter import RateLimiterMiddleware
 from app.core.request_id import RequestIDMiddleware
 from app.core.security_headers import SecurityHeadersMiddleware
@@ -53,6 +54,8 @@ from app.events import get_event_bus
 from app.events.subscribers import register_all_subscribers
 
 logger = logging.getLogger("sentinel")
+
+configure_logging()
 
 
 def _init_db():

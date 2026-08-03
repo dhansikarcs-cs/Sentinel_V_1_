@@ -120,7 +120,7 @@ def triage_summary(
 
     prompt = build_triage_prompt(ctx)
 
-    ai = _query_ai(prompt)
+    ai = _query_ai(prompt, prompt_version="triage/v1")
     data = {}
     try:
         data = json.loads(ai)
@@ -205,7 +205,7 @@ def suggest_slots(
         slots=json.dumps([s["label"] for s in selected]),
     )
 
-    ai = _query_ai(prompt)
+    ai = _query_ai(prompt, prompt_version="slot_suggestion/v1")
     try:
         data = json.loads(ai)
     except Exception:
@@ -240,7 +240,7 @@ def draft_followup(
         recent_text=recent_text,
     )
 
-    ai = _query_ai(prompt)
+    ai = _query_ai(prompt, prompt_version="draft_followup/v1")
     try:
         data = json.loads(ai)
     except Exception:
@@ -342,7 +342,7 @@ def _build_pre_session_brief(db: Session, username: str) -> dict:
         pending_followups=pending_followups,
     )
 
-    ai = _query_ai(prompt)
+    ai = _query_ai(prompt, prompt_version="pre_session_brief/v1")
     try:
         data = json.loads(ai)
     except Exception:
@@ -593,7 +593,7 @@ def ring_vitals_risk(user: User = Depends(require_role("psychologist")), db: Ses
 
     prompt = RING_VITALS_RISK_PROMPT_V1.format(bpm=bpm, stress=stress, sleep=sleep, spo2=spo2)
 
-    ai = _query_ai(prompt)
+    ai = _query_ai(prompt, prompt_version="ring_vitals_risk/v1")
     try:
         data = json.loads(ai)
     except Exception:
@@ -647,7 +647,7 @@ def crisis_debrief(
         stress=stress,
     )
 
-    ai = _query_ai(prompt)
+    ai = _query_ai(prompt, prompt_version="crisis_debrief/v1")
     try:
         data = json.loads(ai)
     except Exception:

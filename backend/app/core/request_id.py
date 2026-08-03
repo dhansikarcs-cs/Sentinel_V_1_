@@ -4,6 +4,8 @@ import uuid
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.core.logging_config import request_id_var
+
 logger = logging.getLogger("sentinel.request_id")
 
 
@@ -11,6 +13,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         request.state.request_id = request_id
+        token = request_id_var.set(request_id)
         logger.info(
             "request_start method=%s path=%s request_id=%s client=%s",
             request.method,
@@ -18,6 +21,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
             request_id,
             request.client.host if request.client else "unknown",
         )
-        response: Response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
-        return response
+        try:
+            response: Response = await call_next(request)
+            response.headers["X-Request-ID"] = request_id
+            return response
+        finally:
+            request_id_var.reset(token)

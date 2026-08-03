@@ -20,7 +20,7 @@
 5. **Context is built once** — patient context is assembled in exactly one place and every screen/call consumes that one build (Phase 2's `patient_context.py`).
 6. **One source of truth** — every value (triage tier, mood vocabulary, thresholds) lives in exactly one place; the backend derives, the frontend displays (Phases 2/5).
 7. **Backend owns workflows** — backend owns business logic and workflow state; frontend renders and collects input only (Phases 4/5).
-8. **Consultation is the center** — the dashboard is the patient's surface; the open-session/overview is the clinician's surface (Phase 4/5 navigation).
+8. **The clinician's consultation is the central workflow** — the workflow starts with the clinician: consultation → patient overview → AI assistance → decision → documentation → follow-up. Patient information is organized around the patient (patient-centered data), but every feature exists to reduce clinician burden during that central workflow. The dashboard is the patient's surface; the open-session/overview is the clinician's surface (Phase 4/5 navigation).
 9. **Survive AI change** — AI is swappable; nothing critical depends on a specific model/provider (in-process provider boundary in `services/ai_service.py`; documented fallbacks in Phase 7).
 10. **Complexity grows slower than features** — no new pattern until existing ones are exhausted; every abstraction must remove more complexity than it adds (Rule 6, applied in every phase).
 
@@ -252,6 +252,13 @@ Composed from existing services/repositories **only** (reuses Phase 2 builder). 
 5. **Graceful degradation:** ensure AI-unavailable paths already fall back (verified: `summarize_journal` rule fallback, `_query_ai` try/except) — document as a contract.
 
 **Risk:** low. **Effort:** medium.
+
+**Execution notes (committed `refactor(phase7)`):**
+- Render blocker resolved via container alignment: `backend/Dockerfile` now runs `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}` (`EXPOSE 10000`) so the service listens on Render's injected `PORT` instead of hardcoded `8000`; `frontend/nginx.conf` is an envsubst template (`listen ${PORT};`, `proxy_pass ${BACKEND_URL}/;`) copied to `/etc/nginx/templates/` with the `/api/` path-strip + WS upgrade headers preserved; `frontend/Dockerfile` updated accordingly. `render.yaml` wires `healthCheckPath: /health` (backend) and `BACKEND_URL` (frontend). The old manual `Sentinel_V_1_` service should be replaced by this Blueprint.
+- Health checks hardened (`core/health.py`): fixed `check_database` latency (was always `0.0` — `time.time()` computed twice), added a real DB-write probe (`PRAGMA user_version` toggle), and `health_full` (the `/health` route Render probes) now reports `healthy` only when DB read + DB write + classifier load all pass, plus `ai_providers` (Ollama/Groq/classifier) status.
+- Observability: new `core/logging_config.py` — `LOG_FORMAT=json` (default) one JSON object per line with `ts/level/logger/message/request_id` + extra fields; `request_id` flows via a `ContextVar` set by the middleware (`core/request_id.py`). `services/ai_service.py` `_query_ollama`/`_query_groq`/`_query_ai` now accept `prompt_version` (already threaded through all call sites incl. `agents.py` + `triage.py`) and log `ai_request` with provider, ok, latency_ms, prompt_version on every call. `LOG_FORMAT=text` available for local dev.
+- Docs: `docs/DEPLOYMENT.md` (env var table, nginx proxy contract, SQLite ephemeral-disk caveat + backup path, graceful-degradation contract) and `docs/ARCHITECTURE.md` (Constitution #6 ownership table + layering + AI provenance chain).
+- Verified: `ruff check app tests` 0, pytest 8 passed, app import OK, `/health` returns `healthy` with real DB-write latency, JSON logging smoke-tested (request_id + extra fields), `tsc --noEmit` 0, `vite build` 0, `render.yaml` parses. `model_registry.json` retrain side-effect reverted before commit.
 
 ---
 

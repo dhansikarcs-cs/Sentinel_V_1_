@@ -27,7 +27,7 @@ def create_triage_assessment(
 
     prompt = build_triage_prompt(ctx)
 
-    ai = _query_ai(prompt)
+    ai = _query_ai(prompt, prompt_version="triage/v1")
     try:
         import json
 
