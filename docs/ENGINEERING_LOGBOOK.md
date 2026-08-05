@@ -323,6 +323,28 @@ refresh, follow-up interactions needed polish, and the mood picker felt unprofes
 **Result:** 89 backend tests (added `test_followups.py`, risk-clamp case); `ruff`, `tsc`, `vite build`
 clean; live demo re-verified end-to-end with Ollama.
 
+### 2026-08-05 — Psych feedback on follow-ups + clinician-friendly Patient Insights
+
+- **Psychologist feedback box:** follow-ups now carry a free-text `feedback` column
+  (model `FollowupTask.feedback` as `EncryptedText`, `FollowupUpdate.feedback` max 2000, live DB
+  `ALTER`). Psychologist sees a textarea in the grade block, saves without disturbing the grade,
+  and the patient sees the note once graded. Non-psychologists cannot write feedback (writes are
+  ignored server-side; verified by tests + live tamper check).
+- **Patient Insights declutter:** the emotion timeline no longer dumps raw per-entry percentages
+  ("they r psych not data analyst na it might be annoying"). The Emotions tab now reads like a
+  clinical summary — dominant emotions with avg %, most-consistent emotion, notable rising/receding
+  shifts (early-vs-late window), and a light journal timeline with top emotion chips. Raw per-entry
+  detail remains in the AI Trace tab. Fixed the Patterns "Top Emotions" bar math (raw 0–1 was shown
+  as a percentage).
+- **Bug fix: duplicate event-bus subscribers.** The module-level `EventBus` accumulated a fresh copy
+  of every subscriber on each app/TestClient lifespan registration, so late-suite tests emitted ~N
+  duplicate event-store rows and flooded the `limit=50` read (masking `journal:submitted` with
+  `journal:summarized`). `register_all_subscribers` now clears the bus first. Reproducible before,
+  green twice after.
+
+**Result:** 93 backend tests (added 4 followup-feedback cases); `ruff`, `tsc`, `vite build` clean;
+live demo re-verified (feedback roundtrip, patient tamper ignored, emotion timeline shape).
+
 ---
 
 ## Final Stack

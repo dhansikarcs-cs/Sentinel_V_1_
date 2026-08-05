@@ -120,3 +120,79 @@ def test_patient_cannot_touch_another_patients_task(client, make_user):
         json={"status": "completed", "grade": "none"},
     )
     assert resp.status_code == 404
+
+
+def test_psychologist_feedback_roundtrip(client, make_user):
+    psych = make_user(role="psychologist")
+    patient = make_user(role="patient")
+    created = client.post(
+        "/api/followups",
+        headers=auth_headers(psych["access_token"]),
+        json={"patient_username": patient["username"], "title": "Task", "description": ""},
+    ).json()
+    resp = client.put(
+        f"/api/followups/{created['id']}",
+        headers=auth_headers(psych["access_token"]),
+        json={"status": "completed", "grade": "green", "feedback": "Lovely work on the breathing today."},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["feedback"] == "Lovely work on the breathing today."
+
+    seen = client.get("/api/followups", headers=auth_headers(patient["access_token"])).json()
+    mine = [t for t in seen if t["id"] == created["id"]][0]
+    assert mine["feedback"] == "Lovely work on the breathing today."
+
+
+def test_psychologist_can_clear_feedback(client, make_user):
+    psych = make_user(role="psychologist")
+    patient = make_user(role="patient")
+    created = client.post(
+        "/api/followups",
+        headers=auth_headers(psych["access_token"]),
+        json={"patient_username": patient["username"], "title": "Task", "description": ""},
+    ).json()
+    client.put(
+        f"/api/followups/{created['id']}",
+        headers=auth_headers(psych["access_token"]),
+        json={"status": "completed", "feedback": "Some note", "grade": "none"},
+    )
+    cleared = client.put(
+        f"/api/followups/{created['id']}",
+        headers=auth_headers(psych["access_token"]),
+        json={"status": "completed", "feedback": "", "grade": "none"},
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["feedback"] == ""
+
+
+def test_patient_cannot_write_feedback(client, make_user):
+    psych = make_user(role="psychologist")
+    patient = make_user(role="patient")
+    created = client.post(
+        "/api/followups",
+        headers=auth_headers(psych["access_token"]),
+        json={"patient_username": patient["username"], "title": "Task", "description": ""},
+    ).json()
+    client.put(
+        f"/api/followups/{created['id']}",
+        headers=auth_headers(psych["access_token"]),
+        json={"status": "completed", "feedback": "Official note", "grade": "green"},
+    )
+    tampered = client.put(
+        f"/api/followups/{created['id']}",
+        headers=auth_headers(patient["access_token"]),
+        json={"status": "completed", "feedback": "tamper", "grade": "none"},
+    )
+    assert tampered.status_code == 200
+    assert tampered.json()["feedback"] == "Official note"
+
+
+def test_feedback_ignored_for_non_psych_on_create(client, make_user):
+    psych = make_user(role="psychologist")
+    patient = make_user(role="patient")
+    created = client.post(
+        "/api/followups",
+        headers=auth_headers(psych["access_token"]),
+        json={"patient_username": patient["username"], "title": "Task", "description": ""},
+    ).json()
+    assert created["feedback"] == ""

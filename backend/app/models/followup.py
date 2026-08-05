@@ -15,6 +15,7 @@ class FollowupTask(Base):
     file_path = Column(String, default="")
     status = Column(String, default="pending")
     grade = Column(String, default="")
+    feedback = Column(EncryptedText, default="")
     assigned_at = Column(String, default="")
     due_date = Column(String, default="")
     completed_at = Column(String, default="")

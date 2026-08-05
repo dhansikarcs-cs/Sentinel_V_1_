@@ -3,5 +3,6 @@ from app.events.subscribers.event_store_subscriber import register_event_store_s
 
 
 def register_all_subscribers(event_bus) -> None:
+    event_bus.unsubscribe_all()
     register_audit_subscribers(event_bus)
     register_event_store_subscribers(event_bus)

@@ -313,35 +313,109 @@ function EmotionsSection({ patient }: { patient: string }) {
     api.getEmotionTimeline(patient, 30).then(setData).catch(() => {})
   }, [patient])
 
-  if (!data) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>Loading emotion data...</div>
+  if (!data) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>Loading emotional state...</div>
+
+  const summary = data.emotion_summary || {}
+  const timeline = data.timeline || []
+  const entriesCount = data.entries_count ?? 0
+  const pct = (v: number) => Math.round((v || 0) * 100)
+
+  const dominant = Object.entries(summary)
+    .sort(([, a]: any, [, b]: any) => (b.average || 0) - (a.average || 0))
+    .slice(0, 3)
+  const mostConsistent = Object.entries(summary).sort(([, a]: any, [, b]: any) => (b.count || 0) - (a.count || 0))[0] as [string, any] | undefined
+
+  const half = Math.floor(timeline.length / 2)
+  const early = timeline.slice(0, half)
+  const late = timeline.slice(half)
+  const avgProb = (pts: any[], emo: string) => {
+    const vals = pts
+      .map((p: any) => p.emotion_probabilities?.[emo] || 0)
+      .filter((v: number) => v > 0)
+    return vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0
+  }
+  const allEmos = new Set<string>()
+  ;[...early, ...late].forEach((p: any) => Object.keys(p.emotion_probabilities || {}).forEach(e => allEmos.add(e)))
+
+  const shiftNotes: { emo: string; dir: 'up' | 'down'; diff: number }[] = []
+  allEmos.forEach(emo => {
+    if (early.length === 0 || late.length === 0) return
+    const e = avgProb(early, emo)
+    const l = avgProb(late, emo)
+    const diff = l - e
+    if (Math.abs(diff) >= 0.12 && (e > 0 || l > 0)) {
+      shiftNotes.push({ emo, dir: diff > 0 ? 'up' : 'down', diff })
+    }
+  })
+  shiftNotes.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+
+  const topLabels = (point: any) =>
+    Object.entries(point.emotion_probabilities || {})
+      .filter(([, p]) => (p as number) > 0)
+      .sort((a, b) => (b[1] as number) - (a[1] as number))
+      .slice(0, 3)
+      .map(([e]) => e)
+
+  if (entriesCount === 0) {
+    return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>No analyzed journal entries in this window.</div>
+  }
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px', marginBottom: '20px' }}>
-        {Object.entries(data.emotion_summary || {}).slice(0, 8).map(([emotion, info]: [string, any]) => (
-          <div key={emotion} className="card" style={{ padding: '10px' }}>
-            <div style={{ color: '#c49ea4', fontSize: '0.6875rem', fontWeight: 600 }}>{emotion}</div>
-            <div style={{ color: '#f0f4ff', fontSize: '1rem', fontWeight: 700 }}>{info.average}%</div>
-            <div style={{ color: '#6a6474', fontSize: '0.625rem' }}>peak {info.max}% &middot; {info.count}x</div>
+      <div className="card" style={{ padding: '14px', marginBottom: '16px' }}>
+        <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>
+          EMOTIONAL STATE · {entriesCount} ENTRIES (30d)
+        </div>
+        {dominant.length > 0 && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+            {dominant.map(([emo, info]: [string, any]) => (
+              <div key={emo} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: '#1e2336', border: '1px solid #2d2d44' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'capitalize', color: '#e0e8f0' }}>{emo}</span>
+                <span style={{ fontSize: '0.6875rem', color: '#7a8aaa' }}>{pct(info.average)}% avg</span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+        {mostConsistent && (
+          <div style={{ fontSize: '0.6875rem', color: '#7a8aaa' }}>
+            Most consistent: <strong style={{ color: '#d8d4dc', textTransform: 'capitalize' }}>{mostConsistent[0]}</strong> — present in {mostConsistent[1].count} of {entriesCount} entries
+          </div>
+        )}
       </div>
 
-      <h3>Entry Timeline ({data.entries_count ?? 0} entries)</h3>
-      {(data.timeline?.length ?? 0) === 0 ? (
-        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>No analyzed entries.</div>
-      ) : (
-        data.timeline.map((point: any) => (
-          <div key={point.journal_id} className="expander" style={{ cursor: 'default' }}>
-            <div className="expander-header">
-              <span>{point.timestamp?.slice(0, 10)} &middot; {point.emotions}</span>
+      {shiftNotes.length > 0 && (
+        <div className="card" style={{ padding: '14px', marginBottom: '16px' }}>
+          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>NOTABLE SHIFTS</div>
+          {shiftNotes.slice(0, 4).map(s => (
+            <div key={s.emo} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontSize: '0.75rem' }}>
+              <span style={{ color: s.dir === 'up' ? '#f87171' : '#60a5fa', fontWeight: 700 }}>{s.dir === 'up' ? '\u2191' : '\u2193'}</span>
+              <span style={{ textTransform: 'capitalize', color: '#e0e8f0', fontWeight: 600 }}>{s.emo}</span>
+              <span style={{ color: '#7a8aaa' }}>{s.dir === 'up' ? 'rising' : 'receding'} in recent entries ({pct(s.diff)}pt swing)</span>
             </div>
-            <div className="expander-body">
-              <EmotionBars emotionProbabilities={point.emotion_probabilities} />
+          ))}
+        </div>
+      )}
+
+      <h3>Journal Timeline ({entriesCount} entries)</h3>
+      {timeline.map((point: any) => {
+        const labels = topLabels(point)
+        return (
+          <div key={point.journal_id} className="card" style={{ padding: '10px 12px', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ color: '#6a6474', fontSize: '0.6875rem' }}>{point.timestamp?.slice(0, 10)}</span>
+              <span style={{ flex: 1, fontSize: '0.8rem', color: '#d8d4dc' }}>
+                {labels.length > 0 ? (
+                  labels.map(l => (
+                    <span key={l} style={{ textTransform: 'capitalize', background: 'rgba(196,158,164,0.1)', border: '1px solid rgba(196,158,164,0.25)', borderRadius: '999px', padding: '2px 10px', marginRight: '6px', fontSize: '0.68rem', color: '#c49ea4' }}>{l}</span>
+                  ))
+                ) : (
+                  (point.emotions || '').split(',').map((e: string) => e.trim()).filter(Boolean).slice(0, 3).join(' \u00B7 ')
+                )}
+              </span>
             </div>
           </div>
-        ))
-      )}
+        )
+      })}
     </>
   )
 }
@@ -614,15 +688,18 @@ function PatternsSection({ patient, overview }: { patient: string; overview: any
       {patterns.topEmotions.length > 0 && (
         <div className="card" style={{ padding: '14px' }}>
           <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>Top Emotions (30d)</div>
-          {patterns.topEmotions.map(([emotion, info]: [string, any]) => (
-            <div key={emotion} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ color: '#9a92a2', fontSize: '0.65rem', width: '100px' }}>{emotion}</span>
-              <div style={{ flex: 1, height: '6px', background: '#1e2940', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: '3px', width: `${info.average}%`, background: '#3b82f6' }} />
+          {patterns.topEmotions.map(([emotion, info]: [string, any]) => {
+            const p = Math.round((info.average || 0) * 100)
+            return (
+              <div key={emotion} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ color: '#9a92a2', fontSize: '0.65rem', width: '100px' }}>{emotion}</span>
+                <div style={{ flex: 1, height: '6px', background: '#1e2940', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', borderRadius: '3px', width: `${p}%`, background: '#3b82f6' }} />
+                </div>
+                <span style={{ color: '#6a6474', fontSize: '0.6rem' }}>{p}% (x{info.count})</span>
               </div>
-              <span style={{ color: '#6a6474', fontSize: '0.6rem' }}>{info.average}% (x{info.count})</span>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </>

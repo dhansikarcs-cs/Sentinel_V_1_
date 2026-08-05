@@ -85,6 +85,8 @@ def update_followup(
         if user.role == "psychologist":
             task.approved_by = user.username
             task.approved_at = now
+    if "feedback" in update.model_fields_set and user.role == "psychologist":
+        task.feedback = update.feedback or ""
     db.commit()
     db.refresh(task)
     get_event_bus().emit(
@@ -94,6 +96,7 @@ def update_followup(
         user=user.username,
         status=update.status,
         grade=update.grade,
+        feedback=task.feedback,
     )
     return task
 

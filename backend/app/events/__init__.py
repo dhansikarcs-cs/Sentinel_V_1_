@@ -17,6 +17,9 @@ class EventBus:
     def unsubscribe(self, event_type: str, handler: Callable) -> None:
         self._subscribers[event_type] = [h for h in self._subscribers[event_type] if h is not handler]
 
+    def unsubscribe_all(self) -> None:
+        self._subscribers.clear()
+
     def emit(self, event_type: str, **data: Any) -> None:
         for handler in self._subscribers.get(event_type, []):
             try:

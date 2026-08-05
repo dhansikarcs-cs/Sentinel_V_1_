@@ -114,6 +114,14 @@ function PatientFollowups() {
                   ) : (
                     <div style={{ color: '#22c55e', fontSize: '0.8125rem', fontWeight: 600 }}>✅ Submitted — awaiting review</div>
                   )}
+                  {t.feedback ? (
+                    <div style={{ marginTop: '8px', padding: '10px 12px', borderRadius: '8px', background: 'rgba(196,158,164,0.08)', border: '1px solid rgba(196,158,164,0.25)' }}>
+                      <div style={{ color: '#c49ea4', fontSize: '0.65rem', fontWeight: 600, marginBottom: '4px' }}>💬 Feedback from your psychologist</div>
+                      <div style={{ color: '#d8d4dc', fontSize: '0.8125rem', lineHeight: 1.5 }}>{t.feedback}</div>
+                    </div>
+                  ) : t.grade && t.grade !== 'none' ? (
+                    <div style={{ color: '#6a6474', fontSize: '0.6875rem', marginTop: '6px' }}>No written feedback yet.</div>
+                  ) : null}
                 </div>
               )}
 
@@ -144,6 +152,8 @@ function PsychFollowups() {
   const [assigningId, setAssigningId] = useState<number | null>(null)
   const [assignedId, setAssignedId] = useState<number | null>(null)
   const [busy, setBusy] = useState<Record<string, boolean>>({})
+  const [feedbackBuf, setFeedbackBuf] = useState<Record<string, string>>({})
+  const [feedbackSaved, setFeedbackSaved] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     api.getFollowups().then(d => setTasks(d || [])).catch(() => {})
@@ -196,6 +206,13 @@ function PsychFollowups() {
 
   async function gradeTask(id: string, grade: string) {
     await run(`grade:${id}`, () => api.updateFollowup(id, { grade, status: 'completed' }))
+  }
+
+  async function saveFeedback(id: string, currentGrade: string) {
+    const feedback = (feedbackBuf[id] ?? '').trim()
+    const grade = currentGrade && currentGrade !== '' ? currentGrade : 'none'
+    await run(`feedback:${id}`, () => api.updateFollowup(id, { feedback, grade, status: 'completed' }))
+    setFeedbackSaved({ ...feedbackSaved, [id]: true })
   }
 
   const gradeBorders: Record<string, string> = {
@@ -290,12 +307,30 @@ function PsychFollowups() {
                                 </span>
                               )}
                             </div>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
                               <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'green')}>🟢 Correct</button>
                               <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'yellow')}>🟡 Partial</button>
                               <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'red')}>🔴 Needs work</button>
                               {t.grade && t.grade !== 'none' && (
                                 <span style={{ color: '#6a6474', fontSize: '0.6875rem' }}>Tap to change grade</span>
+                              )}
+                            </div>
+                            <label style={{ fontSize: '0.6875rem', color: '#9a92a2', display: 'block', marginBottom: '4px' }}>Written feedback for {t.patient_username}</label>
+                            <textarea
+                              value={feedbackBuf[t.id] ?? t.feedback ?? ''}
+                              onChange={e => { setFeedbackBuf({ ...feedbackBuf, [t.id]: e.target.value }); setFeedbackSaved({ ...feedbackSaved, [t.id]: false }) }}
+                              rows={3}
+                              placeholder="e.g. Nice work on the breathing exercise — notice how calm you felt after. Let's build on this next week."
+                              style={{ width: '100%', fontSize: '0.8125rem', resize: 'vertical', marginBottom: '6px' }}
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <button className="btn-primary" style={{ fontSize: '0.72rem', padding: '6px 12px' }}
+                                disabled={busy[`feedback:${t.id}`]}
+                                onClick={() => saveFeedback(t.id, t.grade || 'none')}>
+                                {busy[`feedback:${t.id}`] ? 'Saving…' : '💬 Save Feedback'}
+                              </button>
+                              {feedbackSaved[t.id] && (
+                                <span style={{ color: '#22c55e', fontSize: '0.6875rem' }}>✓ Saved — visible to the patient</span>
                               )}
                             </div>
                           </div>

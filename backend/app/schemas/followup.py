@@ -15,6 +15,7 @@ class FollowupUpdate(BaseModel):
     status: Literal["pending", "completed", "skipped"] = "pending"
     grade: Literal["none", "red", "yellow", "green"] = "none"
     file_path: str = Field(default="", max_length=500)
+    feedback: str = Field(default="", max_length=2000)
 
 
 class FollowupResponse(BaseModel):
@@ -26,6 +27,7 @@ class FollowupResponse(BaseModel):
     file_path: str = ""
     status: str
     grade: str
+    feedback: str = ""
     assigned_at: str
     due_date: str = ""
     completed_at: str = ""
