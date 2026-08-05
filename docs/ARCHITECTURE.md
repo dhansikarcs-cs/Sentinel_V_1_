@@ -25,9 +25,13 @@ model directly — it calls a service or repository).
 | Timeline + change metrics | `services/timeline_service.py` — `build_timeline_events()`, `compute_change_metrics()` | `api/timeline.py`, `api/patients.py` (overview) |
 | Event store (audit log) | `events/` subscribers + `services/event_store_service.py` | `api/event_store_api.py` |
 | Crisis thresholds & actions | `ml/crisis_policy.py` — frozen `CrisisPolicy` | `workers/ai_worker.py`, `ml/risk_engine.py`, `api/patients.py` |
+| Trustee link signing | `core/security.py` — `_make_trustee_link`/`_verify_trustee_link` (HMAC over `patient`+expiry) | crisis emails, `api/crisis.py` public endpoints |
 | Risk scoring rules | `ml/risk_engine.py` — `assess_risk_with_explainability()` | `services/ai_service.py`, `workers/ai_worker.py` |
 | Emotion model | `ml/emotion_classifier.py` + `ml/model_registry.py` (artifact tracking) | `services/ai_service.py` |
 | AI provider boundary | `services/ai_service.py` — `_query_ollama`/`_query_groq`/`_query_ai` | every AI call site |
+| Cloud-AI gate | `core/config.py` — `allow_cloud_ai` (default False); Groq no-ops when disabled | `services/ai_service.py` |
+| Backup | `scripts/backup_db.py` — snapshot → Fernet → optional S3/AWS4 PUT | ops/deploy |
+| Regression gate | `scripts/eval_golden_set.py` — 14-case golden set, `--strict` in CI | `ml/risk_engine.py`, `ml/emotion_classifier.py` |
 | Prompt text + versions | the `*_PROMPT_V1` constants (in `ai_service.py` / `api/agents.py` / `services/patient_context.py`) | same file that runs them; persisted as `AIAnalysis.prompt_version` |
 | Email/SMTP | `services/notification.py` — `send_email()` | crisis + notification paths |
 | Auth + tokens | `core/security.py` | all `api/*` (deps) |
@@ -73,4 +77,5 @@ Nothing AI produces is authoritative until a clinician approves it.
 - `/health` = full readiness (DB read + DB write + classifier); `/health/live`,
   `/health/ready`, `/health/ai` exist for finer probes. See `docs/DEPLOYMENT.md`.
 - AI unavailability degrades to rule-based output everywhere by contract (see
-  Deployment Guide, "Graceful degradation").
+  Deployment Guide, "Graceful degradation"). Cloud AI (Groq) is additionally gated behind
+  `ALLOW_CLOUD_AI=false` by default — an operator opt-in, not an automatic fallback.

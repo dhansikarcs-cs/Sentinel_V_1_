@@ -69,8 +69,12 @@ class ModelRegistry:
     ) -> dict:
         key = f"{name}:{version}"
         meta = ModelMetadata(name, version, model_type, path, trained_at, metrics, description)
+        existing = self._models.get(key)
+        if existing and existing.get("trained_at"):
+            meta.trained_at = existing["trained_at"]
         self._models[key] = meta.to_dict()
-        self._save()
+        if existing != meta.to_dict():
+            self._save()
         logger.info("Registered model %s v%s", name, version)
         return meta.to_dict()
 

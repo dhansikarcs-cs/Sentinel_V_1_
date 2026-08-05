@@ -48,7 +48,7 @@ The clinician interface presents only their assigned patients in a triaged list 
 
 ### 4.3 Trusted Contact Portal
 
-A standalone page (no login required) allows designated contacts to receive crisis notifications, confirm acknowledgment, and indicate physical response ("I'm on my way"). The psychologist dashboard reflects this status in real time.
+A standalone page (no login required) allows designated contacts to receive crisis notifications, confirm acknowledgment, and indicate physical response ("I'm on my way"). The psychologist dashboard reflects this status in real time. Access is secured by a signed link (HMAC over the patient identity and an expiry window), so the page cannot be guessed, replayed, or repurposed for another patient.
 
 ### 4.4 Adaptive Smart Room — Shared Sensory Modulation
 
@@ -69,11 +69,11 @@ Sentinel extends beyond software into the physical therapy environment through a
 The crisis engine implements a time-sensitive escalation hierarchy:
 
 - **Stage 1 (0–29 seconds):** Ambulance-style siren activates on the patient's device, providing immediate sensory feedback
-- **Stage 2 (30 seconds):** Email notification to trusted contact with acknowledgment link; contact can indicate they are en route
+- **Stage 2 (30 seconds):** Email notification to trusted contact with a signed acknowledgment link; contact can indicate they are en route
 - **Stage 3 (60 seconds):** Helpline escalation email if no acknowledgment received
 - **Termination:** Psychologist acknowledgment at any point stops all escalation, freezes the response timer, and records resolution duration
 
-This protocol ensures no crisis remains unaddressed due to a single point of failure.
+Activation is driven by an explainable risk engine (1–10) that blends keyword signals with emotion-classifier probabilities and a temporal trend over recent entries; automatic activation happens at the crisis threshold (≥8) and is throttled by a 3600-second cooldown so repeated journal entries cannot fire the full protocol repeatedly. This protocol ensures no crisis remains unaddressed due to a single point of failure.
 
 ## 6. AI as Assistant, Not Replacement
 
@@ -114,21 +114,26 @@ Research consistently demonstrates that physiological markers often precede self
 
 ## 9. Technical Architecture
 
-**Database:** SQLite (development) / PostgreSQL (production) — 15 tables including patient_profiles, journal_entries, mood_log, clinical_notes, crisis_state, crisis_log, followups, bookings, psych_availability, ring_sessions, auth_log, activity_log, and more. Connection pooling via context manager with auto-commit.
+**Frontend:** React 19 + TypeScript 5.4 + Vite 6, installable as a PWA (web manifest, service worker with network-first API caching and offline app shell).
 
-**Authentication:** PBKDF2-SHA256 password hashing (100k iterations). Clinic codes and profession codes for registration. Patient-psychologist assignment via database foreign key.
+**Backend:** FastAPI 0.109 with SQLAlchemy 2.0 over SQLite (PostgreSQL-ready), connection-safe session management, and a module layout (`api → services → repositories → models`) that keeps route handlers away from models.
 
-**UI Framework:** Streamlit 1.57.0 with rose-mauve dark palette (accent: #c06a8b, background: #0f1420). Per-day mood locking using `st.button(disabled=True)` and styled markdown divs.
+**Authentication:** bcrypt password hashing with a strict password policy (length, case, digits, specials, common-password blacklist), HS256 JWT access tokens with refresh-token rotation, HttpOnly cookie session storage, and per-account lockout after repeated failures. Sensitive fields are transparently encrypted with a PBKDF2-600K-derived Fernet key (encryption activated by an operator passphrase ceremony).
 
-**Testing:** 112 tests (79 non-AI + 33 agent tests hitting Groq API) via pytest with SQLite backend.
+**Security posture:** CORS lockdown, per-IP rate limiting, input sanitization (SQL-injection and XSS rejection on journal content), global error handlers that never leak stack traces, a hash-chained audit log, signed trusted-contact links, and device-token authentication for ring data ingestion (SHA-256 token hashing + constant-time compare). Cloud AI is disabled by default and enabled only by explicit operator opt-in.
+
+**Database:** schema covers patients, journals, moods, clinical notes, crisis state/log, bookings, follow-ups, ring devices and sensor logs, risk assessments, AI analyses, notifications, audit log, and the append-only event store.
+
+**Testing:** 82 backend tests (auth, journal pipeline, crisis trigger + cooldown, risk engine, ring ingestion, exports, event store, model registry) plus a 14-case golden-set gate (risk bands, triggers, emotion labels) enforced in CI; frontend builds are gated on `tsc` + Vite.
 
 ## 10. Deployment, Accessibility, and Sustainability
 
 The platform requires zero financial infrastructure:
-- **Framework:** Streamlit (open-source)
-- **AI:** Custom `sentinel` model via Ollama (fully offline, 4.4 GB, 7.2B parameters) or Groq Cloud API (free tier)
+- **Framework:** FastAPI + React (open-source)
+- **AI:** Custom `sentinel` model via Ollama (fully offline, 4.4 GB, 7.2B parameters) or Groq Cloud API (free tier, opt-in)
 - **Storage:** SQLite/PostgreSQL with transaction-safe operations
-- **Encryption:** Fernet symmetric encryption for journal content; PBKDF2 for passwords
+- **Encryption:** Fernet symmetric encryption for sensitive fields; bcrypt + PBKDF2 for passwords
+- **Hardware:** Consumer smart rings (Oura/Ultrahuman class) via secured device-token ingestion; deterministic simulator for development
 - **Hosting:** Render.com (free HTTPS, auto-deploy from GitHub)
 - **Mobile:** PWA support — "Add to Home Screen" on any device
 

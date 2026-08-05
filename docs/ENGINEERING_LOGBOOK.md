@@ -229,6 +229,77 @@ Implemented the ring SDK and secured device-binding layer, verified 9/9 SDK test
 
 ---
 
+## Phase 6 — Red-Team Audit, Trusted-Contact Security & Test Expansion
+
+### 2026-08-04 — Red-team audit (`concerns.md`, gitignored)
+
+Independent audit produced **43 findings** (41 original + 2 added during review): 6 critical,
+10 high, 15 medium, 12 low. 8 were directly code-solvable and were implemented in commit
+`cc43d0b`; the rest are deployment/misconfiguration items tracked externally (e.g. the Render
+dashboard `Sentinel_V_1_` service env).
+
+**Fix 1 (17) — export URL leaked a secret in the query string.**
+`?token=` removed from the auth fallback in `core/dependencies.py`; `client.ts` now exports via
+`Authorization: Bearer` + blob download (`downloadExport`).
+
+**Fix 2 (32) — cloud AI could fire even when disabled.**
+`allow_cloud_ai: bool = False` in `core/config.py`; `_query_groq()` returns early unless enabled.
+
+**Fix 3 (19) — trusted-contact links were plain predictable tokens.**
+`_make_trustee_link()` / `_verify_trustee_link()` now use an HMAC over `patient` + expiry
+(`SENTINEL_TRUSTEE_LINK_SECRET`, `SENTINEL_TRUSTEE_LINK_EXPIRE_SECONDS`). All crisis emails and
+`/public-state`, `/public-trustee-acknowledge`, `/public-trustee-clicked` require a signed link;
+`TrusteePortalPage.tsx` renders an invalid-link screen for bad signatures.
+
+**Fix 4 (3) — the AI worker crashed with no evidence when an analysis was skipped.**
+Cooldown skip path now emits `journal:summarized` and returns cleanly instead of erroring;
+`email_sent` captured on `CrisisLog`; `trigger_cooldown_seconds = 3600` centralized in `crisis_policy.py`.
+
+**Fix 5 (4/34) — AI provenance wasn't visible to patients.**
+`AiSourceBadge.tsx` added; rule-mode outputs show "⚠ RULE-SCORED — MODEL OFFLINE"; patient-facing
+disclaimers in `JournalPage.tsx` and `Dashboard.tsx`.
+
+**Fix 6 (15) — no automated database backup.**
+`scripts/backup_db.py` — consistent SQLite snapshot → Fernet encryption → optional S3-compatible
+AWS4-signed PUT (`SENTINEL_BACKUP_KEY`, `S3_*` env vars). Round-trip verified with a throwaway DB.
+
+**Fix 7 (33) — no golden-set regression gate.**
+`scripts/eval_golden_set.py` — 14 cases (10 risk bands/triggers + 4 emotion labels), passes
+`--strict`; wired into CI so a scoring regression fails the pipeline.
+
+### 2026-08-05 — Test expansion (82 tests) + bugs found
+
+Built a full in-process test harness (`conftest.py`): isolated SQLite DB per run, disabled
+rate-limiter + Ollama/Groq + websocket broadcast, seeded user fixtures. New suites:
+
+- `test_risk_engine.py` — band boundaries, emotion contribution, history escalation, explainability
+- `test_auth_flow.py` — register/login/refresh, password policy, duplicate/username rules, lockout, role gating
+- `test_journal_api.py` — create + background pipeline, idempotency, injection/XSS/blank rejection, soft delete, crisis trigger + cooldown
+- `test_export_data.py` — CSV export scoped to assigned patients, role gating
+- `test_ring_sensor.py` — pair/token push/unpair/revocation, JWT fallback, range validation
+- `test_sync_events.py` — event-store append/replay + API role gating
+- `test_model_registry.py` — registry metadata, register/activate, API auth
+
+**Bug found #1 (critical, pre-existing): journal summarization always crashed.**
+Both summary prompt templates contained literal `{"summary": "..."}`; Python's `.format()` parsed
+the braces as a replacement field → `KeyError: '"summary"'` on **every** journal submission. The
+background worker caught it, so entries stayed `ai_source="pending"` forever. Fixed by escaping
+braces (`{{"summary": "..."}}`). A regression test locks this down.
+
+**Bug found #2: whitespace-only journal entries were accepted.**
+`sanitize_text()` stripped to `""` but `validate_journal_content()` did not reject the result.
+Added an explicit empty-content rejection (422).
+
+**Bug found #3: importing `model_registry` mutated `model_registry.json`.**
+The module-level `registry.register()` calls always re-wrote the file, bumping `trained_at` and
+dirtying the tree on every test run. Registration now preserves the stored `trained_at` and skips
+the write when nothing changed.
+
+**Result:** `pytest tests/` = **82 passed**; `ruff check` + `ruff format --check` clean;
+`tsc -b` + `vite build` clean; golden set passes `--strict`; `model_registry.json` stays clean.
+
+---
+
 ## Final Stack
 
 | Component | Version |
@@ -245,13 +316,14 @@ Implemented the ring SDK and secured device-binding layer, verified 9/9 SDK test
 
 ## Stats
 - Lines: ~25,000
-- Commits: 23+
-- Security patches: 22 + device-token auth
+- Commits: 25+
+- Security patches: 22 + device-token auth + 8 red-team fixes (cc43d0b)
 - Benchmarks: 54 (52 pass; 9 ring API/SDK tests)
+- Backend tests: 82 (pytest) + 14-case golden set (CI-gated)
 - Open TODOs: ~12
 
 ---
 
-*Late 2025 → 2026-08-03*
+*Late 2025 → 2026-08-05*
 *Sentinel: On-Premises Psychophysiological Triage Node*
 *Samsung Solve for Tomorrow · IRIS · ISEF 2026*

@@ -62,6 +62,11 @@ def validate_no_xss(text: str) -> str:
 
 def validate_journal_content(text: str) -> str:
     text = sanitize_text(text, MAX_JOURNAL_LENGTH)
+    if not text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Journal content cannot be empty",
+        )
     text = validate_no_injection(text)
     text = validate_no_xss(text)
     return text

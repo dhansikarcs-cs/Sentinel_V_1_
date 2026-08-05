@@ -21,7 +21,7 @@ CLINICAL_JOURNAL_SUMMARY_PROMPT_V1 = (
     "and write a brief clinical summary (2-4 sentences)."
     "{emotion_hint}"
     " Use clinical tone, third person, past tense. Do not quote verbatim."
-    ' Return valid JSON: {"summary": "..."}.'
+    ' Return valid JSON: {{"summary": "..."}}.'
     "\n\nJournal Entry:\n{text}"
 )
 FRIENDLY_JOURNAL_SUMMARY_PROMPT_V1 = (
@@ -35,7 +35,7 @@ FRIENDLY_JOURNAL_SUMMARY_PROMPT_V1 = (
     "No advice whatsoever — "
     "no suggestions, no 'try this', no 'consider that', no 'remember to', "
     "no coping techniques, no deep breaths. Zero prescription. Just be there for them."
-    ' Return valid JSON: {"summary": "..."}.'
+    ' Return valid JSON: {{"summary": "..."}}.'
     "\n\nJournal Entry:\n{text}"
 )
 NOTE_SYNTHESIS_PROMPT_V1 = (

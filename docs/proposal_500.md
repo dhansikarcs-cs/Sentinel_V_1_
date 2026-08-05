@@ -10,7 +10,7 @@ Existing solutions fragment care. Telehealth platforms offer appointment-only ac
 
 Sentinel is designed as a hardware-software ecosystem, not a singular application. Its uniqueness lies in three architectural distinctions:
 
-**Tri-directional stakeholder loop:** Sentinel simultaneously serves patients, psychologists, and trusted contacts through three synchronized interfaces — a patient self-monitoring portal, a clinician triage dashboard, and a no-login trusted contact response page. No existing platform connects all three in real-time with automated escalation.
+**Tri-directional stakeholder loop:** Sentinel simultaneously serves patients, psychologists, and trusted contacts through three synchronized interfaces — a patient self-monitoring portal, a clinician triage dashboard, and a no-login trusted contact response page secured by signed (HMAC) patient-scoped links. No existing platform connects all three in real-time with automated escalation.
 
 **Hardware-software integration:** Biometric data from wearable-grade sensors feeds into the same assessment pipeline as emotional journal entries. This creates a unified psychophysiological data stream — heart rate variability, sleep patterns, and stress levels analyzed alongside subjective mood and written reflection.
 
@@ -38,15 +38,16 @@ When a patient triggers emergency: immediate audiovisual siren (0–29s), truste
 
 The AI never makes clinical decisions. It does not diagnose, prescribe, or override clinical judgment. Its role is strictly supportive. The custom `sentinel` model (7.2B parameters, therapy-tuned via Ollama) provides empathy-toned reflections for patients and structured clinical notes for psychologists. A TF-IDF emotion classifier over 28 GoEmotions labels detects emotional states from journal text, and echo detection prevents the AI from simply parroting the patient's words.
 
-For clinics requiring absolute data privacy, the model runs entirely offline via Ollama — no data leaves the building. For cloud deployments, Groq API provides fast summarization as fallback. A three-tier fallback ensures resilience: Ollama → Groq → rule-based extraction.
+For clinics requiring absolute data privacy, the model runs entirely offline via Ollama — no data leaves the building, and cloud AI (Groq) is disabled by default, activated only by explicit operator opt-in. A three-tier fallback ensures resilience: Ollama → Groq (opt-in) → rule-based extraction. Every output carries its model version, prompt version, and confidence score, and nothing becomes part of a clinical record until a psychologist approves it.
 
 ## 4. Scientific Foundation — Biology Meets Psychology
 
 Sentinel's assessment approach is rooted in psychophysiological integration:
 
-- **Biometric data:** Heart rate, stress levels, sleep duration, SpO₂, mood — deterministically seeded per user per hour
+- **Biometric data:** Heart rate, stress levels, sleep duration, SpO₂, mood — ingested from paired smart rings (Oura/Ultrahuman class) via a secured device-token channel, with a deterministic simulator for development
 - **Emotional data:** Free-text journals with emotion-labeled analysis across 28 labels
 - **Emotion classifier:** TF-IDF + LogisticRegression trained on GoEmotions, running locally as a Python pickle (~4 MB)
+- **Risk engine:** Explainable score (1–10) blending keyword signals with emotion probabilities, plus temporal trend analysis over recent entries — with a cooldown window that prevents crisis protocol re-triggering on every entry
 
 Research demonstrates that physiological markers — elevated resting heart rate, disrupted sleep — often precede self-reported emotional deterioration by hours or days. By combining these streams with emotion-labeled analysis, Sentinel enables earlier pattern recognition.
 
@@ -56,4 +57,4 @@ The psychologist dashboard includes self-monitoring metrics, creating awareness 
 
 ## 6. Accessibility & Deployment
 
-The entire platform runs on free-tier services — Ollama (fully offline) or Groq AI, Streamlit, and Render.com. SQLite/PostgreSQL dual-backend replaces the earlier JSON storage with transaction-safe operations across 15 database tables (patient_profiles, journal_entries, mood_log, crisis_state, and more). Zero financial barrier for any clinic, school, or community center.
+The platform runs on a FastAPI + React (TypeScript) stack with SQLAlchemy over SQLite (PostgreSQL-ready) — free-tier friendly, deployable on Render or any container host, with an installable PWA for mobile use. The AI runs fully offline via Ollama (or Groq, opt-in), eliminating recurring API costs. A golden-set regression suite and 82 automated backend tests gate every change in CI, and an encrypted database backup script protects clinic data. Zero financial barrier for any clinic, school, or community center.
