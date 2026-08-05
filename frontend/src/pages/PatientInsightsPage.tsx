@@ -30,7 +30,7 @@ export default function PatientInsightsPage() {
   return (
     <div className="animate-fade-in">
       <h2>{'\u{1F50D}'} Patient Insights</h2>
-      <p style={{ color: '#6a6474', fontSize: '0.75rem', marginBottom: '12px' }}>
+      <p style={{ color: '#7d877e', fontSize: '0.75rem', marginBottom: '12px' }}>
         A plain-language read on how the patient is doing. The numbers behind it stay in one place at the end, for when you want them.
       </p>
 
@@ -51,8 +51,8 @@ export default function PatientInsightsPage() {
               style={{
                 padding: '8px 16px', fontSize: '0.8125rem', borderRadius: '8px',
                 background: subTab === t.key ? '#2a2040' : 'transparent',
-                border: `1px solid ${subTab === t.key ? '#c49ea460' : '#2d2d44'}`,
-                color: subTab === t.key ? '#c49ea4' : '#6a6474',
+                border: `1px solid ${subTab === t.key ? '#8fcbb160' : '#31423a'}`,
+                color: subTab === t.key ? '#8fcbb1' : '#7d877e',
                 cursor: 'pointer', fontWeight: subTab === t.key ? 600 : 400,
               }}
             >
@@ -63,7 +63,7 @@ export default function PatientInsightsPage() {
       )}
 
       {!selected && (
-        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '32px' }}>
+        <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '32px' }}>
           Select a patient to see how they're doing.
         </div>
       )}
@@ -93,8 +93,8 @@ function CurrentStateSection({ patient, overview }: { patient: string; overview:
     <>
       {identity.name && (
         <div className="card" style={{ padding: '14px', marginBottom: '16px' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f0f4ff' }}>{identity.name}</div>
-          <div style={{ color: '#7a8aaa', fontSize: '0.7rem', marginTop: '2px' }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f0f2e8' }}>{identity.name}</div>
+          <div style={{ color: '#8aa198', fontSize: '0.7rem', marginTop: '2px' }}>
             @{identity.username}
             {identity.age ? ` \u00B7 ${identity.age} yrs` : ''}
             {identity.occupation ? ` \u00B7 ${identity.occupation}` : ''}
@@ -103,9 +103,9 @@ function CurrentStateSection({ patient, overview }: { patient: string; overview:
       )}
 
       {alerts.length > 0 && (
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '14px' }}>
           {alerts.map((a: string, i: number) => (
-            <div key={i} style={{ background: '#2a0f1c', border: '1px solid #ef444455', color: '#fca5a5', borderRadius: '8px', padding: '8px 12px', fontSize: '0.75rem', marginBottom: '6px' }}>
+            <div key={i} style={{ background: '#1a1420', border: '1px solid #f59e0b33', borderLeft: '3px solid #f59e0b', color: '#e8c084', borderRadius: '8px', padding: '8px 12px', fontSize: '0.75rem', marginBottom: '6px' }}>
               {'\u26A0\uFE0F'} {a}
             </div>
           ))}
@@ -113,44 +113,44 @@ function CurrentStateSection({ patient, overview }: { patient: string; overview:
       )}
 
       {loading && (
-        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>
+        <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>
           Reading through the data...
         </div>
       )}
 
       {!loading && insights && (
-        <>
-          <div className="card" style={{ padding: '18px', marginBottom: '12px', background: 'linear-gradient(180deg, #241b33 0%, #1b2130 100%)', borderColor: '#c49ea450' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.5px' }}>HOW SHE'S DOING</span>
-              {insights.source && <AiSourceBadge source={insights.source} />}
-            </div>
-            <div style={{ color: '#f0f4ff', fontSize: '1.05rem', fontWeight: 700, lineHeight: 1.5 }}>{insights.headline}</div>
+        <div className="card" style={{ padding: '20px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <span style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.5px' }}>HOW SHE'S DOING</span>
+            {insights.source && <div style={{ marginLeft: 'auto' }}><AiSourceBadge source={insights.source} /></div>}
           </div>
+          <div style={{ color: '#f0f2e8', fontSize: '1.02rem', fontWeight: 700, lineHeight: 1.5, marginBottom: '14px' }}>{insights.headline}</div>
 
           {(insights.insights || []).length > 0 && (
-            <div className="card" style={{ padding: '14px', marginBottom: '12px' }}>
-              <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.68rem', marginBottom: '10px' }}>THE DETAIL, IN PLAIN WORDS</div>
+            <>
+              <div style={{ height: '1px', background: '#31423a', marginBottom: '14px' }} />
+              <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.5px', marginBottom: '8px' }}>THE DETAIL, IN PLAIN WORDS</div>
               {insights.insights.map((text: string, i: number) => (
-                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '8px', fontSize: '0.8rem', color: '#d8d4dc', lineHeight: 1.5 }}>
-                  <span style={{ color: '#c49ea4', flexShrink: 0 }}>{'\u2022'}</span>
+                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '7px', fontSize: '0.8rem', color: '#d9ddd3', lineHeight: 1.55 }}>
+                  <span style={{ color: '#8fcbb1', flexShrink: 0 }}>{'\u2022'}</span>
                   <span>{text}</span>
                 </div>
               ))}
-            </div>
+            </>
           )}
 
           {insights.suggestion && (
-            <div className="card" style={{ padding: '14px', marginBottom: '16px', borderColor: '#22c55e33', background: '#12201a' }}>
-              <div style={{ color: '#22c55e', fontWeight: 600, fontSize: '0.68rem', marginBottom: '6px' }}>WHAT TO DO NEXT</div>
-              <div style={{ color: '#d8d4dc', fontSize: '0.82rem', lineHeight: 1.5 }}>{insights.suggestion}</div>
-            </div>
+            <>
+              <div style={{ height: '1px', background: '#31423a', margin: '14px 0' }} />
+              <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.5px', marginBottom: '6px' }}>WHAT TO DO NEXT</div>
+              <div style={{ color: '#d9ddd3', fontSize: '0.82rem', lineHeight: 1.55 }}>{insights.suggestion}</div>
+            </>
           )}
-        </>
+        </div>
       )}
 
       {!loading && !insights && (
-        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>
+        <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>
           Could not compose a summary right now. The raw data below is still available.
         </div>
       )}
@@ -161,7 +161,7 @@ function CurrentStateSection({ patient, overview }: { patient: string; overview:
 }
 
 function OverviewData({ overview, loading }: { overview: any; loading: boolean }) {
-  if (loading) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>Composing patient state...</div>
+  if (loading) return <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>Composing patient state...</div>
   if (!overview) return <div className="card" style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>Failed to load overview.</div>
 
   const identity = overview.patient || {}
@@ -180,30 +180,30 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>PATIENT</div>
-          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f0f4ff' }}>{identity.name || identity.username}</div>
-          <div style={{ color: '#7a8aaa', fontSize: '0.7rem', marginTop: '2px' }}>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>PATIENT</div>
+          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f0f2e8' }}>{identity.name || identity.username}</div>
+          <div style={{ color: '#8aa198', fontSize: '0.7rem', marginTop: '2px' }}>
             @{identity.username} &middot; {identity.role}
           </div>
-          <div style={{ color: '#6a6474', fontSize: '0.65rem', marginTop: '4px' }}>
+          <div style={{ color: '#7d877e', fontSize: '0.65rem', marginTop: '4px' }}>
             {identity.age || '?'} yrs &middot; {identity.occupation || '—'} &middot; {identity.clinic || '—'}
           </div>
         </div>
 
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>MOOD TREND</div>
+          <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>MOOD TREND</div>
           <div style={{ color: changes.mood_trend === 'improving' ? '#22c55e' : changes.mood_trend === 'declining' ? '#ef4444' : '#fbbf24', fontSize: '1.1rem', fontWeight: 700 }}>
             {changes.mood_trend === 'improving' ? '\u2197\uFE0F improving' : changes.mood_trend === 'declining' ? '\u2198 declining' : changes.mood_trend === 'stable' ? '\u2192 stable' : '\u2014'}
           </div>
-          <div style={{ color: '#7a8aaa', fontSize: '0.65rem' }}>
+          <div style={{ color: '#8aa198', fontSize: '0.65rem' }}>
             Now: {changes.current_mood_avg ? `${Number(changes.current_mood_avg).toFixed(1)}/5` : 'N/A'} | Prev: {changes.previous_mood_avg ? `${Number(changes.previous_mood_avg).toFixed(1)}/5` : 'N/A'}
           </div>
         </div>
 
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>ENGAGEMENT</div>
-          <div style={{ color: '#f0f4ff', fontSize: '1.1rem', fontWeight: 700 }}>
-            {changes.journal_count_7 || 0} <span style={{ fontSize: '0.6rem', color: '#6a6474' }}>journals 7d</span>
+          <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>ENGAGEMENT</div>
+          <div style={{ color: '#f0f2e8', fontSize: '1.1rem', fontWeight: 700 }}>
+            {changes.journal_count_7 || 0} <span style={{ fontSize: '0.6rem', color: '#7d877e' }}>journals 7d</span>
           </div>
           <div style={{ color: changes.engagement_trend === 'increasing' ? '#22c55e' : changes.engagement_trend === 'declining' ? '#ef4444' : '#fbbf24', fontSize: '0.65rem' }}>
             {changes.engagement_trend === 'increasing' ? '\u2197' : changes.engagement_trend === 'declining' ? '\u2198' : '\u2192'} {changes.journal_count_14 || 0} in 14d
@@ -213,74 +213,74 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>RISK SNAPSHOT</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>RISK SNAPSHOT</div>
           {risk ? (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: risk.triggered ? '#ef4444' : risk.risk_score >= 7 ? '#f59e0b' : '#22c55e', fontSize: '1.4rem', fontWeight: 700 }}>{risk.risk_score}/10</span>
                 {risk.triggered && <span style={{ fontSize: '0.9rem' }}>{'\u{1F6A8}'}</span>}
               </div>
-              <div style={{ color: '#6a6474', fontSize: '0.6rem' }}>
+              <div style={{ color: '#7d877e', fontSize: '0.6rem' }}>
                 {formatDate(risk.created_at)} &middot; confidence {risk.confidence ? `${(risk.confidence * 100).toFixed(0)}%` : 'N/A'}
                 {risk.algorithm_version ? ` &middot; engine v${risk.algorithm_version}` : ''}
               </div>
               {(risk.explanation || '').length > 0 && (
-                <div style={{ color: '#7a8aaa', fontSize: '0.62rem', marginTop: '4px', lineHeight: 1.5 }}>
+                <div style={{ color: '#8aa198', fontSize: '0.62rem', marginTop: '4px', lineHeight: 1.5 }}>
                   {risk.explanation.slice(0, 160)}
                 </div>
               )}
             </>
           ) : (
-            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No assessments yet.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>No assessments yet.</div>
           )}
         </div>
 
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>FOLLOW-UPS</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>FOLLOW-UPS</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#f0f4ff', fontSize: '1.4rem', fontWeight: 700 }}>{followups.pending || 0}</span>
-            <span style={{ color: '#6a6474', fontSize: '0.65rem' }}>pending of {followups.total || 0}</span>
+            <span style={{ color: '#f0f2e8', fontSize: '1.4rem', fontWeight: 700 }}>{followups.pending || 0}</span>
+            <span style={{ color: '#7d877e', fontSize: '0.65rem' }}>pending of {followups.total || 0}</span>
           </div>
           <div style={{ color: '#22c55e', fontSize: '0.65rem' }}>{followups.completed || 0} completed</div>
           {(followups.list || []).slice(0, 3).map((f: any) => (
-            <div key={f.id} style={{ color: '#7a8aaa', fontSize: '0.62rem', marginTop: '3px' }}>
+            <div key={f.id} style={{ color: '#8aa198', fontSize: '0.62rem', marginTop: '3px' }}>
               {f.status === 'completed' ? '\u2705' : '\u23F3'} {f.title}
             </div>
           ))}
         </div>
 
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>LATEST RING</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>LATEST RING</div>
           {latestSensor ? (
             <>
-              <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', color: '#7a8aaa' }}>
-                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.bpm || '—'}</span> BPM</span>
-                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.stress || '—'}</span> stress</span>
-                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.sleep_hours || '—'}</span>h sleep</span>
+              <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', color: '#8aa198' }}>
+                <span><span style={{ color: '#f0f2e8', fontWeight: 700 }}>{latestSensor.bpm || '—'}</span> BPM</span>
+                <span><span style={{ color: '#f0f2e8', fontWeight: 700 }}>{latestSensor.stress || '—'}</span> stress</span>
+                <span><span style={{ color: '#f0f2e8', fontWeight: 700 }}>{latestSensor.sleep_hours || '—'}</span>h sleep</span>
               </div>
-              <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', color: '#7a8aaa', marginTop: '3px' }}>
-                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.spo2 || '—'}</span> SpO2</span>
-                <span><span style={{ color: '#f0f4ff', fontWeight: 700 }}>{latestSensor.hrv || '—'}</span> HRV</span>
+              <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', color: '#8aa198', marginTop: '3px' }}>
+                <span><span style={{ color: '#f0f2e8', fontWeight: 700 }}>{latestSensor.spo2 || '—'}</span> SpO2</span>
+                <span><span style={{ color: '#f0f2e8', fontWeight: 700 }}>{latestSensor.hrv || '—'}</span> HRV</span>
               </div>
-              <div style={{ color: '#6a6474', fontSize: '0.6rem', marginTop: '4px' }}>{formatTime(latestSensor.logged_at)}</div>
+              <div style={{ color: '#7d877e', fontSize: '0.6rem', marginTop: '4px' }}>{formatTime(latestSensor.logged_at)}</div>
             </>
           ) : (
-            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No ring data yet.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>No ring data yet.</div>
           )}
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>CLINICAL BRIEF</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>CLINICAL BRIEF</div>
           {overview.clinical_brief ? (
             <>
-              <div style={{ color: '#f0f4ff', fontSize: '0.72rem', fontWeight: 600 }}>{formatTime(overview.clinical_brief.timestamp)}</div>
-              <div style={{ color: '#7a8aaa', fontSize: '0.68rem', marginTop: '4px', lineHeight: 1.5 }}>
+              <div style={{ color: '#f0f2e8', fontSize: '0.72rem', fontWeight: 600 }}>{formatTime(overview.clinical_brief.timestamp)}</div>
+              <div style={{ color: '#8aa198', fontSize: '0.68rem', marginTop: '4px', lineHeight: 1.5 }}>
                 {(overview.clinical_brief.clinical_summary || overview.clinical_brief.summary || '').slice(0, 260)}
               </div>
               {(overview.clinical_brief.emotions || '').length > 0 && (
-                <div style={{ color: '#6a6474', fontSize: '0.62rem', marginTop: '4px' }}>Emotions: {overview.clinical_brief.emotions}</div>
+                <div style={{ color: '#7d877e', fontSize: '0.62rem', marginTop: '4px' }}>Emotions: {overview.clinical_brief.emotions}</div>
               )}
               {overview.clinical_brief.ai_analysis && (
                 <div style={{ color: '#5a5464', fontSize: '0.58rem', marginTop: '6px', lineHeight: 1.6 }}>
@@ -295,29 +295,29 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
               )}
             </>
           ) : (
-            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No recent journals.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>No recent journals.</div>
           )}
         </div>
 
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>LAST APPOINTMENT</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>LAST APPOINTMENT</div>
           {overview.last_appointment ? (
             <>
-              <div style={{ color: '#f0f4ff', fontSize: '0.72rem', fontWeight: 600 }}>
+              <div style={{ color: '#f0f2e8', fontSize: '0.72rem', fontWeight: 600 }}>
                 {formatDate(overview.last_appointment.date)} {overview.last_appointment.time}
               </div>
-              <div style={{ color: '#7a8aaa', fontSize: '0.68rem', marginTop: '2px' }}>
+              <div style={{ color: '#8aa198', fontSize: '0.68rem', marginTop: '2px' }}>
                 {overview.last_appointment.session_type || 'Session'} &middot; {overview.last_appointment.status}
               </div>
-              <div style={{ color: '#6a6474', fontSize: '0.62rem', marginTop: '2px' }}>{overview.last_appointment.psychologist_username}</div>
+              <div style={{ color: '#7d877e', fontSize: '0.62rem', marginTop: '2px' }}>{overview.last_appointment.psychologist_username}</div>
             </>
           ) : (
-            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No appointments yet.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>No appointments yet.</div>
           )}
           {crisis && (
             <div style={{ marginTop: '8px', background: '#2a0f1c', border: '1px solid #ef444455', borderRadius: '6px', padding: '6px 8px' }}>
               <span style={{ color: '#ef4444', fontSize: '0.65rem', fontWeight: 700 }}>{'\u{1F6A8}'} CRISIS ACTIVE</span>
-              <div style={{ color: '#7a8aaa', fontSize: '0.6rem', marginTop: '2px' }}>
+              <div style={{ color: '#8aa198', fontSize: '0.6rem', marginTop: '2px' }}>
                 triggered {formatTime(crisis.triggered_at)} &middot; {crisis.acknowledged ? 'acknowledged' : 'NOT acknowledged'}
               </div>
             </div>
@@ -327,11 +327,11 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
 
       {latestMood && (
         <div className="card" style={{ padding: '10px', marginBottom: '16px' }}>
-          <div style={{ color: '#6a6474', fontSize: '0.6rem', marginBottom: '4px' }}>LATEST MOOD &middot; MOOD TREND (14d)</div>
+          <div style={{ color: '#7d877e', fontSize: '0.6rem', marginBottom: '4px' }}>LATEST MOOD &middot; MOOD TREND (14d)</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.4rem' }}>{moodIcon(latestMood.label)}</span>
             <span style={{ color: '#e0e8f0', fontWeight: 600, fontSize: '0.75rem' }}>{latestMood.label}</span>
-            <span style={{ color: '#6a6474', fontSize: '0.65rem' }}>{formatTime(latestMood.timestamp)}</span>
+            <span style={{ color: '#7d877e', fontSize: '0.65rem' }}>{formatTime(latestMood.timestamp)}</span>
             <div style={{ flex: 1, display: 'flex', gap: '3px' }}>
               {moodTrend.map((m: any, i: number) => (
                 <div key={i} style={{ flex: 1, fontSize: '0.8rem', opacity: m.timestamp === latestMood.timestamp ? 1 : 0.55 }} title={`${m.label} ${formatDate(m.timestamp)}`}>
@@ -345,12 +345,12 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
 
       <h3 style={{ marginTop: '4px' }}>{'\u{1F4C5}'} Recent Activity</h3>
       {events.length === 0 ? (
-        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>No events in the last 30 days.</div>
+        <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>No events in the last 30 days.</div>
       ) : (
         <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
           {events.slice(0, 40).map((ev: any, i: number) => {
             const colors: Record<string, string> = { mood: '#22c55e', journal: '#6366f1', followup: '#f59e0b', crisis: '#ef4444' }
-            const borderLeft = `3px solid ${colors[ev.type] || '#6a6474'}`
+            const borderLeft = `3px solid ${colors[ev.type] || '#7d877e'}`
             return (
               <div key={i} style={{ borderLeft, background: '#111827', borderRadius: '6px', padding: '8px 12px', margin: '4px 0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -360,9 +360,9 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
                      ev.type === 'followup' ? `${ev.data?.status === 'completed' ? '\u2705' : '\u23F3'} ${ev.data?.title || 'Task'}` :
                      `\u{1F6A8} ${(ev.data?.event || 'Crisis').toUpperCase()}`}
                   </span>
-                  <span style={{ color: '#6a6474', fontSize: '0.65rem' }}>{formatTime(ev.timestamp)}</span>
+                  <span style={{ color: '#7d877e', fontSize: '0.65rem' }}>{formatTime(ev.timestamp)}</span>
                 </div>
-                <div style={{ color: '#7a8aaa', fontSize: '0.7rem', marginTop: '2px' }}>
+                <div style={{ color: '#8aa198', fontSize: '0.7rem', marginTop: '2px' }}>
                   {ev.type === 'mood' ? `Mood: ${ev.data?.label || 'N/A'} on ${ev.data?.date || ''}` :
                    ev.type === 'journal' ? (ev.data?.summary || '').slice(0, 150) :
                    ev.data?.description || ev.data?.details || ''}
@@ -386,7 +386,7 @@ function RawDataSection({ patient, overview }: { patient: string; overview: any 
   return (
     <>
       <div className="card" style={{ padding: '12px 14px', marginBottom: '16px', background: '#141a29' }}>
-        <div style={{ color: '#9a92a2', fontSize: '0.75rem', lineHeight: 1.6 }}>
+        <div style={{ color: '#9ca99e', fontSize: '0.75rem', lineHeight: 1.6 }}>
           {'\u{1F4CA}'} This tab holds the raw numbers and AI traces behind the plain-language summary above. You don't need it for everyday work — it's here for review when you want to dig in.
         </div>
       </div>
@@ -413,7 +413,7 @@ function EmotionsSection({ patient }: { patient: string }) {
     api.getEmotionTimeline(patient, 30).then(setData).catch(() => {})
   }, [patient])
 
-  if (!data) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>Loading emotional state...</div>
+  if (!data) return <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>Loading emotional state...</div>
 
   const summary = data.emotion_summary || {}
   const timeline = data.timeline || []
@@ -457,56 +457,56 @@ function EmotionsSection({ patient }: { patient: string }) {
       .map(([e]) => e)
 
   if (entriesCount === 0) {
-    return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>No analyzed journal entries in this window.</div>
+    return <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>No analyzed journal entries in this window.</div>
   }
 
   return (
     <>
       <div className="card" style={{ padding: '14px', marginBottom: '16px' }}>
-        <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>
+        <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>
           EMOTIONAL STATE · {entriesCount} ENTRIES (30d)
         </div>
         {dominant.length > 0 && (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
             {dominant.map(([emo, info]: [string, any]) => (
-              <div key={emo} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: '#1e2336', border: '1px solid #2d2d44' }}>
+              <div key={emo} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: '#1d2623', border: '1px solid #31423a' }}>
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'capitalize', color: '#e0e8f0' }}>{emo}</span>
-                <span style={{ fontSize: '0.6875rem', color: '#7a8aaa' }}>{pct(info.average)}% avg</span>
+                <span style={{ fontSize: '0.6875rem', color: '#8aa198' }}>{pct(info.average)}% avg</span>
               </div>
             ))}
           </div>
         )}
         {mostConsistent && (
-          <div style={{ fontSize: '0.6875rem', color: '#7a8aaa' }}>
-            Most consistent: <strong style={{ color: '#d8d4dc', textTransform: 'capitalize' }}>{mostConsistent[0]}</strong> — present in {mostConsistent[1].count} of {entriesCount} entries
+          <div style={{ fontSize: '0.6875rem', color: '#8aa198' }}>
+            Most consistent: <strong style={{ color: '#d9ddd3', textTransform: 'capitalize' }}>{mostConsistent[0]}</strong> — present in {mostConsistent[1].count} of {entriesCount} entries
           </div>
         )}
       </div>
 
       {shiftNotes.length > 0 && (
         <div className="card" style={{ padding: '14px', marginBottom: '16px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>NOTABLE SHIFTS</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>NOTABLE SHIFTS</div>
           {shiftNotes.slice(0, 4).map(s => (
             <div key={s.emo} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontSize: '0.75rem' }}>
               <span style={{ color: s.dir === 'up' ? '#f87171' : '#60a5fa', fontWeight: 700 }}>{s.dir === 'up' ? '\u2191' : '\u2193'}</span>
               <span style={{ textTransform: 'capitalize', color: '#e0e8f0', fontWeight: 600 }}>{s.emo}</span>
-              <span style={{ color: '#7a8aaa' }}>{s.dir === 'up' ? 'rising' : 'receding'} in recent entries ({pct(s.diff)}pt swing)</span>
+              <span style={{ color: '#8aa198' }}>{s.dir === 'up' ? 'rising' : 'receding'} in recent entries ({pct(s.diff)}pt swing)</span>
             </div>
           ))}
         </div>
       )}
 
-      <h4 style={{ fontSize: '0.85rem', color: '#9a92a2', fontWeight: 600 }}>Journal Timeline ({entriesCount} entries)</h4>
+      <h4 style={{ fontSize: '0.85rem', color: '#9ca99e', fontWeight: 600 }}>Journal Timeline ({entriesCount} entries)</h4>
       {timeline.map((point: any) => {
         const labels = topLabels(point)
         return (
           <div key={point.journal_id} className="card" style={{ padding: '10px 12px', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <span style={{ color: '#6a6474', fontSize: '0.6875rem' }}>{point.timestamp?.slice(0, 10)}</span>
-              <span style={{ flex: 1, fontSize: '0.8rem', color: '#d8d4dc' }}>
+              <span style={{ color: '#7d877e', fontSize: '0.6875rem' }}>{point.timestamp?.slice(0, 10)}</span>
+              <span style={{ flex: 1, fontSize: '0.8rem', color: '#d9ddd3' }}>
                 {labels.length > 0 ? (
                   labels.map(l => (
-                    <span key={l} style={{ textTransform: 'capitalize', background: 'rgba(196,158,164,0.1)', border: '1px solid rgba(196,158,164,0.25)', borderRadius: '999px', padding: '2px 10px', marginRight: '6px', fontSize: '0.68rem', color: '#c49ea4' }}>{l}</span>
+                    <span key={l} style={{ textTransform: 'capitalize', background: 'rgba(143,203,177,0.1)', border: '1px solid rgba(143,203,177,0.25)', borderRadius: '999px', padding: '2px 10px', marginRight: '6px', fontSize: '0.68rem', color: '#8fcbb1' }}>{l}</span>
                   ))
                 ) : (
                   (point.emotions || '').split(',').map((e: string) => e.trim()).filter(Boolean).slice(0, 3).join(' \u00B7 ')
@@ -542,7 +542,7 @@ function AITraceSection({ patient }: { patient: string }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
         <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
           <div style={{ color: '#889', fontSize: '0.65rem' }}>AI Analyses</div>
-          <div style={{ color: '#c49ea4', fontSize: '1.3rem', fontWeight: 700 }}>{analyses.length}</div>
+          <div style={{ color: '#8fcbb1', fontSize: '1.3rem', fontWeight: 700 }}>{analyses.length}</div>
         </div>
         <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
           <div style={{ color: '#889', fontSize: '0.65rem' }}>Risk Assessments</div>
@@ -556,15 +556,15 @@ function AITraceSection({ patient }: { patient: string }) {
 
       {risks.length > 0 && (
         <>
-          <h4 style={{ fontSize: '0.85rem', color: '#9a92a2', fontWeight: 600 }}>Risk Assessments</h4>
+          <h4 style={{ fontSize: '0.85rem', color: '#9ca99e', fontWeight: 600 }}>Risk Assessments</h4>
           {risks.slice(0, 10).map((r: any) => (
             <div key={r.id} className="expander" style={{ cursor: 'default' }}>
               <div className="expander-header">
                 <span>{r.created_at?.slice(0, 10)} &middot; Risk: {r.risk_score}/10 {r.triggered ? '\u{1F6A8}' : ''}</span>
-                <span style={{ color: '#6a6474', fontSize: '0.6rem' }}>v{r.algorithm_version}</span>
+                <span style={{ color: '#7d877e', fontSize: '0.6rem' }}>v{r.algorithm_version}</span>
               </div>
               <div className="expander-body">
-                <div style={{ fontSize: '0.6875rem', color: '#9aa8c0', lineHeight: 1.6 }}>
+                <div style={{ fontSize: '0.6875rem', color: '#9dada4', lineHeight: 1.6 }}>
                   {r.explanation && (() => {
                     try {
                       const exp = JSON.parse(r.explanation)
@@ -573,7 +573,7 @@ function AITraceSection({ patient }: { patient: string }) {
                           {exp.top_contributors?.map((c: any, i: number) => (
                             <div key={i}>&bull; {c.emotion}: P={c.probability?.toFixed(2)}, weight={c.weight}, contribution={c.contribution?.toFixed(3)}</div>
                           ))}
-                          <div style={{ marginTop: '4px', color: '#6a6474' }}>
+                          <div style={{ marginTop: '4px', color: '#7d877e' }}>
                             Keyword: {exp.keyword_base_score} | Emotion: {exp.emotion_risk_score} | Blended: {exp.blended_score}
                           </div>
                         </>
@@ -589,16 +589,16 @@ function AITraceSection({ patient }: { patient: string }) {
 
       {analyses.length > 0 && (
         <>
-          <h4 style={{ fontSize: '0.85rem', color: '#9a92a2', fontWeight: 600, marginTop: '16px' }}>AI Analysis History</h4>
+          <h4 style={{ fontSize: '0.85rem', color: '#9ca99e', fontWeight: 600, marginTop: '16px' }}>AI Analysis History</h4>
           {analyses.slice(0, 10).map((a: any) => (
             <div key={a.id} className="card" style={{ marginBottom: '6px', padding: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.7rem' }}>{a.created_at?.slice(0, 10)} &middot; {a.priority}</span>
+                <span style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.7rem' }}>{a.created_at?.slice(0, 10)} &middot; {a.priority}</span>
                 <span style={{ fontSize: '0.55rem', padding: '1px 5px', borderRadius: '3px', background: a.provider === 'groq' ? '#22c55e22' : '#f59e0b22', color: a.provider === 'groq' ? '#22c55e' : '#f59e0b' }}>
                   {a.provider} v{a.model_version}
                 </span>
               </div>
-              <div style={{ color: '#9aa8c0', fontSize: '0.65rem', marginTop: '2px' }}>
+              <div style={{ color: '#9dada4', fontSize: '0.65rem', marginTop: '2px' }}>
                 Confidence: {a.confidence != null ? `${(a.confidence * 100).toFixed(1)}%` : 'N/A'}
               </div>
             </div>
@@ -608,7 +608,7 @@ function AITraceSection({ patient }: { patient: string }) {
 
       {emotionResults.length > 0 && (
         <>
-          <h4 style={{ fontSize: '0.85rem', color: '#9a92a2', fontWeight: 600, marginTop: '16px' }}>Emotion Probability History</h4>
+          <h4 style={{ fontSize: '0.85rem', color: '#9ca99e', fontWeight: 600, marginTop: '16px' }}>Emotion Probability History</h4>
           {emotionResults.slice(0, 5).map((er: any) => {
             const probs: Record<string, number> = {}
             const fields = ['admiration','amusement','anger','annoyance','approval','caring','confusion','curiosity','desire','disappointment','disapproval','disgust','embarrassment','excitement','fear','gratitude','grief','joy','love','nervousness','optimism','pride','realization','relief','remorse','sadness','surprise','neutral']
@@ -616,8 +616,8 @@ function AITraceSection({ patient }: { patient: string }) {
             return (
               <div key={er.id} className="card" style={{ marginBottom: '6px', padding: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ color: '#c49ea4', fontSize: '0.7rem' }}>{er.created_at?.slice(0, 10)}</span>
-                  <span style={{ color: '#6a6474', fontSize: '0.55rem' }}>v{er.model_version}</span>
+                  <span style={{ color: '#8fcbb1', fontSize: '0.7rem' }}>{er.created_at?.slice(0, 10)}</span>
+                  <span style={{ color: '#7d877e', fontSize: '0.55rem' }}>v{er.model_version}</span>
                 </div>
                 <EmotionBars emotionProbabilities={probs} maxItems={8} />
               </div>
@@ -627,7 +627,7 @@ function AITraceSection({ patient }: { patient: string }) {
       )}
 
       {analyses.length === 0 && risks.length === 0 && emotionResults.length === 0 && (
-        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>
+        <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>
           No AI analysis data for this patient yet.
         </div>
       )}
@@ -706,8 +706,8 @@ function PatternsSection({ patient, overview }: { patient: string; overview: any
     }).catch(() => setLoading(false))
   }, [patient, overview])
 
-  if (loading) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>Analyzing patterns...</div>
-  if (!patterns) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>No data available.</div>
+  if (loading) return <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>Analyzing patterns...</div>
+  if (!patterns) return <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>No data available.</div>
 
   const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -715,19 +715,19 @@ function PatternsSection({ patient, overview }: { patient: string; overview: any
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>Mood Distribution</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>Mood Distribution</div>
           {Object.keys(patterns.moodCounts).length === 0 ? (
-            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>No mood data.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>No mood data.</div>
           ) : (
             Object.entries(patterns.moodCounts).sort(([, a], [, b]) => (b as number) - (a as number)).map(([label, count]: [string, any]) => {
               const max = Math.max(...(Object.values(patterns.moodCounts) as number[]))
               return (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ color: '#9a92a2', fontSize: '0.65rem', width: '50px' }}>{label}</span>
-                  <div style={{ flex: 1, height: '6px', background: '#1e2940', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: '3px', width: `${(count / max) * 100}%`, background: '#c49ea4' }} />
+                  <span style={{ color: '#9ca99e', fontSize: '0.65rem', width: '50px' }}>{label}</span>
+                  <div style={{ flex: 1, height: '6px', background: '#223028', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: '3px', width: `${(count / max) * 100}%`, background: '#8fcbb1' }} />
                   </div>
-                  <span style={{ color: '#6a6474', fontSize: '0.6rem' }}>{count}</span>
+                  <span style={{ color: '#7d877e', fontSize: '0.6rem' }}>{count}</span>
                 </div>
               )
             })
@@ -735,20 +735,20 @@ function PatternsSection({ patient, overview }: { patient: string; overview: any
         </div>
 
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>Mood by Day of Week</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>Mood by Day of Week</div>
           {Object.keys(patterns.avgByDay).length === 0 ? (
-            <div style={{ color: '#6a6474', fontSize: '0.7rem' }}>Not enough data.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>Not enough data.</div>
           ) : (
             dayOrder.filter(d => patterns.avgByDay[d] != null).map(day => {
               const avg = patterns.avgByDay[day]
               const pct = ((avg - 1) / 4) * 100
               return (
                 <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ color: '#9a92a2', fontSize: '0.65rem', width: '30px' }}>{day}</span>
-                  <div style={{ flex: 1, height: '6px', background: '#1e2940', borderRadius: '3px', overflow: 'hidden' }}>
+                  <span style={{ color: '#9ca99e', fontSize: '0.65rem', width: '30px' }}>{day}</span>
+                  <div style={{ flex: 1, height: '6px', background: '#223028', borderRadius: '3px', overflow: 'hidden' }}>
                     <div style={{ height: '100%', borderRadius: '3px', width: `${pct}%`, background: avg >= 3.5 ? '#22c55e' : avg >= 2.5 ? '#fbbf24' : '#ef4444' }} />
                   </div>
-                  <span style={{ color: '#6a6474', fontSize: '0.6rem' }}>{avg.toFixed(1)}</span>
+                  <span style={{ color: '#7d877e', fontSize: '0.6rem' }}>{avg.toFixed(1)}</span>
                 </div>
               )
             })
@@ -771,7 +771,7 @@ function PatternsSection({ patient, overview }: { patient: string; overview: any
         </div>
         <div className="card" style={{ padding: '10px', textAlign: 'center' }}>
           <div style={{ color: '#889', fontSize: '0.6rem' }}>AVG ENTRY</div>
-          <div style={{ color: '#c49ea4', fontSize: '1rem', fontWeight: 700 }}>
+          <div style={{ color: '#8fcbb1', fontSize: '1rem', fontWeight: 700 }}>
             {patterns.avgJournalLength} chars
           </div>
         </div>
@@ -785,16 +785,16 @@ function PatternsSection({ patient, overview }: { patient: string; overview: any
 
       {patterns.topEmotions.length > 0 && (
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>Top Emotions (30d)</div>
+          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>Top Emotions (30d)</div>
           {patterns.topEmotions.map(([emotion, info]: [string, any]) => {
             const p = Math.round((info.average || 0) * 100)
             return (
               <div key={emotion} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span style={{ color: '#9a92a2', fontSize: '0.65rem', width: '100px' }}>{emotion}</span>
-                <div style={{ flex: 1, height: '6px', background: '#1e2940', borderRadius: '3px', overflow: 'hidden' }}>
+                <span style={{ color: '#9ca99e', fontSize: '0.65rem', width: '100px' }}>{emotion}</span>
+                <div style={{ flex: 1, height: '6px', background: '#223028', borderRadius: '3px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', borderRadius: '3px', width: `${p}%`, background: '#3b82f6' }} />
                 </div>
-                <span style={{ color: '#6a6474', fontSize: '0.6rem' }}>{p}% (x{info.count})</span>
+                <span style={{ color: '#7d877e', fontSize: '0.6rem' }}>{p}% (x{info.count})</span>
               </div>
             )
           })}

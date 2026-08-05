@@ -10,22 +10,22 @@ interface TourStep {
 }
 
 const PATIENT_STEPS: TourStep[] = [
-  { icon: '🌿', title: 'Your Wellness Dashboard', desc: 'This is your personal health command center. Each tab is a tool to help you and your psychologist track how you\'re doing.', tip: 'Start with the Wellness tab each day to check your vitals and mood at a glance.', color: '#c49ea4' },
+  { icon: '🌿', title: 'Your Wellness Dashboard', desc: 'This is your personal health command center. Each tab is a tool to help you and your psychologist track how you\'re doing.', tip: 'Start with the Wellness tab each day to check your vitals and mood at a glance.', color: '#8fcbb1' },
   { icon: '📝', title: 'Journal', desc: 'Write freely about your thoughts and feelings. An AI analyzes your entry and creates a brief summary for your psychologist to review.', tip: 'Your psychologist sees only the AI summary, not your raw text. Be honest — it helps them help you.', color: '#fbbf24' },
-  { icon: '📅', title: 'Booking', desc: 'Request appointments with your assigned psychologist. See their available dates and submit a request.', tip: 'When your psych proposes a slot, check the Psych Suggested tab to accept or decline.', color: '#c49ea4' },
-  { icon: '📋', title: 'Follow-Up', desc: 'Your psychologist may assign tasks between sessions — like mindfulness exercises or mood tracking. Complete them here.', tip: 'Finishing tasks helps your psych see what\'s working. Even a quick check-in counts.', color: '#d8b4ba' },
+  { icon: '📅', title: 'Booking', desc: 'Request appointments with your assigned psychologist. See their available dates and submit a request.', tip: 'When your psych proposes a slot, check the Psych Suggested tab to accept or decline.', color: '#8fcbb1' },
+  { icon: '📋', title: 'Follow-Up', desc: 'Your psychologist may assign tasks between sessions — like mindfulness exercises or mood tracking. Complete them here.', tip: 'Finishing tasks helps your psych see what\'s working. Even a quick check-in counts.', color: '#a9e0c6' },
   { icon: '🚨', title: 'Emergency', desc: 'If you\'re in distress, this tab provides immediate crisis support. It triggers an alert to your psychologist and trusted contact.', tip: 'You can update your trusted contact details in your profile settings at any time.', color: '#ef4444' },
-  { icon: '💡', title: 'Sidebar Tools', desc: 'The sidebar gives you quick access to your status overview, recent activity, and AI-powered insights.', tip: 'Click your username at the top of the sidebar to edit your profile anytime.', color: '#c49ea4' },
+  { icon: '💡', title: 'Sidebar Tools', desc: 'The sidebar gives you quick access to your status overview, recent activity, and AI-powered insights.', tip: 'Click your username at the top of the sidebar to edit your profile anytime.', color: '#8fcbb1' },
 ]
 
 const PSYCH_STEPS: TourStep[] = [
-  { icon: '🔮', title: 'Your Command Center', desc: 'This is your clinical cockpit. From here you monitor all your patients, review their wellness data, and manage care.', tip: 'The Patient Triage tab opens first — scan it daily to catch any high-priority patients.', color: '#c49ea4' },
+  { icon: '🔮', title: 'Your Command Center', desc: 'This is your clinical cockpit. From here you monitor all your patients, review their wellness data, and manage care.', tip: 'The Patient Triage tab opens first — scan it daily to catch any high-priority patients.', color: '#8fcbb1' },
   { icon: '📋', title: 'Patient Triage', desc: 'A priority-ranked list of all your patients. Scores are computed from crisis status, ring vitals, silent periods, and journal activity.', tip: 'Red/Crisis patients need immediate attention. Amber/High patients should be reviewed within the hour.', color: '#ef4444' },
   { icon: '📝', title: 'Clinical Notes', desc: 'Review AI-summarized journal entries from any patient, then write and save structured clinical notes.', tip: 'Use the Journal-to-Note panel: pick a patient, review their latest entry, and click Analyze & Draft.', color: '#4ade80' },
   { icon: '📓', title: 'Journal & Wellness', desc: 'Your own personal journal space plus live vitals from your ring. Track your own stress, sleep, and heart rate trends.', tip: 'This is your self-care space. Writing your own notes helps you reflect on your day.', color: '#fbbf24' },
-  { icon: '📅', title: 'Bookings', desc: 'Set your available dates in the Calendar view so patients know when to book. The Booking Queue shows incoming requests.', tip: 'Toggle dates on the calendar as available/unavailable. Respond to requests quickly.', color: '#c49ea4' },
-  { icon: '📋', title: 'Follow-Up', desc: 'Assign tasks to patients between sessions — mood logs, mindfulness exercises, or custom check-ins.', tip: 'Use the AI side panel to generate a follow-up plan based on the patient\'s latest journal entry.', color: '#d8b4ba' },
-  { icon: '📦', title: 'Export Center', desc: 'Download patient data, journal summaries, and clinical notes as CSV for your records or external reporting.', tip: 'Exports include only AI summaries — no raw journal text leaves the system.', color: '#6a6474' },
+  { icon: '📅', title: 'Bookings', desc: 'Set your available dates in the Calendar view so patients know when to book. The Booking Queue shows incoming requests.', tip: 'Toggle dates on the calendar as available/unavailable. Respond to requests quickly.', color: '#8fcbb1' },
+  { icon: '📋', title: 'Follow-Up', desc: 'Assign tasks to patients between sessions — mood logs, mindfulness exercises, or custom check-ins.', tip: 'Use the AI side panel to generate a follow-up plan based on the patient\'s latest journal entry.', color: '#a9e0c6' },
+  { icon: '📦', title: 'Export Center', desc: 'Download patient data, journal summaries, and clinical notes as CSV for your records or external reporting.', tip: 'Exports include only AI summaries — no raw journal text leaves the system.', color: '#7d877e' },
 ]
 
 export default function TourGuide({ role }: { role: string }) {
@@ -86,7 +86,7 @@ export default function TourGuide({ role }: { role: string }) {
             </span>
           </div>
           <div style={{ color: '#e8f0ff', fontSize: '1rem', fontWeight: 600, margin: '4px 0 8px' }}>{s.title}</div>
-          <div style={{ color: '#9a92a2', fontSize: '0.8125rem', lineHeight: 1.6 }}>{s.desc}</div>
+          <div style={{ color: '#9ca99e', fontSize: '0.8125rem', lineHeight: 1.6 }}>{s.desc}</div>
           <div style={{ marginTop: '10px', padding: '8px 12px', background: `${s.color}10`, borderLeft: `3px solid ${s.color}`, borderRadius: '4px', color: '#b0c0d8', fontSize: '0.75rem', lineHeight: 1.5 }}>
             💡 <strong>Pro Tip:</strong> {s.tip}
           </div>
@@ -97,7 +97,7 @@ export default function TourGuide({ role }: { role: string }) {
           {steps.map((st, i) => (
             <div key={i} style={{
               height: '6px', borderRadius: '3px', flex: 1,
-              background: i === step ? s.color : i < step ? '#3a4a5a' : '#2d2d44',
+              background: i === step ? s.color : i < step ? '#3d4d45' : '#31423a',
               transform: i === step ? 'scaleY(1.6)' : 'none',
               transition: 'all 0.3s ease',
             }} />
@@ -107,16 +107,16 @@ export default function TourGuide({ role }: { role: string }) {
       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
         {step > 0 && (
           <button onClick={() => setStep(step - 1)}
-            style={{ flex: 1, padding: '8px', fontSize: '0.8125rem', background: '#1e2336', border: '1px solid #2d2d44', borderRadius: '8px', color: '#9a92a2', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '8px', fontSize: '0.8125rem', background: '#1d2623', border: '1px solid #31423a', borderRadius: '8px', color: '#9ca99e', cursor: 'pointer' }}>
             ← Back
           </button>
         )}
         <button onClick={next}
-          style={{ flex: 1, padding: '8px', fontSize: '0.8125rem', background: '#c49ea4', border: 'none', borderRadius: '8px', color: '#151824', fontWeight: 600, cursor: 'pointer' }}>
+          style={{ flex: 1, padding: '8px', fontSize: '0.8125rem', background: '#8fcbb1', border: 'none', borderRadius: '8px', color: '#121715', fontWeight: 600, cursor: 'pointer' }}>
           {step === steps.length - 1 ? '✅ Got it!' : 'Next →'}
         </button>
         <button onClick={skip}
-          style={{ padding: '8px 12px', fontSize: '0.75rem', background: 'transparent', border: '1px solid #2d2d44', borderRadius: '8px', color: '#5a4a5a', cursor: 'pointer' }}>
+          style={{ padding: '8px 12px', fontSize: '0.75rem', background: 'transparent', border: '1px solid #31423a', borderRadius: '8px', color: '#6b766d', cursor: 'pointer' }}>
           ✕
         </button>
       </div>

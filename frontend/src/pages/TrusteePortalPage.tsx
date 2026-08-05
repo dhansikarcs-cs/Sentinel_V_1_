@@ -63,7 +63,7 @@ export default function TrusteePortalPage() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1117' }}>
-      <div style={{ color: '#6a6474', fontSize: '1rem' }}>Loading...</div>
+      <div style={{ color: '#7d877e', fontSize: '1rem' }}>Loading...</div>
     </div>
   )
 
@@ -73,9 +73,9 @@ export default function TrusteePortalPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1117', padding: '32px' }}>
       <div style={{ textAlign: 'center', maxWidth: '480px' }}>
         <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🔒</div>
-        <h1 style={{ color: '#f0f4ff', fontSize: '1.5rem', marginBottom: '8px' }}>Invalid or Expired Link</h1>
-        <p style={{ color: '#6a6474', fontSize: '0.9375rem' }}>This safety link is invalid or has expired. Please request a fresh link from your loved one's care team.</p>
-        <p style={{ color: '#3a4a5a', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
+        <h1 style={{ color: '#f0f2e8', fontSize: '1.5rem', marginBottom: '8px' }}>Invalid or Expired Link</h1>
+        <p style={{ color: '#7d877e', fontSize: '0.9375rem' }}>This safety link is invalid or has expired. Please request a fresh link from your loved one's care team.</p>
+        <p style={{ color: '#3d4d45', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
       </div>
     </div>
   )
@@ -85,8 +85,8 @@ export default function TrusteePortalPage() {
       <div style={{ textAlign: 'center', maxWidth: '480px' }}>
         <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🟢</div>
         <h1 style={{ color: '#22c55e', fontSize: '1.5rem', marginBottom: '8px' }}>Trusted Contact Portal</h1>
-        <p style={{ color: '#6a6474', fontSize: '1rem' }}>No active crisis at this time.</p>
-        <p style={{ color: '#3a4a5a', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
+        <p style={{ color: '#7d877e', fontSize: '1rem' }}>No active crisis at this time.</p>
+        <p style={{ color: '#3d4d45', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
       </div>
     </div>
   )
@@ -96,8 +96,8 @@ export default function TrusteePortalPage() {
       <div style={{ textAlign: 'center', maxWidth: '480px' }}>
         <div style={{ fontSize: '3rem', marginBottom: '12px' }}>✅</div>
         <h1 style={{ color: '#22c55e', fontSize: '1.5rem', marginBottom: '8px' }}>Crisis Resolved</h1>
-        <p style={{ color: '#6a6474', fontSize: '0.9375rem' }}>This crisis has been acknowledged by the clinical team. No further action needed.</p>
-        <p style={{ color: '#3a4a5a', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
+        <p style={{ color: '#7d877e', fontSize: '0.9375rem' }}>This crisis has been acknowledged by the clinical team. No further action needed.</p>
+        <p style={{ color: '#3d4d45', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
       </div>
     </div>
   )
@@ -107,8 +107,8 @@ export default function TrusteePortalPage() {
       <div style={{ textAlign: 'center', maxWidth: '480px' }}>
         <div style={{ fontSize: '3rem', marginBottom: '12px' }}>✅</div>
         <h1 style={{ color: '#22c55e', fontSize: '1.5rem', marginBottom: '8px' }}>You've Already Responded</h1>
-        <p style={{ color: '#6a6474', fontSize: '0.9375rem' }}>Thank you! Your status has been recorded. Please proceed to check on your loved one.</p>
-        <p style={{ color: '#3a4a5a', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
+        <p style={{ color: '#7d877e', fontSize: '0.9375rem' }}>Thank you! Your status has been recorded. Please proceed to check on your loved one.</p>
+        <p style={{ color: '#3d4d45', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
       </div>
     </div>
   )
@@ -122,14 +122,14 @@ export default function TrusteePortalPage() {
       <div style={{ width: '100%', maxWidth: '520px' }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>👤</div>
-          <h1 style={{ fontSize: '1.5rem', color: '#f0f4ff', margin: '0 0 4px 0' }}>Trusted Contact Portal</h1>
+          <h1 style={{ fontSize: '1.5rem', color: '#f0f2e8', margin: '0 0 4px 0' }}>Trusted Contact Portal</h1>
           <p style={{ color: '#d0d8e8', fontSize: '1.125rem', margin: '8px 0' }}>
             <strong>{patient}</strong> triggered a crisis alert <strong>{displayTime}s ago</strong>.
           </p>
         </div>
 
-        <div style={{ background: '#161d30', border: '1px solid #1e2940', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
-          <div style={{ color: '#7a8aaa', fontSize: '0.8125rem', marginBottom: '4px' }}>📍 Last known location</div>
+        <div style={{ background: '#161d30', border: '1px solid #223028', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
+          <div style={{ color: '#8aa198', fontSize: '0.8125rem', marginBottom: '4px' }}>📍 Last known location</div>
           <div style={{ color: '#e0e8f5', fontSize: '1rem', fontWeight: 600 }}>{address}</div>
         </div>
 
@@ -149,12 +149,12 @@ export default function TrusteePortalPage() {
           <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
             <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🚀</div>
             <div style={{ color: '#6ee7a7', fontSize: '1.25rem', fontWeight: 700, marginBottom: '4px' }}>Thank you!</div>
-            <div style={{ color: '#6a6474', fontSize: '0.875rem' }}>You are marked as <strong style={{ color: '#6ee7a7' }}>'On the Way'</strong>.</div>
-            <div style={{ color: '#4a5a6a', fontSize: '0.75rem', marginTop: '8px' }}>Please proceed to check on {patient} as soon as possible.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.875rem' }}>You are marked as <strong style={{ color: '#6ee7a7' }}>'On the Way'</strong>.</div>
+            <div style={{ color: '#55655c', fontSize: '0.75rem', marginTop: '8px' }}>Please proceed to check on {patient} as soon as possible.</div>
           </div>
         )}
 
-        <p style={{ textAlign: 'center', color: '#3a4a5a', fontSize: '0.75rem', marginTop: '24px' }}>
+        <p style={{ textAlign: 'center', color: '#3d4d45', fontSize: '0.75rem', marginTop: '24px' }}>
           Sentinel — Crisis Response System
         </p>
       </div>

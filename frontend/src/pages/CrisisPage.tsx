@@ -110,7 +110,7 @@ export default function CrisisPage() {
     try { await api.notifyTrustedContact(); await load() } catch (e: any) { setError('Failed to notify. Please try again.') }
   }
 
-  if (loading) return <div className="animate-fade-in"><h2>🚨 Emergency</h2><div className="card"><span style={{ color: '#6a6474' }}>Loading...</span></div></div>
+  if (loading) return <div className="animate-fade-in"><h2>🚨 Emergency</h2><div className="card"><span style={{ color: '#7d877e' }}>Loading...</span></div></div>
 
   const displayTime = elapsed >= 60 ? '60+' : String(elapsed)
 
@@ -122,7 +122,7 @@ export default function CrisisPage() {
     const passed = found ? elapsed >= found.sec : false
     if (isActive) return { color: '#ef4444', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)' }
     if (passed) return { color: '#22c55e', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }
-    return { color: '#3a4a5a', background: 'rgba(26,34,56,0.6)', border: '1px solid #1e2940' }
+    return { color: '#3d4d45', background: 'rgba(28,40,33,0.6)', border: '1px solid #223028' }
   }
 
   const helplineNumber = '📞 National Helpline: 988 (Suicide & Crisis Lifeline)'
@@ -180,11 +180,11 @@ export default function CrisisPage() {
             </div>
           )}
 
-          <div className="card-dark" style={{ padding: '12px', borderColor: '#1e2940' }}>
+          <div className="card-dark" style={{ padding: '12px', borderColor: '#223028' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <span style={{ color: '#fca5a5', fontSize: '1.125rem' }}>⏱️ Timer</span>
-              <span style={{ color: '#f0f4ff', fontSize: '1.25rem', fontWeight: 700 }}>{displayTime}s</span>
-              <span style={{ color: '#7a8aaa', fontSize: '0.8125rem' }}>elapsed</span>
+              <span style={{ color: '#f0f2e8', fontSize: '1.25rem', fontWeight: 700 }}>{displayTime}s</span>
+              <span style={{ color: '#8aa198', fontSize: '0.8125rem' }}>elapsed</span>
               <div style={{ marginLeft: 'auto' }}>
                 {stage === 'helpline_escalated' && <span style={{ color: '#f87171', fontWeight: 600, fontSize: '0.8125rem' }}>Helpline contacted</span>}
                 {stage === 'trustee_coming' && <span style={{ color: '#4ade80', fontWeight: 600, fontSize: '0.8125rem' }}>Trusted contact on the way</span>}
@@ -215,7 +215,7 @@ export default function CrisisPage() {
             </button>
           )}
           {triggeredBy === 'psychologist' && !isPsych && (
-            <div style={{ color: '#6a6474', fontSize: '0.8125rem' }}>⚠️ This crisis was triggered by your psychologist. Only they can resolve it.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.8125rem' }}>⚠️ This crisis was triggered by your psychologist. Only they can resolve it.</div>
           )}
 
           <div style={{ display: 'flex', gap: '8px' }}>

@@ -37,7 +37,7 @@ export function moodScore(label?: string | null): number {
 
 // AI source badge palette (ollama/groq/rule/ai) — was duplicated across 4 pages.
 export const SOURCE_COLORS: Record<string, string> = {
-  ollama: '#c49ea4',
+  ollama: '#8fcbb1',
   groq: '#22c55e',
   rule: '#f59e0b',
   ai: '#60a5fa',

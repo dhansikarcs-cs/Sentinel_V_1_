@@ -17,7 +17,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
           <h2>Something went wrong</h2>
-          <pre style={{ color: '#9a92a2', fontSize: '0.8125rem', marginTop: '12px' }}>
+          <pre style={{ color: '#9ca99e', fontSize: '0.8125rem', marginTop: '12px' }}>
             {this.state.error.message}
           </pre>
         </div>

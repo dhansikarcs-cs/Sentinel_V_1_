@@ -3,7 +3,7 @@ import { api } from '../api/client'
 import { getUser } from '../stores/auth'
 import PatientSelector from '../components/PatientSelector'
 
-const STATUS_COLORS: Record<string, string> = { Approved: '#22c55e', Rejected: '#ef4444', Cancelled: '#6a6474', Pending: '#c49ea4' }
+const STATUS_COLORS: Record<string, string> = { Approved: '#22c55e', Rejected: '#ef4444', Cancelled: '#7d877e', Pending: '#8fcbb1' }
 const STATUS_ICONS: Record<string, string> = { Approved: '✅', Rejected: '❌', Cancelled: '🔴', Pending: '⏳' }
 
 export default function BookingsPage() {
@@ -42,7 +42,7 @@ function PatientBookings() {
             const latest = bookings[bookings.length - 1]
             if (latest.status === 'Approved') return <div style={{ color: '#22c55e' }}>✅ Your last request was <strong>Approved</strong>. Check your contact for details.</div>
             if (latest.status === 'Rejected') return <div style={{ color: '#ef4444' }}>❌ Your last request was <strong>Rejected</strong>.</div>
-            return <div style={{ color: '#c49ea4' }}>⏳ Your request is <strong>Pending Review</strong> by the clinician.</div>
+            return <div style={{ color: '#8fcbb1' }}>⏳ Your request is <strong>Pending Review</strong> by the clinician.</div>
           })()}
         </div>
       )}
@@ -58,14 +58,14 @@ function PatientBookings() {
             <>
               <div className="card" style={{ borderColor: '#f59e0b' }}>
                 <div style={{ color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>💡 NEW — Psychologist Suggested</div>
-                <div style={{ color: '#6a6474', fontSize: '0.75rem', marginTop: '4px' }}>
+                <div style={{ color: '#7d877e', fontSize: '0.75rem', marginTop: '4px' }}>
                   Your psychologist recommended the following appointment. Accept to request a review or decline to suggest a different time.
                 </div>
               </div>
               {proposed.map((b: any, i: number) => (
                 <div key={i} className="card" style={{ borderColor: '#f59e0b' }}>
                   <div style={{ color: '#f59e0b', fontSize: '0.9rem', fontWeight: 600 }}>{b.date} @ {b.time}</div>
-                  <div style={{ color: '#6a6474', fontSize: '0.75rem', marginTop: '4px' }}>{b.explanation}</div>
+                  <div style={{ color: '#7d877e', fontSize: '0.75rem', marginTop: '4px' }}>{b.explanation}</div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                     <button className="btn-primary" onClick={() => handleAction(b, 'Approved')}>✅ Accept</button>
                     <button onClick={() => handleAction(b, 'Rejected')}>❌ Decline</button>
@@ -74,7 +74,7 @@ function PatientBookings() {
               ))}
             </>
           ) : (
-            <div className="card"><span style={{ color: '#6a6474', fontSize: '0.875rem' }}>No suggestions from your psychologist yet.</span></div>
+            <div className="card"><span style={{ color: '#7d877e', fontSize: '0.875rem' }}>No suggestions from your psychologist yet.</span></div>
           )}
           {pastAi.length > 0 && (
             <div style={{ marginTop: '16px' }}>
@@ -83,7 +83,7 @@ function PatientBookings() {
                 {pastAi.slice(-5).reverse().map((b: any, i: number) => (
                   <div key={i} className="card-stage" style={{ justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '0.75rem' }}>{STATUS_ICONS[b.status] || '⚪'} <strong>{b.date} @ {b.time}</strong></span>
-                    <span style={{ fontSize: '0.6875rem', color: STATUS_COLORS[b.status] || '#6a6474' }}>{b.status}</span>
+                    <span style={{ fontSize: '0.6875rem', color: STATUS_COLORS[b.status] || '#7d877e' }}>{b.status}</span>
                   </div>
                 ))}
               </div>
@@ -175,7 +175,7 @@ function PatientBookingForm() {
               ))}
             </select>
           ) : (
-            <div style={{ color: '#6a6474', fontSize: '0.8125rem', padding: '8px 0' }}>No available dates. Your psychologist hasn't opened slots yet.</div>
+            <div style={{ color: '#7d877e', fontSize: '0.8125rem', padding: '8px 0' }}>No available dates. Your psychologist hasn't opened slots yet.</div>
           )}
         </div>
 
@@ -187,7 +187,7 @@ function PatientBookingForm() {
 
         {/* Step 4: Session Details */}
         <div>
-          <div style={{ fontSize: '0.8125rem', color: '#b4aab8', fontWeight: 500, marginBottom: '8px' }}>Session Details</div>
+          <div style={{ fontSize: '0.8125rem', color: '#b8c3b9', fontWeight: 500, marginBottom: '8px' }}>Session Details</div>
           <div style={{ display: 'flex', gap: '12px' }}>
             <div style={{ flex: 1 }}>
               <label>Time</label>
@@ -209,7 +209,7 @@ function PatientBookingForm() {
 
         {/* Step 5: Member Details */}
         <div>
-          <div style={{ fontSize: '0.8125rem', color: '#b4aab8', fontWeight: 500, marginBottom: '8px' }}>Member Details</div>
+          <div style={{ fontSize: '0.8125rem', color: '#b8c3b9', fontWeight: 500, marginBottom: '8px' }}>Member Details</div>
           {members.map((m, i) => (
             <div key={i} style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
               <div style={{ flex: 3 }}>
@@ -336,7 +336,7 @@ function PsychCalendar() {
 
       <div style={{ display: 'flex', gap: '16px', fontSize: '0.75rem', marginTop: '8px' }}>
         <span><span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#1a4a2a', border: '1px solid #22c55e', borderRadius: '3px', verticalAlign: 'middle', marginRight: '4px' }}></span> Available ({avail.length})</span>
-        <span style={{ color: '#5a4a5a' }}>Click a date to toggle available/blocked</span>
+        <span style={{ color: '#6b766d' }}>Click a date to toggle available/blocked</span>
       </div>
     </div>
   )
@@ -356,7 +356,7 @@ function PsychQueue() {
     } catch {}
   }
 
-  if (bookings.length === 0) return <div className="card"><span style={{ color: '#6a6474' }}>The queue is currently empty.</span></div>
+  if (bookings.length === 0) return <div className="card"><span style={{ color: '#7d877e' }}>The queue is currently empty.</span></div>
 
   return (
     <div>
@@ -375,7 +375,7 @@ function PsychQueue() {
               {open && (
                 <div className="expander-body">
                   <div className="space-y-2" style={{ fontSize: '0.8125rem' }}>
-                    <div><strong>Status:</strong> <span style={{ color: STATUS_COLORS[s] || '#6a6474' }}>{s}</span></div>
+                    <div><strong>Status:</strong> <span style={{ color: STATUS_COLORS[s] || '#7d877e' }}>{s}</span></div>
                     <div><strong>Patient:</strong> {item.patient_username}</div>
                     <div><strong>Date:</strong> {item.date}</div>
                     <div><strong>Time:</strong> {item.time}</div>
@@ -447,14 +447,14 @@ function PsychBookingAgent() {
       {agentResult && (
         <div className="ai-box" style={{ marginTop: '8px' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '0.75rem', marginBottom: '6px' }}>
-            <span style={{ color: '#c0d0e0' }}>Priority: <strong>{agentResult.priority}</strong></span>
-            <span style={{ color: '#5a4a5a' }}>|</span>
-            <span style={{ color: '#c0d0e0' }}>Urgency: <strong>{agentResult.urgency_score}/10</strong></span>
+            <span style={{ color: '#bac9bf' }}>Priority: <strong>{agentResult.priority}</strong></span>
+            <span style={{ color: '#6b766d' }}>|</span>
+            <span style={{ color: '#bac9bf' }}>Urgency: <strong>{agentResult.urgency_score}/10</strong></span>
           </div>
-          <div style={{ color: '#6a6474', fontSize: '0.6875rem', marginBottom: '8px' }}>{agentResult.reasoning}</div>
+          <div style={{ color: '#7d877e', fontSize: '0.6875rem', marginBottom: '8px' }}>{agentResult.reasoning}</div>
           {agentResult.suggested_slots?.map((s: any, i: number) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: '1px solid #2d2d44' }}>
-              <span style={{ color: '#c49ea4', fontSize: '0.8125rem', fontWeight: 600 }}>{s.label}</span>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: '1px solid #31423a' }}>
+              <span style={{ color: '#8fcbb1', fontSize: '0.8125rem', fontWeight: 600 }}>{s.label}</span>
               <button className="btn-primary" style={{ fontSize: '0.6875rem', padding: '4px 10px' }} onClick={() => proposeSlot(s)}>Propose</button>
             </div>
           ))}

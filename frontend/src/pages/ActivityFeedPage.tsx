@@ -13,7 +13,7 @@ const ACTION_ICONS: Record<string, string> = {
 const SEVERITY_COLORS: Record<string, string> = {
   high: '#ef4444',
   medium: '#f59e0b',
-  info: '#6a6474',
+  info: '#7d877e',
 }
 
 export default function ActivityFeedPage() {
@@ -33,12 +33,12 @@ export default function ActivityFeedPage() {
       <h1>📡 Activity Feed</h1>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
-        <span style={{ color: '#6a6474', fontSize: '0.8125rem' }}>Show last:</span>
+        <span style={{ color: '#7d877e', fontSize: '0.8125rem' }}>Show last:</span>
         {[1, 3, 7, 14, 30].map(d => (
           <button key={d} onClick={() => setDays(d)}
             style={{
-              padding: '6px 14px', borderRadius: '6px', border: `1px solid ${days === d ? '#c49ea4' : '#2d2d44'}`,
-              background: days === d ? '#232840' : '#1e2336', color: days === d ? '#c49ea4' : '#9a92a2',
+              padding: '6px 14px', borderRadius: '6px', border: `1px solid ${days === d ? '#8fcbb1' : '#31423a'}`,
+              background: days === d ? '#27322d' : '#1d2623', color: days === d ? '#8fcbb1' : '#9ca99e',
               fontSize: '0.8125rem', cursor: 'pointer',
             }}>
             {d}d
@@ -47,35 +47,35 @@ export default function ActivityFeedPage() {
       </div>
 
       {loading ? (
-        <div className="card"><span style={{ color: '#6a6474' }}>Loading...</span></div>
+        <div className="card"><span style={{ color: '#7d877e' }}>Loading...</span></div>
       ) : events.length === 0 ? (
-        <div className="card"><span style={{ color: '#6a6474' }}>No activity found.</span></div>
+        <div className="card"><span style={{ color: '#7d877e' }}>No activity found.</span></div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {events.map((e: any, i: number) => (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '8px 12px', background: '#1a1e30',
-              borderBottom: '1px solid #2d2d44', borderRadius: '4px',
+              padding: '8px 12px', background: '#19211e',
+              borderBottom: '1px solid #31423a', borderRadius: '4px',
             }}>
               <span style={{ fontSize: '1rem' }}>{ACTION_ICONS[e.type] || '💬'}</span>
               <span style={{
                 width: '8px', height: '8px', borderRadius: '50%',
-                background: SEVERITY_COLORS[e.severity] || '#6a6474',
+                background: SEVERITY_COLORS[e.severity] || '#7d877e',
                 flexShrink: 0,
               }} />
-              <span style={{ color: '#7a8aaa', fontSize: '0.6875rem', minWidth: '140px' }}>
+              <span style={{ color: '#8aa198', fontSize: '0.6875rem', minWidth: '140px' }}>
                 {(e.timestamp || '').slice(0, 16).replace('T', ' ')}
               </span>
-              <span style={{ color: '#c49ea4', fontSize: '0.75rem', fontWeight: 600, minWidth: '80px' }}>
+              <span style={{ color: '#8fcbb1', fontSize: '0.75rem', fontWeight: 600, minWidth: '80px' }}>
                 {e.patient}
               </span>
-              <span style={{ color: '#c0d0e0', fontSize: '0.75rem', flex: 1 }}>
+              <span style={{ color: '#bac9bf', fontSize: '0.75rem', flex: 1 }}>
                 {e.summary || e.type}
               </span>
             </div>
           ))}
-          <div style={{ color: '#3a4a5a', fontSize: '0.6875rem', textAlign: 'center', padding: '12px' }}>
+          <div style={{ color: '#3d4d45', fontSize: '0.6875rem', textAlign: 'center', padding: '12px' }}>
             Showing {events.length} events
           </div>
         </div>

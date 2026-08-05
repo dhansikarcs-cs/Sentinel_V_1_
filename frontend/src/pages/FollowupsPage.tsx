@@ -21,7 +21,7 @@ function dueInfo(due?: string): { text: string; color: string } | null {
   const today = todayStr()
   if (due < today) return { text: `Overdue · ${due}`, color: '#ef4444' }
   if (due === today) return { text: `Due today · ${due}`, color: '#fbbf24' }
-  return { text: `Due ${due}`, color: '#7a8aaa' }
+  return { text: `Due ${due}`, color: '#8aa198' }
 }
 
 function PatientFollowups() {
@@ -47,7 +47,7 @@ function PatientFollowups() {
   if (myTasks.length === 0) return (
     <div className="animate-fade-in">
       <h2>📋 My Follow-Up Tasks</h2>
-      <div className="card"><span style={{ color: '#6a6474', fontSize: '0.875rem' }}>No tasks assigned yet.</span></div>
+      <div className="card"><span style={{ color: '#7d877e', fontSize: '0.875rem' }}>No tasks assigned yet.</span></div>
     </div>
   )
 
@@ -60,19 +60,19 @@ function PatientFollowups() {
           const due = dueInfo(t.due_date)
           const proof = uploadingProof[t.id]
           return (
-            <div key={t.id} style={{ border: '1px solid #2d2d44', borderRadius: '10px', padding: '14px', background: '#161d30', marginBottom: '10px' }}>
+            <div key={t.id} style={{ border: '1px solid #31423a', borderRadius: '10px', padding: '14px', background: '#161d30', marginBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                 <div style={{ fontWeight: 600 }}>{t.title}</div>
                 <span style={{ marginLeft: 'auto', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: badge.color, background: badge.bg, padding: '3px 8px', borderRadius: '999px' }}>{badge.label}</span>
               </div>
-              {t.description && <div style={{ color: '#7a8aaa', fontSize: '0.8125rem', marginBottom: '8px' }}>{t.description}</div>}
+              {t.description && <div style={{ color: '#8aa198', fontSize: '0.8125rem', marginBottom: '8px' }}>{t.description}</div>}
 
               {due && <div style={{ fontSize: '0.6875rem', color: due.color, marginBottom: '8px' }}>{due.text}</div>}
 
               {t.file_path && (
                 <div style={{ marginBottom: '8px' }}>
                   <a href={`/api/followups/${t.id}/download`} target="_blank" rel="noreferrer"
-                    style={{ color: '#c49ea4', fontSize: '0.75rem' }}>
+                    style={{ color: '#8fcbb1', fontSize: '0.75rem' }}>
                     📎 {t.status === 'completed' ? 'View my submission' : 'View attachment'}
                   </a>
                 </div>
@@ -81,10 +81,10 @@ function PatientFollowups() {
               {t.status === 'pending' && (
                 <div>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#9a92a2', flex: 1, minWidth: '140px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#9ca99e', flex: 1, minWidth: '140px' }}>
                       <span>📎</span>
                       <input type="file" onChange={e => setUploadingProof({ ...uploadingProof, [t.id]: e.target.files?.[0] || null })}
-                        style={{ fontSize: '0.7rem', color: '#9a92a2' }} />
+                        style={{ fontSize: '0.7rem', color: '#9ca99e' }} />
                     </label>
                     <button className="btn-primary" style={{ fontSize: '0.7rem', padding: '5px 10px' }}
                       disabled={!proof || busy[t.id]}
@@ -115,19 +115,19 @@ function PatientFollowups() {
                     <div style={{ color: '#22c55e', fontSize: '0.8125rem', fontWeight: 600 }}>✅ Submitted — awaiting review</div>
                   )}
                   {t.feedback ? (
-                    <div style={{ marginTop: '8px', padding: '10px 12px', borderRadius: '8px', background: 'rgba(196,158,164,0.08)', border: '1px solid rgba(196,158,164,0.25)' }}>
-                      <div style={{ color: '#c49ea4', fontSize: '0.65rem', fontWeight: 600, marginBottom: '4px' }}>💬 Feedback from your psychologist</div>
-                      <div style={{ color: '#d8d4dc', fontSize: '0.8125rem', lineHeight: 1.5 }}>{t.feedback}</div>
+                    <div style={{ marginTop: '8px', padding: '10px 12px', borderRadius: '8px', background: 'rgba(143,203,177,0.08)', border: '1px solid rgba(143,203,177,0.25)' }}>
+                      <div style={{ color: '#8fcbb1', fontSize: '0.65rem', fontWeight: 600, marginBottom: '4px' }}>💬 Feedback from your psychologist</div>
+                      <div style={{ color: '#d9ddd3', fontSize: '0.8125rem', lineHeight: 1.5 }}>{t.feedback}</div>
                     </div>
                   ) : t.grade && t.grade !== 'none' ? (
-                    <div style={{ color: '#6a6474', fontSize: '0.6875rem', marginTop: '6px' }}>No written feedback yet.</div>
+                    <div style={{ color: '#7d877e', fontSize: '0.6875rem', marginTop: '6px' }}>No written feedback yet.</div>
                   ) : null}
                 </div>
               )}
 
               {t.status === 'skipped' && <div style={{ color: '#ef4444' }}>❌ Not completed</div>}
 
-              <div style={{ color: '#6a6474', fontSize: '0.6875rem', marginTop: '8px' }}>Assigned: {t.assigned_at?.slice(0, 10)}</div>
+              <div style={{ color: '#7d877e', fontSize: '0.6875rem', marginTop: '8px' }}>Assigned: {t.assigned_at?.slice(0, 10)}</div>
             </div>
           )
         })}
@@ -216,7 +216,7 @@ function PsychFollowups() {
   }
 
   const gradeBorders: Record<string, string> = {
-    green: '#44ff44', yellow: '#ffd93d', red: '#ff4444', none: '#2d2d44',
+    green: '#44ff44', yellow: '#ffd93d', red: '#ff4444', none: '#31423a',
   }
 
   return (
@@ -224,7 +224,7 @@ function PsychFollowups() {
       <h2>📋 Follow-Up Tasks</h2>
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '24px' }}>
         <div>
-          <div className="expander" style={{ borderColor: showAssign ? '#c49ea4' : '#2d2d44' }}>
+          <div className="expander" style={{ borderColor: showAssign ? '#8fcbb1' : '#31423a' }}>
             <div className="expander-header" onClick={() => setShowAssign(!showAssign)}>
               <span>➕ Assign New Task</span><span>{showAssign ? '▲' : '▼'}</span>
             </div>
@@ -251,7 +251,7 @@ function PsychFollowups() {
                     <div style={{ marginTop: '8px' }}>
                       <label>Attachment (optional)</label>
                       <input type="file" onChange={e => setNewFile(e.target.files?.[0] || null)}
-                        style={{ width: '100%', fontSize: '0.8rem', color: '#9a92a2' }} />
+                        style={{ width: '100%', fontSize: '0.8rem', color: '#9ca99e' }} />
                     </div>
                   </div>
                 </div>
@@ -262,13 +262,13 @@ function PsychFollowups() {
 
           <h3 style={{ marginTop: '16px' }}>Assigned Tasks</h3>
           {myTasks.length === 0 ? (
-            <div className="card"><span style={{ color: '#6a6474', fontSize: '0.875rem' }}>No tasks assigned yet.</span></div>
+            <div className="card"><span style={{ color: '#7d877e', fontSize: '0.875rem' }}>No tasks assigned yet.</span></div>
           ) : (
             <div className="space-y-2">
               {myTasks.slice().reverse().map((t: any) => {
                 const open = expanded[t.id]
                 const borderColor = t.status === 'completed' && t.grade && t.grade !== 'none'
-                  ? gradeBorders[t.grade] || '#2d2d44' : '#2d2d44'
+                  ? gradeBorders[t.grade] || '#31423a' : '#31423a'
                 const due = dueInfo(t.due_date)
                 return (
                   <div key={t.id} className="expander" style={{ borderColor }}>
@@ -284,13 +284,13 @@ function PsychFollowups() {
                             {STATUS_BADGE[t.status]?.label}
                           </span>
                         </div>
-                        <div style={{ color: '#7a8aaa', fontSize: '0.8125rem', marginBottom: '8px' }}>{t.description}</div>
+                        <div style={{ color: '#8aa198', fontSize: '0.8125rem', marginBottom: '8px' }}>{t.description}</div>
                         {due && <div style={{ fontSize: '0.6875rem', color: due.color, marginBottom: '8px' }}>{due.text}</div>}
 
                         {t.file_path && (
                           <div style={{ marginBottom: '8px' }}>
                             <a href={`/api/followups/${t.id}/download`} target="_blank" rel="noreferrer"
-                              style={{ color: '#c49ea4', fontSize: '0.75rem' }}>
+                              style={{ color: '#8fcbb1', fontSize: '0.75rem' }}>
                               {t.status === 'completed' ? '📤 View Proof' : '📎 View Attachment'}
                             </a>
                           </div>
@@ -312,10 +312,10 @@ function PsychFollowups() {
                               <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'yellow')}>🟡 Partial</button>
                               <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'red')}>🔴 Needs work</button>
                               {t.grade && t.grade !== 'none' && (
-                                <span style={{ color: '#6a6474', fontSize: '0.6875rem' }}>Tap to change grade</span>
+                                <span style={{ color: '#7d877e', fontSize: '0.6875rem' }}>Tap to change grade</span>
                               )}
                             </div>
-                            <label style={{ fontSize: '0.6875rem', color: '#9a92a2', display: 'block', marginBottom: '4px' }}>Written feedback for {t.patient_username}</label>
+                            <label style={{ fontSize: '0.6875rem', color: '#9ca99e', display: 'block', marginBottom: '4px' }}>Written feedback for {t.patient_username}</label>
                             <textarea
                               value={feedbackBuf[t.id] ?? t.feedback ?? ''}
                               onChange={e => { setFeedbackBuf({ ...feedbackBuf, [t.id]: e.target.value }); setFeedbackSaved({ ...feedbackSaved, [t.id]: false }) }}
@@ -336,7 +336,7 @@ function PsychFollowups() {
                           </div>
                         )}
 
-                        <div style={{ color: '#6a6474', fontSize: '0.6875rem', marginTop: '8px' }}>Assigned: {t.assigned_at?.slice(0, 10)}{t.due_date ? ` · Due: ${t.due_date}` : ''}</div>
+                        <div style={{ color: '#7d877e', fontSize: '0.6875rem', marginTop: '8px' }}>Assigned: {t.assigned_at?.slice(0, 10)}{t.due_date ? ` · Due: ${t.due_date}` : ''}</div>
                       </div>
                     )}
                   </div>
@@ -356,11 +356,11 @@ function PsychFollowups() {
 
           {agentResult && (
             <div className="ai-box" style={{ marginTop: '8px' }}>
-              <div style={{ color: '#6a6474', fontSize: '0.6875rem', marginBottom: '6px' }}>{agentResult.reasoning}</div>
+              <div style={{ color: '#7d877e', fontSize: '0.6875rem', marginBottom: '6px' }}>{agentResult.reasoning}</div>
               {agentResult.tasks?.map((task: any, i: number) => (
                 <div key={i} className="card" style={{ margin: '6px 0', padding: '10px' }}>
-                  <div style={{ color: '#c49ea4', fontSize: '0.8125rem', fontWeight: 600 }}>{task.title}</div>
-                  <div style={{ color: '#9a92a2', fontSize: '0.75rem', marginTop: '4px' }}>{task.description}</div>
+                  <div style={{ color: '#8fcbb1', fontSize: '0.8125rem', fontWeight: 600 }}>{task.title}</div>
+                  <div style={{ color: '#9ca99e', fontSize: '0.75rem', marginTop: '4px' }}>{task.description}</div>
                   {assignedId === i ? (
                     <div style={{ color: '#22c55e', fontSize: '0.7rem', fontWeight: 600, marginTop: '6px' }}>✅ Assigned to {aiPatient}</div>
                   ) : (

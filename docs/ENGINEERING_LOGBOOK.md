@@ -369,6 +369,32 @@ optional tab at the end.
 self-access, cross-patient 403, 404); `ruff` + `tsc` + `vite build` clean; live demo shows a real
 Ollama-written narrative for alaya.
 
+### 2026-08-05 — Journal→Note with an explicit accept/cancel, and a colour-therapy UI pass
+
+Two follow-ups after the plain-insights demo.
+
+**Journal → Note flow fixed.** Clicking a patient previously dumped the AI draft into the editor
+card's "AI draft" box on the far side of the screen with no next step. Now the draft is generated
+in-place inside the Journal→Note panel (with journal date, note text, and themes), and the
+clinician explicitly chooses **✓ Accept to editor** (fills the note editor, scrolls + focuses it,
+shows a "review and Save" confirmation) or **✕ Cancel**. Empty-journal and generation-error states
+get their own friendly messages plus a "← Back to patients" reset. The editor's own "AI Draft"
+box got the same accept/cancel treatment for consistency.
+
+**Colour therapy ("psych uses this all day").** The cold navy + dusty-mauve palette was swapped for
+a restorative sage & earth scheme across all 28 source files (~630 hardcoded tokens, remapped via a
+one-shot script — semantic colors for mood/emotion/crisis/OK/amber/danger intentionally untouched):
+- Backgrounds: deep green-charcoal (`#151c19`/`#121715`) instead of blue-heavy navy — lower
+  blue-light glare, greener = calm/balance/safety.
+- Accent: soft sage `#8fcbb1` (healing, growth) replacing dusty mauve `#c49ea4`.
+- Text: warm ivory-sage neutrals (`#d9ddd3`, `#f0f2e8`) instead of cool blues — softer on the eye.
+- Polish: card shadows + hover lift, `:focus-visible` sage ring, active tab inset glow, softer
+  body text rendering, calmer transitions. Alert/priority fills were already neutralized earlier.
+
+**Result:** `tsc` + `vite build` clean; live API smoke test confirms the j2n response shape the UI
+renders (`{patient, note, themes}` — 468-char note, themes for alaya); frontend dist rebuilt and
+served by the backend.
+
 ---
 
 ## Final Stack

@@ -21,13 +21,13 @@ export function EmotionBar({ label, probability, maxProb }: EmotionBarProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '2px 0' }}>
       <span style={{
-        width: '90px', fontSize: '0.6875rem', color: '#9aa8c0',
+        width: '90px', fontSize: '0.6875rem', color: '#9dada4',
         fontWeight: isMax ? 700 : 400, textAlign: 'right',
       }}>
         {label}
       </span>
       <div style={{
-        flex: 1, height: '14px', background: '#1e2336', borderRadius: '7px',
+        flex: 1, height: '14px', background: '#1d2623', borderRadius: '7px',
         overflow: 'hidden', position: 'relative',
       }}>
         <div style={{
@@ -37,7 +37,7 @@ export function EmotionBar({ label, probability, maxProb }: EmotionBarProps) {
         }} />
       </div>
       <span style={{
-        width: '36px', fontSize: '0.625rem', color: '#6a6474',
+        width: '36px', fontSize: '0.625rem', color: '#7d877e',
         fontVariantNumeric: 'tabular-nums',
       }}>
         {pct}%
@@ -69,7 +69,7 @@ export function EmotionBars({ emotionProbabilities, maxItems = 5 }: EmotionBarsP
         <EmotionBar key={emotion} label={emotion} probability={prob} maxProb={maxProb} />
       ))}
       {entries.length === 0 && (
-        <div style={{ color: '#5a4a5a', fontSize: '0.6875rem' }}>No emotions detected.</div>
+        <div style={{ color: '#6b766d', fontSize: '0.6875rem' }}>No emotions detected.</div>
       )}
     </div>
   )

@@ -44,18 +44,18 @@ export default function ProfilePage() {
           ].map(f => (
             <div key={f.label}>
               <div className="metric-label">{f.label}</div>
-              <div style={{ fontSize: '0.9rem', color: '#e8e4ec', marginTop: '2px' }}>{f.value}</div>
+              <div style={{ fontSize: '0.9rem', color: '#e7e9df', marginTop: '2px' }}>{f.value}</div>
             </div>
           ))}
         </div>
         <hr />
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#9a92a2', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Contact Info</label>
+            <label style={{ fontSize: '0.75rem', color: '#9ca99e', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Contact Info</label>
             <input value={contact} onChange={e => setContact(e.target.value)} placeholder="Phone or email" style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem' }} />
           </div>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#9a92a2', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Trusted Contact</label>
+            <label style={{ fontSize: '0.75rem', color: '#9ca99e', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Trusted Contact</label>
             <input value={trusted} onChange={e => setTrusted(e.target.value)} placeholder="Name and phone/email" style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem' }} />
           </div>
           <div className="flex items-center gap-3">

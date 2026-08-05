@@ -34,7 +34,7 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center" style={{ padding: '20px' }}>
       <form onSubmit={handleSubmit} className="card" style={{ padding: '32px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#c49ea4', letterSpacing: '-0.01em' }}>Register</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#8fcbb1', letterSpacing: '-0.01em' }}>Register</div>
         </div>
         {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '0.8125rem', padding: '8px 12px', borderRadius: '8px' }}>{error}</div>}
 
@@ -55,10 +55,10 @@ export default function Register() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button type="button" onClick={() => setForm(f => ({ ...f, role: 'patient' }))} style={{ flex: 1, padding: '10px', fontSize: '0.8125rem', background: form.role === 'patient' ? '#232840' : '#1e2336', border: `1px solid ${form.role === 'patient' ? '#c49ea4' : '#2d2d44'}`, borderRadius: '8px', color: form.role === 'patient' ? '#e8e4ec' : '#9a92a2', cursor: 'pointer' }}>
+          <button type="button" onClick={() => setForm(f => ({ ...f, role: 'patient' }))} style={{ flex: 1, padding: '10px', fontSize: '0.8125rem', background: form.role === 'patient' ? '#27322d' : '#1d2623', border: `1px solid ${form.role === 'patient' ? '#8fcbb1' : '#31423a'}`, borderRadius: '8px', color: form.role === 'patient' ? '#e7e9df' : '#9ca99e', cursor: 'pointer' }}>
             🧑 Patient
           </button>
-          <button type="button" onClick={() => setForm(f => ({ ...f, role: 'psychologist' }))} style={{ flex: 1, padding: '10px', fontSize: '0.8125rem', background: form.role === 'psychologist' ? '#232840' : '#1e2336', border: `1px solid ${form.role === 'psychologist' ? '#f59e0b' : '#2d2d44'}`, borderRadius: '8px', color: form.role === 'psychologist' ? '#e8e4ec' : '#9a92a2', cursor: 'pointer' }}>
+          <button type="button" onClick={() => setForm(f => ({ ...f, role: 'psychologist' }))} style={{ flex: 1, padding: '10px', fontSize: '0.8125rem', background: form.role === 'psychologist' ? '#27322d' : '#1d2623', border: `1px solid ${form.role === 'psychologist' ? '#f59e0b' : '#31423a'}`, borderRadius: '8px', color: form.role === 'psychologist' ? '#e7e9df' : '#9ca99e', cursor: 'pointer' }}>
             🧑‍⚕️ Psychologist
           </button>
         </div>
@@ -88,7 +88,7 @@ export default function Register() {
           {loading ? 'Registering...' : 'Register'}
         </button>
 
-        <div style={{ fontSize: '0.75rem', color: '#6a6474', textAlign: 'center' }}>
+        <div style={{ fontSize: '0.75rem', color: '#7d877e', textAlign: 'center' }}>
           Already have an account? <Link to="/login">Sign in</Link>
         </div>
       </form>
