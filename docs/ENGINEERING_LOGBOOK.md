@@ -451,6 +451,13 @@ than us picking one palette for them:
 **Result:** `tsc` + `vite build` clean (691 modules, 11.12 kB CSS / 830 kB JS); live check confirms
 correct emoji bytes and both theme blocks in the served bundle.
 
+**Dark-mode polish pass.** User feedback: the gradient was "cool but ruins UI/UX" in dark. Fixed:
+- Dark body is now a flat `#101714` (no gradient banding); the subtle light-mode gradient is kept.
+- Killed a hardcoded light stop (`#FBFDFC`) in `.card` that turned dark cards two-tone.
+- Card elevation in dark now uses real dark shadows (`--shadow`/`--shadow-lg` tokens) instead of
+  dark-on-dark teal shadows that made cards invisible against the background.
+- Dark borders brightened (`#31423A`) so card edges and dividers read clearly.
+
 ---
 
 ## Final Stack

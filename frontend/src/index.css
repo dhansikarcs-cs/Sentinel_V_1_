@@ -37,6 +37,8 @@
   --info-soft: #EAF3FC;
   --danger-alpha: rgba(199,70,59,0.12);
   --ok-alpha: rgba(46,139,87,0.12);
+  --shadow: 0 1px 3px rgba(23,53,45,0.05), 0 4px 14px rgba(23,53,45,0.06);
+  --shadow-lg: 0 2px 6px rgba(23,53,45,0.07), 0 8px 22px rgba(23,53,45,0.09);
   color-scheme: light;
 }
 
@@ -49,8 +51,8 @@
   --surface-soft: #16201C;
   --surface-soft-2: #18231F;
   --accent-soft: #1F3530;
-  --border: #2B3A34;
-  --border-strong: #3A4C44;
+  --border: #31423A;
+  --border-strong: #41574E;
   --border-soft: #2E3D37;
   --text: #C9D5D0;
   --heading: #EEF4F1;
@@ -75,6 +77,8 @@
   --info-soft: #203340;
   --danger-alpha: rgba(224,107,97,0.15);
   --ok-alpha: rgba(87,199,138,0.15);
+  --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 4px 14px rgba(0,0,0,0.4);
+  --shadow-lg: 0 2px 6px rgba(0,0,0,0.45), 0 10px 26px rgba(0,0,0,0.5);
   color-scheme: dark;
 }
 
@@ -85,6 +89,10 @@ body {
   transition: background 0.4s ease;
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
+}
+
+[data-theme="dark"] body {
+  background: var(--bg);
 }
 
 :focus-visible {
@@ -181,15 +189,15 @@ label { color: var(--label) !important; font-weight: 500; font-size: 0.8125rem; 
 
 /* Cards */
 .card {
-  background: linear-gradient(135deg, var(--surface), #FBFDFC);
+  background: linear-gradient(135deg, var(--surface), var(--surface-soft));
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
   margin: 8px 0;
-  box-shadow: 0 1px 3px rgba(23,53,45,0.05), 0 4px 14px rgba(23,53,45,0.06);
+  box-shadow: var(--shadow);
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
-.card:hover { border-color: var(--border-strong); box-shadow: 0 2px 6px rgba(23,53,45,0.07), 0 8px 22px rgba(23,53,45,0.09); }
+.card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-lg); }
 .card-sm {
   background: linear-gradient(135deg, var(--surface), var(--surface));
   border: 1px solid var(--border);
@@ -224,7 +232,7 @@ label { color: var(--label) !important; font-weight: 500; font-size: 0.8125rem; 
   padding: 16px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.journal-card:hover { border-color: var(--border-strong); box-shadow: 0 2px 12px rgba(23,121,110,0.06); }
+.journal-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
 
 /* Metric cards */
 .metric-card {
