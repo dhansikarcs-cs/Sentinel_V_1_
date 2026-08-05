@@ -20,6 +20,7 @@ from app.models.risk_assessment import RiskAssessment
 from app.models.user import User
 from app.repositories import BookingRepository, FollowupRepository, JournalRepository, PatientRepository
 from app.services.patient_context import recent_patient_context
+from app.services.plain_insights import generate_plain_insights
 from app.services.timeline_service import build_timeline_events, compute_change_metrics
 
 CONSENT_DIR = "data/consent_forms"
@@ -467,6 +468,118 @@ def get_patient_overview(username: str, user: User = Depends(get_current_user), 
             "priorities": derive_priorities(crisis, risk, followup_list, changes, ctx.ring_logs),
         }
     )
+
+
+@router.get("/{username}/plain-insights")
+def get_plain_insights(username: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Human-language narrative for a clinician, derived from the same data.
+
+    The heavy math lives elsewhere; this returns a short, plain-English
+    update (headline, insights, suggestion) that the AI writes when a model
+    is available, or a deterministic template otherwise.
+    """
+    import json as _json
+    from datetime import datetime, timedelta
+
+    patient = PatientRepository(db).get_by_username(username)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    if not _owns_or_psych(username, user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    ctx = recent_patient_context(db, username, journal_limit=10, mood_limit=14, ring_limit=7, include_followups=True)
+    metrics = compute_change_metrics(username, db)
+
+    latest_risk = (
+        db.query(RiskAssessment)
+        .filter(RiskAssessment.patient_username == username)
+        .order_by(RiskAssessment.created_at.desc())
+        .first()
+    )
+    risk_score = None
+    if latest_risk:
+        risk_score = max(0, min(10, int(latest_risk.risk_score or 0)))
+
+    crisis_active = bool(
+        db.query(CrisisState).filter(CrisisState.active == 1, CrisisState.patient_username == username).first()
+    )
+
+    cutoff = (datetime.now(UTC) - timedelta(days=30)).isoformat()
+    entries = (
+        db.query(JournalEntry)
+        .filter(
+            JournalEntry.patient_username == username,
+            JournalEntry.timestamp >= cutoff,
+            JournalEntry.emotion_probabilities != "",
+        )
+        .order_by(JournalEntry.timestamp.asc())
+        .all()
+    )
+    heatmap: dict[str, list[float]] = {}
+    for e in entries:
+        try:
+            probs = _json.loads(e.emotion_probabilities or "{}")
+        except (_json.JSONDecodeError, TypeError):
+            probs = {}
+        for emo, prob in probs.items():
+            if emo != "neutral" and prob > 0:
+                heatmap.setdefault(emo, []).append(float(prob))
+    avg_by_emo = {emo: sum(v) / len(v) for emo, v in heatmap.items() if v}
+    top_emotions = [emo for emo, _ in sorted(avg_by_emo.items(), key=lambda kv: kv[1], reverse=True)[:3]]
+
+    emotion_shifts = []
+    half = len(entries) // 2
+    if half > 0:
+        early = entries[:half]
+        late = entries[half:]
+        early_avg = {}
+        late_avg = {}
+        for bucket, target in ((early, early_avg), (late, late_avg)):
+            for e in bucket:
+                try:
+                    probs = _json.loads(e.emotion_probabilities or "{}")
+                except (_json.JSONDecodeError, TypeError):
+                    probs = {}
+                for emo, prob in probs.items():
+                    if emo != "neutral" and prob > 0:
+                        target[emo] = target.get(emo, 0) + float(prob)
+            for emo in target:
+                target[emo] /= len(bucket)
+        for emo in set(early_avg) | set(late_avg):
+            diff = late_avg.get(emo, 0) - early_avg.get(emo, 0)
+            if abs(diff) >= 0.12 and (early_avg.get(emo, 0) > 0 or late_avg.get(emo, 0) > 0):
+                verb = "more" if diff > 0 else "less"
+                emotion_shifts.append(f"'{emo}' has appeared {verb} in her recent entries")
+        emotion_shifts.sort(key=lambda s: -abs(late_avg.get(s.split("'")[1], 0) - early_avg.get(s.split("'")[1], 0)))
+
+    sensor = ctx.ring_logs[0] if ctx.ring_logs else None
+    followup_list = ctx.followups
+
+    pack = {
+        "allow_ai": True,
+        "name": patient.name or patient.username,
+        "age": patient.age or 0,
+        "mood_trend": metrics.mood_trend,
+        "current_mood": metrics.current_mood_avg,
+        "previous_mood": metrics.previous_mood_avg,
+        "journal_count_7": metrics.journal_count_7,
+        "journal_count_14": metrics.journal_count_14,
+        "top_emotions": top_emotions,
+        "emotion_shifts": emotion_shifts,
+        "risk_score": risk_score,
+        "crisis_active": crisis_active,
+        "sensor": {
+            "bpm": sensor.bpm or 0,
+            "stress": sensor.stress or 0,
+            "sleep_hours": sensor.sleep_hours or 0,
+            "spo2": sensor.spo2 or 0,
+        }
+        if sensor
+        else None,
+        "followups_pending": sum(1 for f in followup_list if f.status == "pending"),
+        "followups_completed": sum(1 for f in followup_list if f.status == "completed"),
+    }
+    return ok(data=generate_plain_insights(pack))
 
 
 @router.put("/me/contact")

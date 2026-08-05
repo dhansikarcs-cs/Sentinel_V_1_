@@ -133,6 +133,7 @@ export const api = {
   getPatientProfile: (username: string) => request(`/patients/${username}/profile`),
   getPatientSummary: (username: string) => request(`/patients/${username}/summary`),
   getPatientOverview: (username: string) => request(`/patients/${username}/overview`),
+  getPlainInsights: (username: string) => request(`/patients/${username}/plain-insights`),
   uploadConsentForm: (file: File) => upload('/patients/me/consent', file),
   getWellness: () => request('/patients/me/wellness'),
   updateOnboarding: (step: number) => request('/patients/me/onboarding', { method: 'PUT', body: JSON.stringify({ step }) }),

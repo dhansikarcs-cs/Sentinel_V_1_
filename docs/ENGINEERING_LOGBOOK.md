@@ -345,6 +345,30 @@ clean; live demo re-verified end-to-end with Ollama.
 **Result:** 93 backend tests (added 4 followup-feedback cases); `ruff`, `tsc`, `vite build` clean;
 live demo re-verified (feedback roundtrip, patient tamper ignored, emotion timeline shape).
 
+### 2026-08-05 — Insights speak human, not math ("they r psych not data analyst")
+
+The Patient Insights page was dumping percentages and probability bars to psychologists. Now the
+AI eats the raw data and the clinician gets a plain-English note; all the numbers move to one
+optional tab at the end.
+
+- **New `GET /patients/{username}/plain-insights`** (psych or the patient themself): gathers the
+  same derived facts (mood/engagement trend, top emotions + shifts, risk score, crisis flag, ring
+  reading, homework progress) into a compact fact pack, then asks the LLM (Ollama → Groq) to write
+  a short update — headline, 3–5 plain insights, and a practical next step. If no model answers,
+  a deterministic template writes the same story. Response carries `source`/`provider` so the UI
+  shows the rule-fallback badge honestly.
+- **Frontend reorganized into two tabs.** "Current State" (default) is human-first: identity line,
+  alerts, headline card ("HOW SHE'S DOING"), bulleted insights in plain words, a "WHAT TO DO NEXT"
+  card, and the actionable priorities. "Raw Data" (last) holds everything else — the old current-
+  state data cards, emotion timeline, AI trace (P=/weight=/contribution=), and patterns — behind an
+  explanatory note that it's there for review, not daily use.
+- `plain_insights.py` keeps all phrasing logic in one place; risk words mirror the crisis policy
+  thresholds (8/7/6/4). LLM output is JSON-parsed defensively and falls back field-by-field.
+
+**Result:** 98 backend tests (added `test_plain_insights.py` — structure, AI path via monkeypatch,
+self-access, cross-patient 403, 404); `ruff` + `tsc` + `vite build` clean; live demo shows a real
+Ollama-written narrative for alaya.
+
 ---
 
 ## Final Stack

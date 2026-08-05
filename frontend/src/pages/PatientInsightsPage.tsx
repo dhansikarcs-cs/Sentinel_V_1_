@@ -7,10 +7,8 @@ import PrioritiesPanel from '../components/PrioritiesPanel'
 import { moodIcon, formatTime, formatDate } from '../constants'
 
 const SUB_TABS = [
-  { key: 'overview', label: '\u{1F9ED} Current State' },
-  { key: 'emotions', label: '\u{1F3AD} Emotions' },
-  { key: 'ai-trace', label: '\u{1F9E0} AI Trace' },
-  { key: 'patterns', label: '\u{1F50D} Patterns' },
+  { key: 'overview', label: '\u{1F9D0} Current State' },
+  { key: 'raw', label: '\u{1F4CA} Raw Data' },
 ]
 
 export default function PatientInsightsPage() {
@@ -33,7 +31,7 @@ export default function PatientInsightsPage() {
     <div className="animate-fade-in">
       <h2>{'\u{1F50D}'} Patient Insights</h2>
       <p style={{ color: '#6a6474', fontSize: '0.75rem', marginBottom: '12px' }}>
-        One composed view of the patient's current state — identity, clinical brief, trends, risk, and activity.
+        A plain-language read on how the patient is doing. The numbers behind it stay in one place at the end, for when you want them.
       </p>
 
       <PatientSelector
@@ -66,19 +64,103 @@ export default function PatientInsightsPage() {
 
       {!selected && (
         <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '32px' }}>
-          Select a patient to view their current state.
+          Select a patient to see how they're doing.
         </div>
       )}
 
-      {selected && subTab === 'overview' && <OverviewSection overview={overview} loading={overviewLoading} />}
-      {selected && subTab === 'emotions' && <EmotionsSection patient={selected} />}
-      {selected && subTab === 'ai-trace' && <AITraceSection patient={selected} />}
-      {selected && subTab === 'patterns' && <PatternsSection patient={selected} overview={overview} />}
+      {selected && subTab === 'overview' && <CurrentStateSection patient={selected} overview={overview} />}
+      {selected && subTab === 'raw' && <RawDataSection patient={selected} overview={overview} />}
     </div>
   )
 }
 
-function OverviewSection({ overview, loading }: { overview: any; loading: boolean }) {
+function CurrentStateSection({ patient, overview }: { patient: string; overview: any }) {
+  const [insights, setInsights] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    api.getPlainInsights(patient)
+      .then(setInsights)
+      .catch(() => setInsights(null))
+      .finally(() => setLoading(false))
+  }, [patient])
+
+  const identity = overview?.patient || {}
+  const alerts = overview?.alerts || []
+
+  return (
+    <>
+      {identity.name && (
+        <div className="card" style={{ padding: '14px', marginBottom: '16px' }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f0f4ff' }}>{identity.name}</div>
+          <div style={{ color: '#7a8aaa', fontSize: '0.7rem', marginTop: '2px' }}>
+            @{identity.username}
+            {identity.age ? ` \u00B7 ${identity.age} yrs` : ''}
+            {identity.occupation ? ` \u00B7 ${identity.occupation}` : ''}
+          </div>
+        </div>
+      )}
+
+      {alerts.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          {alerts.map((a: string, i: number) => (
+            <div key={i} style={{ background: '#2a0f1c', border: '1px solid #ef444455', color: '#fca5a5', borderRadius: '8px', padding: '8px 12px', fontSize: '0.75rem', marginBottom: '6px' }}>
+              {'\u26A0\uFE0F'} {a}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {loading && (
+        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>
+          Reading through the data...
+        </div>
+      )}
+
+      {!loading && insights && (
+        <>
+          <div className="card" style={{ padding: '18px', marginBottom: '12px', background: 'linear-gradient(180deg, #241b33 0%, #1b2130 100%)', borderColor: '#c49ea450' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.5px' }}>HOW SHE'S DOING</span>
+              {insights.source && <AiSourceBadge source={insights.source} />}
+            </div>
+            <div style={{ color: '#f0f4ff', fontSize: '1.05rem', fontWeight: 700, lineHeight: 1.5 }}>{insights.headline}</div>
+          </div>
+
+          {(insights.insights || []).length > 0 && (
+            <div className="card" style={{ padding: '14px', marginBottom: '12px' }}>
+              <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.68rem', marginBottom: '10px' }}>THE DETAIL, IN PLAIN WORDS</div>
+              {insights.insights.map((text: string, i: number) => (
+                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '8px', fontSize: '0.8rem', color: '#d8d4dc', lineHeight: 1.5 }}>
+                  <span style={{ color: '#c49ea4', flexShrink: 0 }}>{'\u2022'}</span>
+                  <span>{text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {insights.suggestion && (
+            <div className="card" style={{ padding: '14px', marginBottom: '16px', borderColor: '#22c55e33', background: '#12201a' }}>
+              <div style={{ color: '#22c55e', fontWeight: 600, fontSize: '0.68rem', marginBottom: '6px' }}>WHAT TO DO NEXT</div>
+              <div style={{ color: '#d8d4dc', fontSize: '0.82rem', lineHeight: 1.5 }}>{insights.suggestion}</div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!loading && !insights && (
+        <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>
+          Could not compose a summary right now. The raw data below is still available.
+        </div>
+      )}
+
+      <PrioritiesPanel priorities={overview?.priorities} />
+    </>
+  )
+}
+
+function OverviewData({ overview, loading }: { overview: any; loading: boolean }) {
   if (loading) return <div className="card" style={{ color: '#6a6474', textAlign: 'center', padding: '20px' }}>Composing patient state...</div>
   if (!overview) return <div className="card" style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>Failed to load overview.</div>
 
@@ -96,18 +178,6 @@ function OverviewSection({ overview, loading }: { overview: any; loading: boolea
 
   return (
     <>
-      {(overview.alerts || []).length > 0 && (
-        <div style={{ marginBottom: '16px' }}>
-          {overview.alerts.map((a: string, i: number) => (
-            <div key={i} style={{ background: '#2a0f1c', border: '1px solid #ef444455', color: '#fca5a5', borderRadius: '8px', padding: '8px 12px', fontSize: '0.75rem', marginBottom: '6px' }}>
-              {'\u26A0\uFE0F'} {a}
-            </div>
-          ))}
-        </div>
-      )}
-
-      <PrioritiesPanel priorities={overview.priorities} />
-
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div className="card" style={{ padding: '14px' }}>
           <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>PATIENT</div>
@@ -306,6 +376,36 @@ function OverviewSection({ overview, loading }: { overview: any; loading: boolea
   )
 }
 
+function RawDataSection({ patient, overview }: { patient: string; overview: any }) {
+  const [overviewLoading, setOverviewLoading] = useState(false)
+
+  useEffect(() => {
+    if (!overview) setOverviewLoading(true)
+  }, [overview])
+
+  return (
+    <>
+      <div className="card" style={{ padding: '12px 14px', marginBottom: '16px', background: '#141a29' }}>
+        <div style={{ color: '#9a92a2', fontSize: '0.75rem', lineHeight: 1.6 }}>
+          {'\u{1F4CA}'} This tab holds the raw numbers and AI traces behind the plain-language summary above. You don't need it for everyday work — it's here for review when you want to dig in.
+        </div>
+      </div>
+
+      <h3>{'\u{1F9ED}'} Current State Data</h3>
+      <OverviewData overview={overview} loading={overviewLoading} />
+
+      <h3 style={{ marginTop: '24px' }}>{'\u{1F3AD}'} Emotion Timeline</h3>
+      <EmotionsSection patient={patient} />
+
+      <h3 style={{ marginTop: '24px' }}>{'\u{1F9E0}'} AI Trace</h3>
+      <AITraceSection patient={patient} />
+
+      <h3 style={{ marginTop: '24px' }}>{'\u{1F50D}'} Patterns</h3>
+      <PatternsSection patient={patient} overview={overview} />
+    </>
+  )
+}
+
 function EmotionsSection({ patient }: { patient: string }) {
   const [data, setData] = useState<any>(null)
 
@@ -396,7 +496,7 @@ function EmotionsSection({ patient }: { patient: string }) {
         </div>
       )}
 
-      <h3>Journal Timeline ({entriesCount} entries)</h3>
+      <h4 style={{ fontSize: '0.85rem', color: '#9a92a2', fontWeight: 600 }}>Journal Timeline ({entriesCount} entries)</h4>
       {timeline.map((point: any) => {
         const labels = topLabels(point)
         return (
@@ -456,7 +556,7 @@ function AITraceSection({ patient }: { patient: string }) {
 
       {risks.length > 0 && (
         <>
-          <h3>Risk Assessments</h3>
+          <h4 style={{ fontSize: '0.85rem', color: '#9a92a2', fontWeight: 600 }}>Risk Assessments</h4>
           {risks.slice(0, 10).map((r: any) => (
             <div key={r.id} className="expander" style={{ cursor: 'default' }}>
               <div className="expander-header">
@@ -489,7 +589,7 @@ function AITraceSection({ patient }: { patient: string }) {
 
       {analyses.length > 0 && (
         <>
-          <h3>AI Analysis History</h3>
+          <h4 style={{ fontSize: '0.85rem', color: '#9a92a2', fontWeight: 600, marginTop: '16px' }}>AI Analysis History</h4>
           {analyses.slice(0, 10).map((a: any) => (
             <div key={a.id} className="card" style={{ marginBottom: '6px', padding: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -508,7 +608,7 @@ function AITraceSection({ patient }: { patient: string }) {
 
       {emotionResults.length > 0 && (
         <>
-          <h3>Emotion Probability History</h3>
+          <h4 style={{ fontSize: '0.85rem', color: '#9a92a2', fontWeight: 600, marginTop: '16px' }}>Emotion Probability History</h4>
           {emotionResults.slice(0, 5).map((er: any) => {
             const probs: Record<string, number> = {}
             const fields = ['admiration','amusement','anger','annoyance','approval','caring','confusion','curiosity','desire','disappointment','disapproval','disgust','embarrassment','excitement','fear','gratitude','grief','joy','love','nervousness','optimism','pride','realization','relief','remorse','sadness','surprise','neutral']
@@ -613,8 +713,6 @@ function PatternsSection({ patient, overview }: { patient: string; overview: any
 
   return (
     <>
-      <h3>Behavioral Patterns</h3>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
         <div className="card" style={{ padding: '14px' }}>
           <div style={{ color: '#c49ea4', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>Mood Distribution</div>
