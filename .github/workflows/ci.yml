@@ -40,6 +40,9 @@ jobs:
       - name: App import smoke test
         working-directory: backend
         run: python -c "from app.main import app; from app.core.health import health_full; h = health_full(); assert h['status'] == 'healthy', h; print('app imports OK, health:', h['status'])"
+      - name: Golden-set model regression gate
+        working-directory: backend
+        run: python -m scripts.eval_golden_set --strict
 
   security-scan:
     runs-on: ubuntu-latest

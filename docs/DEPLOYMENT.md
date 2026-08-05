@@ -54,7 +54,11 @@ Set `BACKEND_URL` to `https://sentinel-backend.onrender.com` (public) or the int
 | `CORS_ORIGINS` | `http://localhost:5173` | comma-separated; local dev only — prod proxies via nginx |
 | `OLLAMA_URL` | `http://host.docker.internal:11434` | dev default for Docker Desktop; set `http://localhost:11434` for native runs |
 | `OLLAMA_MODEL` | `sentinel` | model name Ollama loads |
-| `GROQ_API_KEY` | unset | fallback provider; empty → Groq path skipped |
+| `GROQ_API_KEY` | unset | cloud fallback provider; only used if `ALLOW_CLOUD_AI=true` |
+| `ALLOW_CLOUD_AI` | `false` | **default-off**; if `true`, raw journal text may be sent to Groq (third-party LLM) when Ollama is unavailable. Privacy-first clinics must keep it off |
+| `SENTINEL_BACKUP_KEY` | unset | Fernet key for `scripts/backup_db.py`; if unset a machine-local key is derived (not portable). Keep separate from the backups |
+| `SENTINEL_TRUSTEE_LINK_SECRET` | unset | HMAC key for signed trustee-portal links; falls back to `JWT_SECRET` |
+| `SENTINEL_TRUSTEE_LINK_EXPIRE_SECONDS` | `3600` | lifetime of a signed trustee alert link |
 | `SMTP_HOST/PORT/USER/PASSWORD` | gmail defaults | for crisis notifications; unset → email disabled (logs only) |
 | `EMAIL_FROM`, `HELPLINE_EMAIL` | — | sender + helpline contact |
 | `LOG_FORMAT` | `json` | `json` = one JSON object per line; `text` = human-readable |
@@ -75,6 +79,13 @@ across instances. For a real deployment, either:
 
 **Backup path (local/native):** `backend/data/sentinel.db` (plus `-wal`/`-shm` if WAL is
 on). Stop the process, then copy all three files.
+
+**Off-box encrypted backups:** run `python -m scripts.backup_db` from `backend/`. It makes
+a consistent SQLite snapshot, encrypts it with Fernet, writes it to a durable local dir,
+and — if `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` are set —
+uploads the ciphertext to S3-compatible object storage (never plaintext PHI). Local copies
+are pruned to the last `--keep` (default 7). For recoverable backups set `SENTINEL_BACKUP_KEY`
+explicitly and keep it separate from the backup files.
 
 ## Observability
 

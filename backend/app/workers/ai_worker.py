@@ -123,6 +123,47 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
         if CRISIS_POLICY.should_auto_trigger(risk_score, risk.get("triggered", False)):
             from app.models.crisis import CrisisLog, CrisisState
 
+            recent_trigger = (
+                db.query(CrisisLog)
+                .filter(
+                    CrisisLog.patient == patient_username,
+                    CrisisLog.event.in_(["crisis_auto_triggered", "triggered", "resolved"]),
+                )
+                .order_by(CrisisLog.timestamp.desc())
+                .first()
+            )
+            if recent_trigger:
+                try:
+                    last_time = datetime.fromisoformat(recent_trigger.timestamp)
+                    cooldown_left = CRISIS_POLICY.trigger_cooldown_seconds - int(
+                        (datetime.now(UTC) - last_time).total_seconds()
+                    )
+                except Exception:
+                    cooldown_left = 0
+                if cooldown_left > 0:
+                    logger.info(
+                        "Skipping auto-trigger for journal %s: patient %s in cooldown (%ss left)",
+                        journal_id,
+                        patient_username,
+                        cooldown_left,
+                    )
+                    db.commit()
+                    bus = get_event_bus()
+                    bus.emit(
+                        "journal:summarized",
+                        journal_id=journal_id,
+                        patient_username=patient_username,
+                        summary=entry.summary if entry else "",
+                        clinical_summary=entry.clinical_summary if entry else "",
+                        emotions=entry.emotions if entry else "",
+                        emotion_probabilities=emotion_probs_json,
+                        ai_source=entry.ai_source if entry else "rule",
+                        risk_score=risk_score,
+                        risk_triggered=risk.get("triggered", False),
+                        risk_explainability=risk.get("explainability"),
+                    )
+                    return
+
             existing = db.query(CrisisState).first()
             if not existing:
                 existing = CrisisState(active=0)

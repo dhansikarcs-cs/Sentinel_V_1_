@@ -1,8 +1,10 @@
+import hashlib
+import hmac as hmac_mod
 import logging
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.api_response import ok
@@ -21,6 +23,39 @@ logger = logging.getLogger("sentinel.crisis")
 router = APIRouter(prefix="/crisis", tags=["crisis"])
 
 TRUSTEE_PORTAL_BASE = os.environ.get("SENTINEL_ACK_LINK", "http://localhost:5173/trustee")
+
+
+def _trustee_hmac_key() -> bytes:
+    return (settings.trustee_link_secret or settings.jwt_secret).encode("utf-8")
+
+
+def _make_trustee_link(patient: str) -> str:
+    """One-time, expiring, signed trustee link. The signature binds patient + expiry
+    so a leaked link cannot be replayed indefinitely or re-pointed at another patient."""
+    exp = int((datetime.now(UTC) + timedelta(seconds=settings.trustee_link_expire_seconds)).timestamp())
+    message = f"{patient}|{exp}"
+    sig = hmac_mod.new(_trustee_hmac_key(), message.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{TRUSTEE_PORTAL_BASE}?patient={patient}&exp={exp}&sig={sig}"
+
+
+def _verify_trustee_link(patient: str, exp: int, sig: str) -> bool:
+    if not patient or not exp or not sig:
+        return False
+    if datetime.now(UTC).timestamp() > exp:
+        return False
+    message = f"{patient}|{exp}"
+    expected = hmac_mod.new(_trustee_hmac_key(), message.encode("utf-8"), hashlib.sha256).hexdigest()
+    return hmac_mod.compare_digest(expected, sig)
+
+
+def _require_valid_trustee_link(
+    patient: str = Query(""),
+    exp: int = Query(0),
+    sig: str = Query(""),
+) -> str:
+    if not _verify_trustee_link(patient, exp, sig):
+        raise HTTPException(status_code=403, detail="Invalid or expired trustee link")
+    return patient
 
 
 def _get_or_create_state(db: Session) -> CrisisState:
@@ -180,7 +215,7 @@ def notify_trusted_contact(user: User = Depends(get_current_user), db: Session =
     tc_email = patient.trusted_contact if patient else ""
     email_sent = False
     if tc_email:
-        trustee_link = f"{TRUSTEE_PORTAL_BASE}?patient={state.patient_username}"
+        trustee_link = _make_trustee_link(state.patient_username)
         email_sent = send_email(
             to=tc_email,
             subject="[Sentinel] Crisis Alert — Your loved one needs you",
@@ -200,7 +235,10 @@ def notify_trusted_contact(user: User = Depends(get_current_user), db: Session =
 
 
 @router.get("/public-state")
-def public_crisis_state(db: Session = Depends(get_db)):
+def public_crisis_state(
+    patient: str = Depends(_require_valid_trustee_link),
+    db: Session = Depends(get_db),
+):
     state = _get_or_create_state(db)
     return {
         "active": bool(state.active),
@@ -213,9 +251,14 @@ def public_crisis_state(db: Session = Depends(get_db)):
 
 
 @router.post("/public-trustee-acknowledge")
-def public_trustee_acknowledge(db: Session = Depends(get_db)):
+def public_trustee_acknowledge(
+    patient: str = Depends(_require_valid_trustee_link),
+    db: Session = Depends(get_db),
+):
     state = _get_or_create_state(db)
     if not state.active:
+        return ok(message="No active crisis")
+    if state.patient_username != patient:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
     state.trustee_acknowledged = 1
@@ -232,7 +275,10 @@ def public_trustee_acknowledge(db: Session = Depends(get_db)):
 
 
 @router.post("/public-trustee-clicked")
-def public_trustee_clicked(db: Session = Depends(get_db)):
+def public_trustee_clicked(
+    patient: str = Depends(_require_valid_trustee_link),
+    db: Session = Depends(get_db),
+):
     state = _get_or_create_state(db)
     if not state.active:
         return ok(message="No active crisis")
@@ -261,7 +307,7 @@ def helpline_escalate(user: User = Depends(get_current_user), db: Session = Depe
     email_sent = send_email(
         to=helpline,
         subject="[Sentinel] CRISIS ESCALATION — Immediate attention required",
-        body=f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nThis patient has not been acknowledged within the safety window. Immediate helpline intervention is required.\n\nAcknowledge: {TRUSTEE_PORTAL_BASE}?patient={state.patient_username}\n\n- Sentinel Safety System",
+        body=f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nThis patient has not been acknowledged within the safety window. Immediate helpline intervention is required.\n\nAcknowledge: {_make_trustee_link(state.patient_username)}\n\n- Sentinel Safety System",
     )
     state.helpline_escalated = 1
     log = CrisisLog(
@@ -298,9 +344,10 @@ def _handle_escalation(state: CrisisState, db: Session):
         state.trusted_contact_notified = 1
         patient = db.query(User).filter(User.username == state.patient_username).first()
         tc_email = patient.trusted_contact if patient else ""
+        email_sent = False
         if tc_email:
-            trustee_link = f"{TRUSTEE_PORTAL_BASE}?patient={state.patient_username}"
-            send_email(
+            trustee_link = _make_trustee_link(state.patient_username)
+            email_sent = send_email(
                 tc_email,
                 "[Sentinel] Crisis Alert — Your loved one needs you",
                 f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {datetime.now(UTC).isoformat()}\n\nYour loved one has triggered a crisis alert. Please reach out to them as soon as possible.\n\nAcknowledge this alert: {trustee_link}\n\n- Sentinel Safety System",
@@ -310,22 +357,24 @@ def _handle_escalation(state: CrisisState, db: Session):
             patient=state.patient_username,
             timestamp=datetime.now(UTC).isoformat(),
             source="system",
+            details=f"Trusted contact {'emailed' if email_sent else 'logged (no SMTP)'}",
         )
         db.add(log)
 
     if elapsed >= 60 and not state.helpline_escalated:
         state.helpline_escalated = 1
         helpline = settings.helpline_email or settings.email_from
-        send_email(
+        email_sent = send_email(
             helpline,
             "[Sentinel] CRISIS ESCALATION — Immediate attention required",
-            f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nNo acknowledgement within 60s. Immediate helpline intervention required.\n\nAcknowledge: {TRUSTEE_PORTAL_BASE}?patient={state.patient_username}\n\n- Sentinel Safety System",
+            f"Sentinel Crisis Escalation\n\nPatient: {state.patient_username}\nTriggered at: {state.triggered_at}\n\nNo acknowledgement within 60s. Immediate helpline intervention required.\n\nAcknowledge: {_make_trustee_link(state.patient_username)}\n\n- Sentinel Safety System",
         )
         log = CrisisLog(
             event="helpline_escalated_auto",
             patient=state.patient_username,
             timestamp=datetime.now(UTC).isoformat(),
             source="system",
+            details=f"Helpline {'emailed' if email_sent else 'logged (no SMTP)'}",
         )
         db.add(log)
 

@@ -25,3 +25,5 @@ frontend/dist/
 archive/
 *.tsbuildinfo
 test.pdf
+# private review artifacts (never pushed)
+concerns.md

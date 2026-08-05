@@ -19,6 +19,11 @@ class Settings(BaseSettings):
 
     groq_api_key: str = ""
 
+    allow_cloud_ai: bool = False
+
+    trustee_link_secret: str = ""
+    trustee_link_expire_seconds: int = 3600
+
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     smtp_user: str = ""

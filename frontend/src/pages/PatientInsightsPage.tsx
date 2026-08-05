@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import AiSourceBadge from '../components/AiSourceBadge'
 import { EmotionBars } from '../components/EmotionBar'
 import PatientSelector, { usePatientContext } from '../components/PatientSelector'
 import PrioritiesPanel from '../components/PrioritiesPanel'
@@ -213,10 +214,13 @@ function OverviewSection({ overview, loading }: { overview: any; loading: boolea
               )}
               {overview.clinical_brief.ai_analysis && (
                 <div style={{ color: '#5a5464', fontSize: '0.58rem', marginTop: '6px', lineHeight: 1.6 }}>
-                  AI: {overview.clinical_brief.ai_analysis.provider || 'rule'} &middot; prompt {overview.clinical_brief.ai_analysis.prompt_version || 'rule'}
-                  {overview.clinical_brief.ai_analysis.model_version ? ` &middot; model v${overview.clinical_brief.ai_analysis.model_version}` : ''}
-                  {overview.clinical_brief.ai_analysis.confidence ? ` &middot; confidence ${(overview.clinical_brief.ai_analysis.confidence * 100).toFixed(0)}%` : ''}
-                  {overview.clinical_brief.ai_analysis.priority ? ` &middot; priority ${overview.clinical_brief.ai_analysis.priority}` : ''}
+                  <AiSourceBadge source={overview.clinical_brief.ai_analysis.provider} detailed />
+                  <span style={{ marginLeft: '6px' }}>
+                    AI: {overview.clinical_brief.ai_analysis.provider || 'rule'} &middot; prompt {overview.clinical_brief.ai_analysis.prompt_version || 'rule'}
+                    {overview.clinical_brief.ai_analysis.model_version ? ` &middot; model v${overview.clinical_brief.ai_analysis.model_version}` : ''}
+                    {overview.clinical_brief.ai_analysis.confidence ? ` &middot; confidence ${(overview.clinical_brief.ai_analysis.confidence * 100).toFixed(0)}%` : ''}
+                    {overview.clinical_brief.ai_analysis.priority ? ` &middot; priority ${overview.clinical_brief.ai_analysis.priority}` : ''}
+                  </span>
                 </div>
               )}
             </>

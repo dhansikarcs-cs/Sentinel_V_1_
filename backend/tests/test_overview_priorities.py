@@ -51,10 +51,11 @@ def test_elevated_risk_medium():
 
 
 def test_overdue_followup_escalates_with_age():
+    from datetime import UTC, datetime, timedelta
+
     ctx = _baseline()
-    ctx["followups"] = [
-        {"id": "f1", "status": "pending", "title": "Daily reflection", "assigned_at": "2026-07-26T09:00:00"}
-    ]
+    assigned = (datetime.now(UTC) - timedelta(days=8)).isoformat()
+    ctx["followups"] = [{"id": "f1", "status": "pending", "title": "Daily reflection", "assigned_at": assigned}]
     items = derive_priorities(**ctx)
     assert items[0]["title"] == "Follow-up overdue (8d)"
     assert items[0]["level"] == "high"

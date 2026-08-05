@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import AiSourceBadge from '../components/AiSourceBadge'
 import PatientSelector, { usePatientContext } from '../components/PatientSelector'
 import PrioritiesPanel from '../components/PrioritiesPanel'
 import { moodIcon, formatTime, formatDate } from '../constants'
@@ -186,9 +187,12 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
           )}
           {brief?.ai_analysis && (
             <div style={{ color: '#5a5464', fontSize: '0.58rem', marginTop: '8px', lineHeight: 1.6 }}>
-              AI: {brief.ai_analysis.provider || 'rule'} &middot; prompt {brief.ai_analysis.prompt_version || 'rule'}
-              {brief.ai_analysis.model_version ? ` · model v${brief.ai_analysis.model_version}` : ''}
-              {brief.ai_analysis.confidence ? ` · confidence ${(brief.ai_analysis.confidence * 100).toFixed(0)}%` : ''}
+              <AiSourceBadge source={brief.ai_analysis.provider} detailed />
+              <span style={{ marginLeft: '6px' }}>
+                AI: {brief.ai_analysis.provider || 'rule'} &middot; prompt {brief.ai_analysis.prompt_version || 'rule'}
+                {brief.ai_analysis.model_version ? ` · model v${brief.ai_analysis.model_version}` : ''}
+                {brief.ai_analysis.confidence ? ` · confidence ${(brief.ai_analysis.confidence * 100).toFixed(0)}%` : ''}
+              </span>
             </div>
           )}
         </div>

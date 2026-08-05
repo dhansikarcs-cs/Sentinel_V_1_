@@ -276,7 +276,33 @@ export const api = {
     request(`/feature-flags/${name}?enabled=${enabled}&rollout_pct=${rolloutPct}`, { method: 'PUT' }),
 
   // Export
-  exportJournalSummaries: (days?: number) => `${BASE}/export/journal-summaries?days=${days || 30}&token=${_token || ''}`,
-  exportClinicalNotes: (days?: number) => `${BASE}/export/clinical-notes?days=${days || 30}&token=${_token || ''}`,
-  exportPatientData: () => `${BASE}/export/patient-data?token=${_token || ''}`,
+  // Auth goes in the Authorization header (never in the URL), token stays out of
+  // browser history / server logs. Returns the download URL for the client to open.
+  async downloadExport(path: string, filename: string): Promise<string> {
+    if (!_token) throw new Error('Unauthorized')
+    const res = await fetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${_token}` } })
+    if (res.status === 401) {
+      setToken(null)
+      setRefreshToken(null)
+      window.location.href = '/login'
+      throw new Error('Unauthorized')
+    }
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(text || 'Download failed')
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    return url
+  },
+  exportJournalSummaries: (days: number = 30) => api.downloadExport(`/export/journal-summaries?days=${days}`, 'sentinel_journal_summaries.csv'),
+  exportClinicalNotes: (days: number = 30) => api.downloadExport(`/export/clinical-notes?days=${days}`, 'sentinel_clinical_notes.csv'),
+  exportPatientData: () => api.downloadExport('/export/patient-data', 'sentinel_patient_data.csv'),
 }

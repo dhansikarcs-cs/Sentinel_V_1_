@@ -2,14 +2,19 @@ import { useEffect, useState, useRef } from 'react'
 
 const BASE = '/api'
 
+const params = new URLSearchParams(window.location.search)
+const LINK_PARAMS = `patient=${encodeURIComponent(params.get('patient') || '')}&exp=${encodeURIComponent(params.get('exp') || '')}&sig=${encodeURIComponent(params.get('sig') || '')}`
+
 async function publicGet(path: string) {
-  const res = await fetch(`${BASE}${path}`)
+  const sep = path.includes('?') ? '&' : '?'
+  const res = await fetch(`${BASE}${path}${sep}${LINK_PARAMS}`)
   if (!res.ok) return null
   return res.json()
 }
 
 async function publicPost(path: string) {
-  const res = await fetch(`${BASE}${path}`, { method: 'POST' })
+  const sep = path.includes('?') ? '&' : '?'
+  const res = await fetch(`${BASE}${path}${sep}${LINK_PARAMS}`, { method: 'POST' })
   if (!res.ok) return null
   return res.json()
 }
@@ -59,6 +64,19 @@ export default function TrusteePortalPage() {
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1117' }}>
       <div style={{ color: '#6a6474', fontSize: '1rem' }}>Loading...</div>
+    </div>
+  )
+
+  const linkInvalid = !params.get('sig') || !params.get('patient') || state === null
+
+  if (linkInvalid) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1117', padding: '32px' }}>
+      <div style={{ textAlign: 'center', maxWidth: '480px' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🔒</div>
+        <h1 style={{ color: '#f0f4ff', fontSize: '1.5rem', marginBottom: '8px' }}>Invalid or Expired Link</h1>
+        <p style={{ color: '#6a6474', fontSize: '0.9375rem' }}>This safety link is invalid or has expired. Please request a fresh link from your loved one's care team.</p>
+        <p style={{ color: '#3a4a5a', fontSize: '0.8125rem', marginTop: '16px' }}>Sentinel — Crisis Response System</p>
+      </div>
     </div>
   )
 

@@ -22,6 +22,7 @@ class CrisisPolicy:
     medium_priority_max: int = 6
     trusted_contact_delay_seconds: int = 30
     helpline_escalation_delay_seconds: int = 60
+    trigger_cooldown_seconds: int = 3600
 
     notify_message: str = (
         "Your recent journal entry flagged a risk score of {risk_score}/10. Your psychologist has been notified."

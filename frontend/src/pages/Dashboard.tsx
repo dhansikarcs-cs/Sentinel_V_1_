@@ -153,6 +153,9 @@ export default function Dashboard() {
               {wellness.ai_insights.mood_message && (
                 <div style={{ color: '#9a92a2', fontSize: '0.8125rem', marginBottom: '4px' }}>{wellness.ai_insights.mood_message}</div>
               )}
+              <div style={{ marginTop: '6px', color: '#6a6474', fontSize: '0.65rem', lineHeight: 1.5 }}>
+                AI-generated insights, not reviewed by your psychologist. Sentinel assists monitoring — it never determines whether you are safe. If you feel unsafe, seek help immediately.
+              </div>
               {wellness.ai_insights.relapse_flag && (
                 <div className="card" style={{ borderColor: 'rgba(239,68,68,0.4)', color: '#ef4444', fontSize: '0.8125rem' }}>
                   ⚠️ {wellness.ai_insights.relapse_message || 'Warning flagged'}

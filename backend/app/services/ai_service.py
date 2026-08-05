@@ -85,6 +85,13 @@ def _query_ollama(prompt: str, timeout: int = 20, prompt_version: str = "") -> s
 
 
 def _query_groq(prompt: str, timeout: int = 20, prompt_version: str = "") -> str:
+    if not settings.allow_cloud_ai:
+        logger.info(
+            "ai_request provider=groq ok=false skipped reason=cloud_ai_disabled prompt_version=%s",
+            prompt_version,
+            extra={"extra_fields": {"provider": "groq", "ok": False, "skipped": "cloud_ai_disabled"}},
+        )
+        return ""
     key = settings.groq_api_key or ""
     if not key or key == "gsk_your_key_here":
         return ""
