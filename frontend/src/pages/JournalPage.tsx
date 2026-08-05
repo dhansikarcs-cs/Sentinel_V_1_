@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { MOODS, moodColor, moodScore, sourceColor, todayStr, formatDateTime } from '../constants'
+import MoodPicker from '../components/MoodPicker'
 
 export default function JournalPage() {
   const [text, setText] = useState('')
@@ -36,8 +37,10 @@ export default function JournalPage() {
 
   useEffect(() => { load() }, [])
 
-  async function handleMood(m: typeof MOODS[0]) {
+  async function handleMood(label: string) {
     if (moodLocked) return
+    const m = MOODS.find(x => x.label === label)
+    if (!m) return
     try {
       await api.logMood(todayStr(), m.emoji, m.label)
       setTodayMood(m)
@@ -83,34 +86,24 @@ export default function JournalPage() {
       <h1>📝 Wellness Journal</h1>
 
       <div className="card" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9a92a2', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Daily check-in</div>
+          <div style={{ fontSize: '0.6875rem', color: todayMood ? moodColor(todayMood.label) : '#5a6a8a' }}>
+            {todayMood ? `Logged · ${todayMood.label}` : 'One entry per day'}
+          </div>
+        </div>
         {todayMood ? (
-          <div style={{ textAlign: 'center', background: 'linear-gradient(135deg,#1a2844,#1e2a45)', border: `2px solid ${moodColor(todayMood.label)}44`, borderRadius: '16px', padding: '16px' }}>
-            <div style={{ fontSize: '3rem', lineHeight: 1.2 }}>{todayMood.emoji}</div>
-            <div style={{ color: moodColor(todayMood.label), fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>{todayMood.label}</div>
-            <div style={{ color: '#5a6a8a', fontSize: '0.7rem', marginTop: '4px' }}>Today's mood</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px', background: `${moodColor(todayMood.label)}0d`, border: `1px solid ${moodColor(todayMood.label)}33` }}>
+            <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>{todayMood.emoji}</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', textTransform: 'capitalize', color: moodColor(todayMood.label) }}>{todayMood.label}</div>
+              <div style={{ fontSize: '0.6875rem', color: '#6a6474' }}>Next check-in unlocks tomorrow</div>
+            </div>
           </div>
         ) : (
           <div>
-            <div style={{ textAlign: 'center', border: '2px dashed #2a3a5a', borderRadius: '16px', padding: '16px', marginBottom: '12px' }}>
-              <div style={{ fontSize: '2rem', opacity: 0.6 }}>Tap an emoji to log your mood</div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-              {MOODS.map(m => {
-                const selected = todayMood?.label === m.label
-                return (
-                  <button key={m.label} onClick={() => handleMood(m)} disabled={moodLocked}
-                    style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '8px 10px',
-                      background: selected ? 'rgba(196,158,164,0.15)' : '#1e2336',
-                      border: selected ? '1px solid #c49ea4' : '1px solid #2d2d44',
-                      borderRadius: '8px', cursor: moodLocked ? 'default' : 'pointer', minWidth: '60px',
-                    }}>
-                    <span style={{ fontSize: '1.3rem' }}>{m.emoji}</span>
-                    <span style={{ fontSize: '0.6rem', color: selected ? '#c49ea4' : '#6a6474' }}>{m.label}</span>
-                  </button>
-                )
-              })}
-            </div>
+            <div style={{ color: '#7a8aaa', fontSize: '0.8125rem', marginBottom: '12px' }}>How are you feeling right now?</div>
+            <MoodPicker locked={moodLocked} onSelect={handleMood} />
           </div>
         )}
       </div>

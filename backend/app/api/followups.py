@@ -23,6 +23,14 @@ os.makedirs(PROOF_DIR, exist_ok=True)
 router = APIRouter(prefix="/followups", tags=["followups"])
 
 
+def _assert_owner(task: FollowupTask, user: User) -> None:
+    """Patients may only touch their own tasks; psychologists their own assignments."""
+    if user.role == "psychologist" and task.psychologist_username != user.username:
+        raise HTTPException(status_code=404, detail="Followup not found")
+    if user.role != "psychologist" and task.patient_username != user.username:
+        raise HTTPException(status_code=404, detail="Followup not found")
+
+
 @router.post("", response_model=FollowupResponse)
 def create_followup(
     entry: FollowupCreate, user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)
@@ -36,6 +44,7 @@ def create_followup(
         description=entry.description,
         status="pending",
         assigned_at=datetime.now(UTC).isoformat(),
+        due_date=entry.due_date or "",
     )
     repo.add(task)
     get_event_bus().emit(
@@ -64,13 +73,15 @@ def update_followup(
     task = repo.get_by_id(task_id)
     if not task:
         return {"error": "Not found"}
+    _assert_owner(task, user)
     now = datetime.now(UTC).isoformat()
     if update.status:
         task.status = update.status
         if update.status == "completed":
             task.completed_at = now
     if "grade" in update.model_fields_set and update.grade:
-        task.grade = update.grade
+        if user.role == "psychologist" or update.grade == "none":
+            task.grade = update.grade
         if user.role == "psychologist":
             task.approved_by = user.username
             task.approved_at = now
@@ -95,6 +106,7 @@ async def upload_followup_file(
     task = repo.get_by_id(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Followup not found")
+    _assert_owner(task, user)
     content = await validate_file_upload(file)
     ext = os.path.splitext(file.filename or "file")[1]
     fname = f"{task_id}{ext}"
@@ -115,6 +127,7 @@ async def upload_followup_proof(
     task = repo.get_by_id(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Followup not found")
+    _assert_owner(task, user)
     content = await validate_file_upload(file)
     ext = os.path.splitext(file.filename or "file")[1]
     fname = f"proof_{task_id}{ext}"
@@ -137,6 +150,7 @@ def download_followup_file(task_id: str, user: User = Depends(get_current_user),
     task = repo.get_by_id(task_id)
     if not task or not task.file_path:
         return {"error": "Not found"}
+    _assert_owner(task, user)
     if not os.path.exists(task.file_path):
         return {"error": "File not found on disk"}
     return FileResponse(task.file_path, filename=os.path.basename(task.file_path))

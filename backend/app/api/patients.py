@@ -153,7 +153,7 @@ def derive_priorities(
         )
 
     if risk:
-        score = risk.get("risk_score") or 0
+        score = max(0, min(10, int(risk.get("risk_score") or 0)))
         if risk.get("triggered") or score >= CRISIS_POLICY.auto_trigger_threshold:
             items.append(
                 {
@@ -419,7 +419,7 @@ def get_patient_overview(username: str, user: User = Depends(get_current_user), 
     if latest_risk:
         risk = {
             "journal_id": latest_risk.journal_id,
-            "risk_score": latest_risk.risk_score or 0,
+            "risk_score": max(0, min(10, latest_risk.risk_score or 0)),
             "triggered": bool(latest_risk.triggered),
             "confidence": latest_risk.confidence or 0.0,
             "explanation": latest_risk.explanation or "",

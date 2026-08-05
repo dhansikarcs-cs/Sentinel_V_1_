@@ -1,19 +1,21 @@
 const BASE = '/api'
 
-let _token: string | null = localStorage.getItem('token')
-let _refreshToken: string | null = localStorage.getItem('refresh_token')
+const TOKEN_STORE = typeof window !== 'undefined' ? window.sessionStorage : null
+
+let _token: string | null = TOKEN_STORE?.getItem('token') ?? null
+let _refreshToken: string | null = TOKEN_STORE?.getItem('refresh_token') ?? null
 let _isRefreshing = false
 
 export function setToken(t: string | null) {
   _token = t
-  if (t) localStorage.setItem('token', t)
-  else localStorage.removeItem('token')
+  if (t) TOKEN_STORE?.setItem('token', t)
+  else TOKEN_STORE?.removeItem('token')
 }
 
 export function setRefreshToken(t: string | null) {
   _refreshToken = t
-  if (t) localStorage.setItem('refresh_token', t)
-  else localStorage.removeItem('refresh_token')
+  if (t) TOKEN_STORE?.setItem('refresh_token', t)
+  else TOKEN_STORE?.removeItem('refresh_token')
 }
 
 export function getToken() {

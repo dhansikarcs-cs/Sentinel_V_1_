@@ -76,6 +76,7 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
         db.flush()
 
         risk_score = risk.get("risk_score", 0)
+        risk_score = max(0, min(10, int(risk_score))) if isinstance(risk_score, (int, float)) else 0
         priority = CRISIS_POLICY.triage_priority(risk_score)
 
         ai_analysis = AIAnalysis(

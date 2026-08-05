@@ -17,7 +17,7 @@ export const MOODS: MoodDef[] = [
   { label: 'okay', emoji: '😐', score: 3, color: '#fbbf24' },
   { label: 'bad', emoji: '😞', score: 2, color: '#fb923c' },
   { label: 'awful', emoji: '😰', score: 1, color: '#ef4444' },
-  { label: 'terrible', emoji: '💩', score: 0, color: '#7f1d1d' },
+  { label: 'terrible', emoji: '😔', score: 0, color: '#7f1d1d' },
 ]
 
 const MOOD_BY_LOWER: Record<string, MoodDef> = Object.fromEntries(MOODS.map(m => [m.label, m]))

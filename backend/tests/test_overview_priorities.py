@@ -42,6 +42,14 @@ def test_triggered_risk_is_high():
     assert "confidence 90%" in items[0]["evidence"]
 
 
+def test_risk_score_clamped_to_10():
+    ctx = _baseline()
+    ctx["risk"] = {"risk_score": 15, "triggered": True, "algorithm_version": "1", "confidence": 0.9}
+    items = derive_priorities(**ctx)
+    assert items[0]["title"] == "Crisis-level risk (10/10)"
+    assert "15" not in items[0]["reason"]
+
+
 def test_elevated_risk_medium():
     ctx = _baseline()
     ctx["risk"] = {"risk_score": 6, "triggered": False, "algorithm_version": "1", "confidence": 0.8}

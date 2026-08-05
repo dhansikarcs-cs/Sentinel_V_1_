@@ -298,6 +298,31 @@ the write when nothing changed.
 **Result:** `pytest tests/` = **82 passed**; `ruff check` + `ruff format --check` clean;
 `tsc -b` + `vite build` clean; golden set passes `--strict`; `model_registry.json` stays clean.
 
+### 2026-08-05 — Demo review round (risk scale, multi-tab sessions, follow-ups, mood picker)
+
+User feedback from the live demo: "15/10" risk looked broken, two open tabs swapped profiles on
+refresh, follow-up interactions needed polish, and the mood picker felt unprofessional.
+
+- **Risk scale integrity:** legacy DB rows held `risk_score` 15/20 (predating the engine's 10-cap).
+  The engine's own paths were already `min(10, …)`; now `derive_priorities` and the patient overview
+  clamp to `0–10` at read time, and `ai_worker` clamps at write time. Live demo rows normalized to 10.
+- **Multi-tab sessions:** auth tokens moved from `localStorage` to `sessionStorage` — each browser
+  tab now owns its own session, so patient + psychologist can be open simultaneously and refresh
+  keeps the active tab's identity.
+- **Follow-ups (both sides):**
+  - New `due_date` column (model + schema + API + live DB `ALTER`), overdue/today/upcoming hints.
+  - Psychologist: direct **Assign Now** on AI-drafted tasks, **re-grade** anytime, due-date field.
+  - Patient: status badges, due-date line, optional proof upload + separate "Mark done"/"Skip".
+  - **Authz fix (security):** followup update/upload-proof/download endpoints now enforce ownership
+    (patients: their own tasks; psychologists: their own assignments). Also closed a grade-tampering
+    hole where a patient could grade their own task — only a psychologist (or `grade=none`) may set it.
+- **Mood picker:** shared `MoodPicker` component (Constitution #6), uniform segmented chips with
+  mood-color selection states instead of oversized cartoon emojis; kept the once-per-day rule.
+  `terrible` emoji 💩 → 😔.
+
+**Result:** 89 backend tests (added `test_followups.py`, risk-clamp case); `ruff`, `tsc`, `vite build`
+clean; live demo re-verified end-to-end with Ollama.
+
 ---
 
 ## Final Stack
@@ -319,7 +344,7 @@ the write when nothing changed.
 - Commits: 25+
 - Security patches: 22 + device-token auth + 8 red-team fixes (cc43d0b)
 - Benchmarks: 54 (52 pass; 9 ring API/SDK tests)
-- Backend tests: 82 (pytest) + 14-case golden set (CI-gated)
+- Backend tests: 89 (pytest) + 14-case golden set (CI-gated)
 - Open TODOs: ~12
 
 ---

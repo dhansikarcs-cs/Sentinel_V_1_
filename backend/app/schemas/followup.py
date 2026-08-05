@@ -8,6 +8,7 @@ class FollowupCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=5000)
     file_path: str = Field(default="", max_length=500)
+    due_date: str = Field(default="", max_length=10)
 
 
 class FollowupUpdate(BaseModel):
@@ -26,6 +27,7 @@ class FollowupResponse(BaseModel):
     status: str
     grade: str
     assigned_at: str
+    due_date: str = ""
     completed_at: str = ""
     approved_by: str = ""
     approved_at: str = ""
