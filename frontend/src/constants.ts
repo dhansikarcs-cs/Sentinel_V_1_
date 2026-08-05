@@ -12,11 +12,11 @@ export interface MoodDef {
 // (services/timeline_service.py `_mood_val`): lowercase labels only,
 // so logged moods are scored correctly.
 export const MOODS: MoodDef[] = [
-  { label: 'great', emoji: '🤩', score: 5, color: '#22c55e' },
-  { label: 'good', emoji: '😊', score: 4, color: '#86efac' },
-  { label: 'okay', emoji: '😐', score: 3, color: '#fbbf24' },
-  { label: 'bad', emoji: '😞', score: 2, color: '#fb923c' },
-  { label: 'awful', emoji: '😰', score: 1, color: '#ef4444' },
+  { label: 'great', emoji: '🤩', score: 5, color: '#2E8B57' },
+  { label: 'good', emoji: '😊', score: 4, color: '#2E8B57' },
+  { label: 'okay', emoji: '😐', score: 3, color: '#A66E0C' },
+  { label: 'bad', emoji: '😞', score: 2, color: '#BF5A1F' },
+  { label: 'awful', emoji: '😰', score: 1, color: '#C7463B' },
   { label: 'terrible', emoji: '😔', score: 0, color: '#7f1d1d' },
 ]
 
@@ -37,10 +37,10 @@ export function moodScore(label?: string | null): number {
 
 // AI source badge palette (ollama/groq/rule/ai) — was duplicated across 4 pages.
 export const SOURCE_COLORS: Record<string, string> = {
-  ollama: '#8fcbb1',
-  groq: '#22c55e',
-  rule: '#f59e0b',
-  ai: '#60a5fa',
+  ollama: '#17796E',
+  groq: '#2E8B57',
+  rule: '#B7791A',
+  ai: '#2E7DB8',
 }
 
 export function sourceColor(src?: string | null): string {
@@ -102,12 +102,12 @@ export const CRISIS_STAGES: CrisisStageDef[] = [
 ]
 
 export const CRISIS_STAGE_MESSAGES: Record<string, { text: string; color: string }> = {
-  acknowledged: { text: '✅ Crisis acknowledged. Support team is with you.', color: '#22c55e' },
-  trustee_coming: { text: '🟢 Trusted contact is on the way.', color: '#4ade80' },
-  trustee_clicked: { text: '🟢 Trusted contact has been notified.', color: '#6ee7a7' },
-  helpline_escalated: { text: '🚨 Crisis escalated to helpline. Professional help dispatched.', color: '#ef4444' },
-  trustee_notified: { text: '👤 Trusted contact notified.', color: '#f59e0b' },
-  triggered: { text: '🔴 Crisis active — help is on the way.', color: '#ef4444' },
+  acknowledged: { text: '✅ Crisis acknowledged. Support team is with you.', color: '#2E8B57' },
+  trustee_coming: { text: '🟢 Trusted contact is on the way.', color: '#2FA05C' },
+  trustee_clicked: { text: '🟢 Trusted contact has been notified.', color: '#35A36A' },
+  helpline_escalated: { text: '🚨 Crisis escalated to helpline. Professional help dispatched.', color: '#C7463B' },
+  trustee_notified: { text: '👤 Trusted contact notified.', color: '#B7791A' },
+  triggered: { text: '🔴 Crisis active — help is on the way.', color: '#C7463B' },
 }
 
 export function computeCrisisStage(cs: any, elapsed: number): string {

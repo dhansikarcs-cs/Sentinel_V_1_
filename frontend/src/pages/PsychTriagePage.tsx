@@ -70,14 +70,14 @@ export default function PsychTriagePage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {[
-          { label: '🚨 Crisis', count: counts.crisis, color: '#ef4444' },
-          { label: '🟠 High', count: counts.high, color: '#f59e0b' },
-          { label: '🟡 Attention', count: counts.attention, color: '#8fcbb1' },
-          { label: '🟢 Stable', count: counts.stable, color: '#22c55e' },
+          { label: '🚨 Crisis', count: counts.crisis, color: '#C7463B' },
+          { label: '🟠 High', count: counts.high, color: '#B7791A' },
+          { label: '🟡 Attention', count: counts.attention, color: '#17796E' },
+          { label: '🟢 Stable', count: counts.stable, color: '#2E8B57' },
         ].map(item => (
           <div key={item.label} className="card" style={{ textAlign: 'center', padding: '10px', borderColor: `${item.color}30` }}>
             <div style={{ color: item.color, fontSize: '0.75rem', fontWeight: 600 }}>{item.label}</div>
-            <div style={{ color: '#f0f2e8', fontSize: '1.5rem', fontWeight: 700 }}>{item.count}</div>
+            <div style={{ color: '#20363C', fontSize: '1.5rem', fontWeight: 700 }}>{item.count}</div>
           </div>
         ))}
       </div>
@@ -91,7 +91,7 @@ export default function PsychTriagePage() {
         const ring = { bpm: p.bpm || 72, stress: p.stress || 35, sleep: p.sleep || 7, spo2: p.spo2 || 98, mood: (p.mood || 'neutral').toLowerCase() }
 
         return (
-          <div key={patient} className="expander" style={{ borderColor: isCrisis ? '#ff4444' : '#31423a', borderWidth: isCrisis ? '2px' : '1px' }}>
+          <div key={patient} className="expander" style={{ borderColor: isCrisis ? '#C64537' : '#D9E7E3', borderWidth: isCrisis ? '2px' : '1px' }}>
             <div className="expander-header" onClick={() => setExpanded({ ...expanded, [patient]: !open })}>
               <span>{isCrisis ? '🚨 ' : ''}{p.name} (@{patient})</span>
               <span>{open ? '▲' : '▼'}</span>
@@ -100,11 +100,11 @@ export default function PsychTriagePage() {
               <div className="expander-body">
                 {/* 5 Bio metric cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '12px' }}>
-                  <MetricCard label="BPM" value={`${ring.bpm}`} unit="" color="#ff6b6b" />
+                  <MetricCard label="BPM" value={`${ring.bpm}`} unit="" color="#CC5A4E" />
                   <MetricCard label="Stress" value={`${ring.stress}%`} unit="" color="#ffd93d" />
-                  <MetricCard label="Sleep" value={`${ring.sleep}h`} unit="" color="#a9e0c6" />
+                  <MetricCard label="Sleep" value={`${ring.sleep}h`} unit="" color="#3E9C8F" />
                   <MetricCard label="SpO₂" value={`${ring.spo2}%`} unit="" color="#6bffb8" />
-                  <MetricCard label="Mood" value={ring.mood.charAt(0).toUpperCase() + ring.mood.slice(1)} unit="" color="#8fcbb1" />
+                  <MetricCard label="Mood" value={ring.mood.charAt(0).toUpperCase() + ring.mood.slice(1)} unit="" color="#17796E" />
                 </div>
 
                 {/* AI Clinical Insight */}
@@ -116,8 +116,8 @@ export default function PsychTriagePage() {
                         <span style={{ background: `${sourceColor(p.ai_source)}22`, color: sourceColor(p.ai_source), fontSize: '0.6rem', padding: '1px 6px', borderRadius: '3px', fontWeight: 600, border: `1px solid ${sourceColor(p.ai_source)}44`, marginLeft: '6px' }}>{p.ai_source.charAt(0).toUpperCase() + p.ai_source.slice(1)}</span>
                       )}
                     </div>
-                    <div style={{ color: '#9dada4', fontSize: '0.8125rem', marginTop: '4px' }}>{p.summary}</div>
-                    {p.emotions && <div style={{ color: '#8aa198', fontSize: '0.65rem', marginTop: '2px' }}>Detected: {p.emotions}</div>}
+                    <div style={{ color: '#93A79E', fontSize: '0.8125rem', marginTop: '4px' }}>{p.summary}</div>
+                    {p.emotions && <div style={{ color: '#5F7A70', fontSize: '0.65rem', marginTop: '2px' }}>Detected: {p.emotions}</div>}
                   </div>
                 )}
 
@@ -128,8 +128,8 @@ export default function PsychTriagePage() {
                   </button>
                   {explainOpen[patient] && (
                     <div className="card-dark" style={{ padding: '10px', marginTop: '4px' }}>
-                      <div style={{ color: '#8fcbb1', fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px' }}>Explainability</div>
-                      <div style={{ color: '#9dada4', fontSize: '0.6875rem', lineHeight: 1.6 }}>
+                      <div style={{ color: '#17796E', fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px' }}>Explainability</div>
+                      <div style={{ color: '#93A79E', fontSize: '0.6875rem', lineHeight: 1.6 }}>
                         AI Source: <strong>{p.ai_source ? p.ai_source.charAt(0).toUpperCase() + p.ai_source.slice(1) : 'N/A'}</strong><br />
                         Prompt Mode: <strong>Clinical Summarization</strong><br />
                         {p.emotions ? `Detected Emotions: <strong>${p.emotions}</strong><br>` : ''}
@@ -143,12 +143,12 @@ export default function PsychTriagePage() {
                 {p.last_raw && (
                   <div style={{ marginTop: '8px' }}>
                     {riskAssessments[patient] ? (
-                      <div className="card-dark" style={{ padding: '10px', borderColor: riskAssessments[patient].triggered ? '#ef444444' : '#22c55e44' }}>
+                      <div className="card-dark" style={{ padding: '10px', borderColor: riskAssessments[patient].triggered ? '#C7463B44' : '#2E8B5744' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                          <div style={{ color: riskAssessments[patient].triggered ? '#ef4444' : '#22c55e', fontSize: '0.7rem', fontWeight: 600 }}>Crisis Risk Assessment</div>
-                          <div style={{ color: riskAssessments[patient].triggered ? '#ef4444' : '#22c55e', fontSize: '1rem', fontWeight: 700 }}>{riskAssessments[patient].risk_score || '?'}/10</div>
+                          <div style={{ color: riskAssessments[patient].triggered ? '#C7463B' : '#2E8B57', fontSize: '0.7rem', fontWeight: 600 }}>Crisis Risk Assessment</div>
+                          <div style={{ color: riskAssessments[patient].triggered ? '#C7463B' : '#2E8B57', fontSize: '1rem', fontWeight: 700 }}>{riskAssessments[patient].risk_score || '?'}/10</div>
                         </div>
-                        <div style={{ color: '#9dada4', fontSize: '0.6875rem', lineHeight: 1.6 }}>{riskAssessments[patient].reasoning || 'No reasoning available.'}</div>
+                        <div style={{ color: '#93A79E', fontSize: '0.6875rem', lineHeight: 1.6 }}>{riskAssessments[patient].reasoning || 'No reasoning available.'}</div>
                       </div>
                     ) : (
                       <button style={{ fontSize: '0.75rem', width: '100%' }} onClick={() => assessRisk(patient, p.last_raw)}>⚠️ Assess Crisis Risk</button>
@@ -158,7 +158,7 @@ export default function PsychTriagePage() {
 
                 {/* Contact info */}
                 {(p.email || p.trusted_contact) && (
-                  <div style={{ fontSize: '0.6875rem', color: '#7d877e', marginTop: '6px' }}>
+                  <div style={{ fontSize: '0.6875rem', color: '#6E837A', marginTop: '6px' }}>
                     {p.email ? `📧 Patient: ${p.email}` : ''}
                     {p.email && p.trusted_contact ? ' &nbsp;|&nbsp; ' : ''}
                     {p.trusted_contact ? `👤 TC: ${p.trusted_contact}` : ''}
@@ -174,10 +174,10 @@ export default function PsychTriagePage() {
                   >
                     {isCrisis ? '✅ Resolve Crisis' : '🚨 Trigger Crisis'}
                   </button>
-                  <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#7d877e' }}>
-                    <span style={{ color: '#8fcbb1' }}>{p.name}</span>
+                  <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#6E837A' }}>
+                    <span style={{ color: '#17796E' }}>{p.name}</span>
                   </div>
-                  <div style={{ textAlign: 'right', fontSize: '0.6875rem', color: '#6b766d' }}>
+                  <div style={{ textAlign: 'right', fontSize: '0.6875rem', color: '#A8B9B1' }}>
                     Score: {p.score} | {isCrisis ? '🚨 CRISIS' : p.tier === 'high' ? 'HIGH' : p.tier === 'attention' ? 'ATTENTION' : 'STABLE'}
                   </div>
                 </div>
@@ -188,7 +188,7 @@ export default function PsychTriagePage() {
       })}
 
       {priorities.length === 0 && (
-        <div className="card"><span style={{ color: '#7d877e', fontSize: '0.875rem' }}>No patients registered.</span></div>
+        <div className="card"><span style={{ color: '#6E837A', fontSize: '0.875rem' }}>No patients registered.</span></div>
       )}
     </div>
   )

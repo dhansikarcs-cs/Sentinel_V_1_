@@ -42,15 +42,15 @@ export default function MoodPage() {
       <h1>Mood Log</h1>
       {!todayDone ? (
         <div className="card">
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca99e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Daily check-in</div>
-          <p style={{ fontSize: '0.875rem', color: '#8aa198', marginBottom: '16px' }}>How are you feeling right now?</p>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#7C9188', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Daily check-in</div>
+          <p style={{ fontSize: '0.875rem', color: '#5F7A70', marginBottom: '16px' }}>How are you feeling right now?</p>
           <MoodPicker onSelect={handleMood} />
         </div>
       ) : (
-        <div className="card" style={{ borderColor: 'rgba(34,197,94,0.3)' }}>
+        <div className="card" style={{ borderColor: 'rgba(46,139,87,0.3)' }}>
           <div className="flex items-center gap-2">
             <span>✅</span>
-            <span style={{ fontSize: '0.875rem', color: '#22c55e' }}>Mood logged for today{todayLabel ? ` (${todayLabel})` : ''}. Check back tomorrow!</span>
+            <span style={{ fontSize: '0.875rem', color: '#2E8B57' }}>Mood logged for today{todayLabel ? ` (${todayLabel})` : ''}. Check back tomorrow!</span>
           </div>
         </div>
       )}
@@ -61,9 +61,9 @@ export default function MoodPage() {
             <div key={l.id} className="card-stage" style={{ justifyContent: 'space-between' }}>
               <div className="flex items-center gap-3">
                 <span style={{ fontSize: '1.25rem' }}>{l.emoji}</span>
-                <span style={{ fontSize: '0.8125rem', color: '#d9ddd3', textTransform: 'capitalize' }}>{l.label}</span>
+                <span style={{ fontSize: '0.8125rem', color: '#3A4F52', textTransform: 'capitalize' }}>{l.label}</span>
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#7d877e' }}>{l.date}</span>
+              <span style={{ fontSize: '0.75rem', color: '#6E837A' }}>{l.date}</span>
             </div>
           ))}
         </div>

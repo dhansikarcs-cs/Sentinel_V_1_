@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import AiSourceBadge from '../components/AiSourceBadge'
 import PatientSelector, { usePatientContext } from '../components/PatientSelector'
@@ -58,8 +58,8 @@ export default function ConsultationPage() {
   return (
     <div className="animate-fade-in">
       <h2>{'\u{1F9D1}\u200D\u2695\uFE0F'} Open Session</h2>
-      <p style={{ color: '#7d877e', fontSize: '0.75rem', marginBottom: '12px' }}>
-        One screen for the session — what to attend to, the patient's current state, your note, and their follow-up actions.
+      <p style={{ color: '#6E837A', fontSize: '0.75rem', marginBottom: '12px' }}>
+        One screen for the session â€” what to attend to, the patient's current state, your note, and their follow-up actions.
       </p>
 
       <PatientSelector
@@ -71,17 +71,17 @@ export default function ConsultationPage() {
       />
 
       {!selected && (
-        <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '32px' }}>
+        <div className="card" style={{ color: '#6E837A', textAlign: 'center', padding: '32px' }}>
           Select a patient to compose the consultation workspace.
         </div>
       )}
 
       {selected && loading && (
-        <div className="card" style={{ color: '#7d877e', textAlign: 'center', padding: '20px' }}>Preparing session...</div>
+        <div className="card" style={{ color: '#6E837A', textAlign: 'center', padding: '20px' }}>Preparing session...</div>
       )}
 
       {selected && !loading && !overview && (
-        <div className="card" style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>Failed to load patient state.</div>
+        <div className="card" style={{ color: '#C7463B', textAlign: 'center', padding: '20px' }}>Failed to load patient state.</div>
       )}
 
       {selected && !loading && overview && (
@@ -108,16 +108,16 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
     <>
       <div className="card" style={{ padding: '14px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '4px' }}>SESSION FOR</div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f0f2e8' }}>{identity.name || identity.username}</div>
-          <div style={{ color: '#8aa198', fontSize: '0.7rem', marginTop: '2px' }}>
-            @{identity.username} &middot; {identity.age || '?'} yrs &middot; {identity.clinic || '—'}
+          <div style={{ color: '#17796E', fontWeight: 600, fontSize: '0.75rem', marginBottom: '4px' }}>SESSION FOR</div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#20363C' }}>{identity.name || identity.username}</div>
+          <div style={{ color: '#5F7A70', fontSize: '0.7rem', marginTop: '2px' }}>
+            @{identity.username} &middot; {identity.age || '?'} yrs &middot; {identity.clinic || 'â€”'}
           </div>
         </div>
-        <div style={{ textAlign: 'right', fontSize: '0.7rem', color: '#8aa198' }}>
+        <div style={{ textAlign: 'right', fontSize: '0.7rem', color: '#5F7A70' }}>
           {overview.last_appointment ? (
             <>
-              <div style={{ color: '#f0f2e8', fontWeight: 600, fontSize: '0.8125rem' }}>
+              <div style={{ color: '#20363C', fontWeight: 600, fontSize: '0.8125rem' }}>
                 {formatDate(overview.last_appointment.date)} {overview.last_appointment.time}
               </div>
               <div>{overview.last_appointment.session_type || 'Session'} &middot; {overview.last_appointment.status}</div>
@@ -126,7 +126,7 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
             <div>No appointments yet</div>
           )}
           {crisis && (
-            <div style={{ marginTop: '6px', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }}>
+            <div style={{ marginTop: '6px', color: '#C7463B', fontWeight: 700, fontSize: '0.7rem' }}>
               {'\u{1F6A8}'} CRISIS ACTIVE &middot; {crisis.acknowledged ? 'acknowledged' : 'NOT acknowledged'}
             </div>
           )}
@@ -136,7 +136,7 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
       {(overview.alerts || []).length > 0 && (
         <div style={{ marginBottom: '16px' }}>
           {overview.alerts.map((a: string, i: number) => (
-            <div key={i} style={{ background: '#2a0f1c', border: '1px solid #ef444455', color: '#fca5a5', borderRadius: '8px', padding: '8px 12px', fontSize: '0.75rem', marginBottom: '6px' }}>
+            <div key={i} style={{ background: '#FDECEA', border: '1px solid #C7463B55', color: '#B5453D', borderRadius: '8px', padding: '8px 12px', fontSize: '0.75rem', marginBottom: '6px' }}>
               {'\u26A0\uFE0F'} {a}
             </div>
           ))}
@@ -148,50 +148,50 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '16px' }}>
         <Snapshot label="MOOD TREND" value={changes.mood_trend === 'declining' ? '\u2198 declining' : changes.mood_trend === 'improving' ? '\u2197 improving' : changes.mood_trend === 'stable' ? '\u2192 stable' : '\u2014'}
           sub={`Now ${changes.current_mood_avg ? Number(changes.current_mood_avg).toFixed(1) : 'N/A'} / Prev ${changes.previous_mood_avg ? Number(changes.previous_mood_avg).toFixed(1) : 'N/A'}`}
-          color={changes.mood_trend === 'declining' ? '#ef4444' : changes.mood_trend === 'improving' ? '#22c55e' : '#fbbf24'} />
+          color={changes.mood_trend === 'declining' ? '#C7463B' : changes.mood_trend === 'improving' ? '#2E8B57' : '#A66E0C'} />
         <Snapshot label="ENGAGEMENT" value={`${changes.journal_count_7 || 0} journals`} sub={`${changes.journal_count_14 || 0} in 14d`}
-          color={changes.engagement_trend === 'declining' ? '#ef4444' : '#22c55e'} />
-        <Snapshot label="RISK" value={risk ? `${risk.risk_score}/10` : 'N/A'} sub={risk ? `${formatDate(risk.created_at)} · v${risk.algorithm_version || '?'}` : 'no assessments'}
-          color={risk?.triggered ? '#ef4444' : risk && risk.risk_score >= 7 ? '#f59e0b' : '#22c55e'} />
-        <Snapshot label="LATEST RING" value={latestSensor ? `${latestSensor.bpm || '—'} bpm` : '\u2014'}
-          sub={latestSensor ? `${latestSensor.stress || '—'} stress · ${latestSensor.sleep_hours || '—'}h sleep` : 'no ring data'}
-          color={latestSensor?.bpm >= 100 || (latestSensor?.spo2 && latestSensor.spo2 < 94) ? '#ef4444' : latestSensor?.stress >= 70 ? '#f59e0b' : '#22c55e'} />
+          color={changes.engagement_trend === 'declining' ? '#C7463B' : '#2E8B57'} />
+        <Snapshot label="RISK" value={risk ? `${risk.risk_score}/10` : 'N/A'} sub={risk ? `${formatDate(risk.created_at)} Â· v${risk.algorithm_version || '?'}` : 'no assessments'}
+          color={risk?.triggered ? '#C7463B' : risk && risk.risk_score >= 7 ? '#B7791A' : '#2E8B57'} />
+        <Snapshot label="LATEST RING" value={latestSensor ? `${latestSensor.bpm || 'â€”'} bpm` : '\u2014'}
+          sub={latestSensor ? `${latestSensor.stress || 'â€”'} stress Â· ${latestSensor.sleep_hours || 'â€”'}h sleep` : 'no ring data'}
+          color={latestSensor?.bpm >= 100 || (latestSensor?.spo2 && latestSensor.spo2 < 94) ? '#C7463B' : latestSensor?.stress >= 70 ? '#B7791A' : '#2E8B57'} />
         <Snapshot label="FOLLOW-UPS" value={`${followups.pending || 0} pending`} sub={`${followups.completed || 0} completed`}
-          color={followups.pending > 0 ? '#f59e0b' : '#22c55e'} />
+          color={followups.pending > 0 ? '#B7791A' : '#2E8B57'} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>CLINICAL BRIEF</div>
+          <div style={{ color: '#17796E', fontWeight: 600, fontSize: '0.75rem', marginBottom: '6px' }}>CLINICAL BRIEF</div>
           {brief ? (
             <>
-              <div style={{ color: '#7d877e', fontSize: '0.62rem', marginBottom: '4px' }}>{formatTime(brief.timestamp)}</div>
-              <div style={{ color: '#9dada4', fontSize: '0.72rem', lineHeight: 1.6 }}>
+              <div style={{ color: '#6E837A', fontSize: '0.62rem', marginBottom: '4px' }}>{formatTime(brief.timestamp)}</div>
+              <div style={{ color: '#93A79E', fontSize: '0.72rem', lineHeight: 1.6 }}>
                 {(brief.clinical_summary || brief.summary || '').slice(0, 320)}
               </div>
               {(brief.emotions || '').length > 0 && (
-                <div style={{ color: '#7d877e', fontSize: '0.65rem', marginTop: '6px' }}>Emotions: {brief.emotions}</div>
+                <div style={{ color: '#6E837A', fontSize: '0.65rem', marginTop: '6px' }}>Emotions: {brief.emotions}</div>
               )}
             </>
           ) : (
-            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>No recent journals.</div>
+            <div style={{ color: '#6E837A', fontSize: '0.7rem' }}>No recent journals.</div>
           )}
         </div>
 
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>JOURNAL SUMMARY</div>
+          <div style={{ color: '#17796E', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>JOURNAL SUMMARY</div>
           {brief?.ai_analysis?.explanation ? (
-            <div style={{ color: '#9dada4', fontSize: '0.72rem', lineHeight: 1.6 }}>{brief.ai_analysis.explanation.slice(0, 300)}</div>
+            <div style={{ color: '#93A79E', fontSize: '0.72rem', lineHeight: 1.6 }}>{brief.ai_analysis.explanation.slice(0, 300)}</div>
           ) : (
-            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>No summary available.</div>
+            <div style={{ color: '#6E837A', fontSize: '0.7rem' }}>No summary available.</div>
           )}
           {brief?.ai_analysis && (
             <div style={{ color: '#5a5464', fontSize: '0.58rem', marginTop: '8px', lineHeight: 1.6 }}>
               <AiSourceBadge source={brief.ai_analysis.provider} detailed />
               <span style={{ marginLeft: '6px' }}>
                 AI: {brief.ai_analysis.provider || 'rule'} &middot; prompt {brief.ai_analysis.prompt_version || 'rule'}
-                {brief.ai_analysis.model_version ? ` · model v${brief.ai_analysis.model_version}` : ''}
-                {brief.ai_analysis.confidence ? ` · confidence ${(brief.ai_analysis.confidence * 100).toFixed(0)}%` : ''}
+                {brief.ai_analysis.model_version ? ` Â· model v${brief.ai_analysis.model_version}` : ''}
+                {brief.ai_analysis.confidence ? ` Â· confidence ${(brief.ai_analysis.confidence * 100).toFixed(0)}%` : ''}
               </span>
             </div>
           )}
@@ -200,7 +200,7 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>{'\u270D\uFE0F'} SESSION NOTE</div>
+          <div style={{ color: '#17796E', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>{'\u270D\uFE0F'} SESSION NOTE</div>
           <textarea
             value={rawNotes}
             onChange={e => setRawNotes(e.target.value)}
@@ -210,40 +210,40 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
           />
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={saveNote} disabled={saving || !selected || !rawNotes.trim()} className="btn-primary">
-              {saving ? 'Saving...' : '💾 Save Note'}
+              {saving ? 'Saving...' : 'ðŸ’¾ Save Note'}
             </button>
             <button onClick={generateAiDraft} disabled={!selected || !rawNotes.trim()} style={{
-              background: '#1d2623', border: '1px solid #31423a', color: '#8fcbb1',
+              background: '#FFFFFF', border: '1px solid #D9E7E3', color: '#17796E',
               padding: '8px 16px', borderRadius: '8px', fontSize: '0.8125rem', cursor: 'pointer', fontWeight: 600,
             }}>
-              🤖 AI Draft
+              ðŸ¤– AI Draft
             </button>
           </div>
           {aiDraft && (
             <div className="ai-box" style={{ marginTop: '10px' }}>
-              <div className="ai-header">🤖 AI Clinical Draft</div>
+              <div className="ai-header">ðŸ¤– AI Clinical Draft</div>
               <div className="ai-body" style={{ fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}>{aiDraft.note || aiDraft.suggestion}</div>
             </div>
           )}
         </div>
 
         <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: '#8fcbb1', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>{'\u2705'} FOLLOW-UP ACTIONS</div>
+          <div style={{ color: '#17796E', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>{'\u2705'} FOLLOW-UP ACTIONS</div>
           {followupList.filter((f: any) => f.status === 'pending').length === 0 ? (
-            <div style={{ color: '#7d877e', fontSize: '0.7rem' }}>No pending follow-ups. All caught up!</div>
+            <div style={{ color: '#6E837A', fontSize: '0.7rem' }}>No pending follow-ups. All caught up!</div>
           ) : (
             followupList.filter((f: any) => f.status === 'pending').map((f: any) => (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderBottom: '1px solid #31423a' }}>
+              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderBottom: '1px solid #D9E7E3' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: '#e0e8f0', fontSize: '0.75rem', fontWeight: 600 }}>{f.title}</div>
-                  <div style={{ color: '#7d877e', fontSize: '0.62rem' }}>
-                    assigned {f.assigned_at ? formatDate(f.assigned_at) : '—'}{f.grade ? ` · ${f.grade}` : ''}
+                  <div style={{ color: '#20363C', fontSize: '0.75rem', fontWeight: 600 }}>{f.title}</div>
+                  <div style={{ color: '#6E837A', fontSize: '0.62rem' }}>
+                    assigned {f.assigned_at ? formatDate(f.assigned_at) : 'â€”'}{f.grade ? ` Â· ${f.grade}` : ''}
                   </div>
                 </div>
                 <button
                   onClick={() => completeFollowup(f.id)}
                   disabled={updating === f.id}
-                  style={{ background: '#1d2623', border: '1px solid #31423a', color: '#22c55e', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
+                  style={{ background: '#FFFFFF', border: '1px solid #D9E7E3', color: '#2E8B57', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
                 >
                   {updating === f.id ? '...' : '\u2705 Complete'}
                 </button>
@@ -251,7 +251,7 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
             ))
           )}
           {followupList.filter((f: any) => f.status === 'completed').length > 0 && (
-            <div style={{ marginTop: '8px', fontSize: '0.62rem', color: '#7d877e' }}>
+            <div style={{ marginTop: '8px', fontSize: '0.62rem', color: '#6E837A' }}>
               {followupList.filter((f: any) => f.status === 'completed').length} completed
             </div>
           )}
@@ -260,7 +260,7 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
 
       {(overview.mood_trend || []).length > 0 && (
         <div className="card" style={{ padding: '10px', marginTop: '16px' }}>
-          <div style={{ color: '#7d877e', fontSize: '0.6rem', marginBottom: '4px' }}>MOOD TREND (14d)</div>
+          <div style={{ color: '#6E837A', fontSize: '0.6rem', marginBottom: '4px' }}>MOOD TREND (14d)</div>
           <div style={{ display: 'flex', gap: '3px' }}>
             {(overview.mood_trend || []).map((m: any, i: number) => (
               <span key={i} style={{ fontSize: '0.9rem' }} title={`${m.label} ${formatDate(m.timestamp)}`}>{moodIcon(m.label)}</span>
@@ -275,9 +275,9 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
 function Snapshot({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
   return (
     <div className="card" style={{ padding: '10px', minWidth: 0 }}>
-      <div style={{ color: '#7d877e', fontSize: '0.6rem', marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+      <div style={{ color: '#6E837A', fontSize: '0.6rem', marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
       <div style={{ color, fontSize: '0.9rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-      <div style={{ color: '#8aa198', fontSize: '0.6rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>
+      <div style={{ color: '#5F7A70', fontSize: '0.6rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>
     </div>
   )
 }

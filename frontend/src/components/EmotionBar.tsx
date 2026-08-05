@@ -1,11 +1,11 @@
 const EMOTION_COLORS: Record<string, string> = {
-  admiration: '#f59e0b', amusement: '#22c55e', anger: '#ef4444', annoyance: '#f97316',
-  approval: '#22c55e', caring: '#ec4899', confusion: '#8b5cf6', curiosity: '#3b82f6',
-  desire: '#ef4444', disappointment: '#6b7280', disapproval: '#6b7280', disgust: '#84cc16',
-  embarrassment: '#f472b6', excitement: '#f59e0b', fear: '#ef4444', gratitude: '#22c55e',
-  grief: '#6b7280', joy: '#22c55e', love: '#ec4899', nervousness: '#f97316',
-  optimism: '#22c55e', pride: '#f59e0b', realization: '#3b82f6', relief: '#22c55e',
-  remorse: '#6b7280', sadness: '#3b82f6', surprise: '#f59e0b', neutral: '#6b7280',
+  admiration: '#B7791A', amusement: '#2E8B57', anger: '#C7463B', annoyance: '#C05A12',
+  approval: '#2E8B57', caring: '#ec4899', confusion: '#8b5cf6', curiosity: '#3b82f6',
+  desire: '#C7463B', disappointment: '#6b7280', disapproval: '#6b7280', disgust: '#84cc16',
+  embarrassment: '#f472b6', excitement: '#B7791A', fear: '#C7463B', gratitude: '#2E8B57',
+  grief: '#6b7280', joy: '#2E8B57', love: '#ec4899', nervousness: '#C05A12',
+  optimism: '#2E8B57', pride: '#B7791A', realization: '#3b82f6', relief: '#2E8B57',
+  remorse: '#6b7280', sadness: '#3b82f6', surprise: '#B7791A', neutral: '#6b7280',
 }
 
 interface EmotionBarProps {
@@ -21,13 +21,13 @@ export function EmotionBar({ label, probability, maxProb }: EmotionBarProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '2px 0' }}>
       <span style={{
-        width: '90px', fontSize: '0.6875rem', color: '#9dada4',
+        width: '90px', fontSize: '0.6875rem', color: '#93A79E',
         fontWeight: isMax ? 700 : 400, textAlign: 'right',
       }}>
         {label}
       </span>
       <div style={{
-        flex: 1, height: '14px', background: '#1d2623', borderRadius: '7px',
+        flex: 1, height: '14px', background: '#FFFFFF', borderRadius: '7px',
         overflow: 'hidden', position: 'relative',
       }}>
         <div style={{
@@ -37,7 +37,7 @@ export function EmotionBar({ label, probability, maxProb }: EmotionBarProps) {
         }} />
       </div>
       <span style={{
-        width: '36px', fontSize: '0.625rem', color: '#7d877e',
+        width: '36px', fontSize: '0.625rem', color: '#6E837A',
         fontVariantNumeric: 'tabular-nums',
       }}>
         {pct}%
@@ -69,7 +69,7 @@ export function EmotionBars({ emotionProbabilities, maxItems = 5 }: EmotionBarsP
         <EmotionBar key={emotion} label={emotion} probability={prob} maxProb={maxProb} />
       ))}
       {entries.length === 0 && (
-        <div style={{ color: '#6b766d', fontSize: '0.6875rem' }}>No emotions detected.</div>
+        <div style={{ color: '#A8B9B1', fontSize: '0.6875rem' }}>No emotions detected.</div>
       )}
     </div>
   )

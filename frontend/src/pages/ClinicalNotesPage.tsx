@@ -131,7 +131,7 @@ export default function ClinicalNotesPage() {
             {acceptedMsg && (
               <div style={{
                 marginTop: '12px', padding: '8px 12px', borderRadius: '8px', fontSize: '0.75rem',
-                background: '#12201a', border: '1px solid #22c55e44', color: '#86efac',
+                background: '#EAF7F0', border: '1px solid #2E8B5744', color: '#1F7A44',
               }}>
                 ✅ {acceptedMsg}
               </div>
@@ -144,7 +144,7 @@ export default function ClinicalNotesPage() {
                 {aiDraft.themes && (
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
                     {aiDraft.themes.map((t: string) => (
-                      <span key={t} style={{ background: '#31423a', color: '#9ca99e', fontSize: '0.6875rem', padding: '2px 8px', borderRadius: '4px' }}>{t}</span>
+                      <span key={t} style={{ background: '#D9E7E3', color: '#7C9188', fontSize: '0.6875rem', padding: '2px 8px', borderRadius: '4px' }}>{t}</span>
                     ))}
                   </div>
                 )}
@@ -166,16 +166,16 @@ export default function ClinicalNotesPage() {
           <div className="card" style={{ padding: '20px' }}>
             <h2 style={{ fontSize: '0.9rem', margin: '0 0 12px 0' }}>📋 Saved Notes</h2>
             {notes.length === 0 ? (
-              <p style={{ color: '#7d877e', fontSize: '0.875rem' }}>No notes yet.</p>
+              <p style={{ color: '#6E837A', fontSize: '0.875rem' }}>No notes yet.</p>
             ) : (
               <div className="space-y-2">
                 {notes.slice(0, 10).map((n: any) => (
                   <div key={n.id} className="card-stage" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '0.8125rem', color: '#8fcbb1', fontWeight: 600 }}>{n.patient}</span>
-                      <span style={{ fontSize: '0.6875rem', color: '#7d877e' }}>{n.timestamp?.slice(0, 10)}</span>
+                      <span style={{ fontSize: '0.8125rem', color: '#17796E', fontWeight: 600 }}>{n.patient}</span>
+                      <span style={{ fontSize: '0.6875rem', color: '#6E837A' }}>{n.timestamp?.slice(0, 10)}</span>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#9ca99e', lineHeight: 1.5 }}>{n.ai_synthesis?.slice(0, 200)}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#7C9188', lineHeight: 1.5 }}>{n.ai_synthesis?.slice(0, 200)}</div>
                   </div>
                 ))}
               </div>
@@ -185,13 +185,13 @@ export default function ClinicalNotesPage() {
 
         <div className="card" style={{ padding: '20px' }}>
           <h2 style={{ fontSize: '0.9rem', margin: '0 0 12px 0' }}>🤖 Journal → Note</h2>
-          <p style={{ fontSize: '0.75rem', color: '#7d877e', marginBottom: '12px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '0.75rem', color: '#6E837A', marginBottom: '12px', lineHeight: 1.6 }}>
             Pick a patient. We'll draft a clinical note from their latest journal entry — then you choose to accept it into the editor or cancel.
           </p>
 
           {!j2n && (
             <div className="space-y-2">
-              {patients.length === 0 && <p style={{ color: '#7d877e', fontSize: '0.8125rem' }}>No patients available.</p>}
+              {patients.length === 0 && <p style={{ color: '#6E837A', fontSize: '0.8125rem' }}>No patients available.</p>}
               {patients.slice(0, 5).map((p: any) => (
                 <button
                   key={p.username}
@@ -199,7 +199,7 @@ export default function ClinicalNotesPage() {
                   disabled={j2nLoading !== null}
                   style={{
                     width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: '8px',
-                    background: '#1d2623', border: '1px solid #31423a', color: '#d9ddd3', fontSize: '0.8125rem',
+                    background: '#FFFFFF', border: '1px solid #D9E7E3', color: '#3A4F52', fontSize: '0.8125rem',
                     cursor: j2nLoading === p.username ? 'progress' : 'pointer', transition: 'all 0.2s',
                   }}
                 >
@@ -211,8 +211,8 @@ export default function ClinicalNotesPage() {
 
           {j2n && j2n.status === 'empty' && (
             <div>
-              <div style={{ color: '#9ca99e', fontSize: '0.8125rem', marginBottom: '12px' }}>
-                No journal entries for <strong style={{ color: '#8fcbb1' }}>{j2n.patient}</strong> yet.
+              <div style={{ color: '#7C9188', fontSize: '0.8125rem', marginBottom: '12px' }}>
+                No journal entries for <strong style={{ color: '#17796E' }}>{j2n.patient}</strong> yet.
               </div>
               <button onClick={() => setJ2n(null)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>← Back to patients</button>
             </div>
@@ -220,7 +220,7 @@ export default function ClinicalNotesPage() {
 
           {j2n && j2n.status === 'error' && (
             <div>
-              <div style={{ color: '#fca5a5', fontSize: '0.8125rem', marginBottom: '12px' }}>
+              <div style={{ color: '#B5453D', fontSize: '0.8125rem', marginBottom: '12px' }}>
                 Could not draft a note for {j2n.patient}. Please try again.
               </div>
               <button onClick={() => setJ2n(null)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>← Back to patients</button>
@@ -229,19 +229,19 @@ export default function ClinicalNotesPage() {
 
           {j2n && j2n.status === 'draft' && (
             <div>
-              <div style={{ fontSize: '0.6875rem', color: '#7d877e', marginBottom: '8px' }}>
+              <div style={{ fontSize: '0.6875rem', color: '#6E837A', marginBottom: '8px' }}>
                 From {j2n.patient}'s journal{j2n.journalDate ? ` · ${j2n.journalDate}` : ''}
               </div>
               <div style={{
                 padding: '12px', borderRadius: '8px', fontSize: '0.8125rem', lineHeight: 1.6, whiteSpace: 'pre-wrap',
-                background: '#121715', border: '1px solid #31423a', color: '#d9ddd3', maxHeight: '240px', overflow: 'auto',
+                background: '#E8F2F0', border: '1px solid #D9E7E3', color: '#3A4F52', maxHeight: '240px', overflow: 'auto',
               }}>
                 {j2n.note || '(empty draft)'}
               </div>
               {j2n.themes && j2n.themes.length > 0 && (
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
                   {j2n.themes.map((t: string) => (
-                    <span key={t} style={{ background: '#31423a', color: '#9ca99e', fontSize: '0.6875rem', padding: '2px 8px', borderRadius: '4px' }}>{t}</span>
+                    <span key={t} style={{ background: '#D9E7E3', color: '#7C9188', fontSize: '0.6875rem', padding: '2px 8px', borderRadius: '4px' }}>{t}</span>
                   ))}
                 </div>
               )}

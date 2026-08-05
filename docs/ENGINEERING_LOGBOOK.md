@@ -395,6 +395,36 @@ one-shot script — semantic colors for mood/emotion/crisis/OK/amber/danger inte
 renders (`{patient, note, themes}` — 468-char note, themes for alaya); frontend dist rebuilt and
 served by the backend.
 
+### 2026-08-05 — Light "therapeutic calm" theme (research-backed, demo-final palette)
+
+The dark sage pass read as "worse than before" in a side-by-side review with a demo two days out, so
+it was scrapped and replaced with a light theme grounded in research. Findings that drove the flip
+(desktop web searches): desaturated mid-tone blues/teals/greens measurably calm — a Journal of
+Environmental Psychology study on color-optimized mental-health settings reported ~35% lower
+pre-session anxiety and ~42% better treatment retention; healthcare/therapist dashboards are
+overwhelmingly light mode (off-white backgrounds, deep slate text, a single calm teal accent);
+light mode wins for daytime professional work (fewer reading errors, better comprehension), and
+dark UI causes halation for astigmatism in bright rooms.
+
+**Final palette (Calm Pulse / Calm Sky family):**
+- Surfaces: warm-white cards `#FFFFFF`, body gradient `#F4F9F8 → #E8F2F0`, soft surface tints
+  `#E3F1EE`/`#F0F7F5`/`#F4F9F8`, borders `#D9E7E3`/`#BFD5CE`.
+- Accent: calm teal `#17796E` (primary) / `#3E9C8F` (hover) / `#0E5E55` (deep) — trust + healing.
+- Text: deep slate `#3A4F52` body, `#1E3238` headings, `#20363C` strong, `#50695F` labels,
+  `#6E837A` muted, `#7C9188` secondary.
+- Status kept calm but darkened for light-bg legibility: OK `#2E8B57`, danger `#C7463B`,
+  amber `#B7791A`, info `#2E7DB8` — always as tinted-bg banners/chips, never full fills.
+
+**Work done:** one-shot remap script flipped ~29 files (surfaces/text/borders/accent), then a
+manual pass fixed every element the token map couldn't reach — hover states that became white-on-
+white, steppers/onboarding gradients, calendar availability cells, crisis chips/banners, the
+trustee portal, journal expanders, export/consent boxes, tour popover, timeline + recent-activity
+rows, inline alert banners, and all leftover `#e0e8f0`-style light-on-dark text (now `#20363C`).
+Card shadows softened to teal-tinted instead of pure black.
+
+**Result:** `tsc` + `vite build` clean (690 modules, 8.85 kB CSS / 825 kB JS); backend serving the
+light build green at `/` + `/health`; everything verified live as `cel`/`1234`.
+
 ---
 
 ## Final Stack

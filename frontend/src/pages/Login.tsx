@@ -55,20 +55,20 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center" style={{ padding: '20px' }}>
       <form onSubmit={handleSubmit} className="card" style={{ padding: '32px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 700, background: 'linear-gradient(135deg, #8fcbb1, #a9e0c6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 700, background: 'linear-gradient(135deg, #17796E, #3E9C8F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>
             🧠 Brain Sentinel
           </div>
-          <div style={{ fontSize: '0.8125rem', color: '#7d877e', marginTop: '4px' }}>AI-Assisted Mental Health Ecosystem</div>
+          <div style={{ fontSize: '0.8125rem', color: '#6E837A', marginTop: '4px' }}>AI-Assisted Mental Health Ecosystem</div>
         </div>
 
-        <hr style={{ borderColor: '#31423a', opacity: 0.4 }} />
+        <hr style={{ borderColor: '#D9E7E3', opacity: 0.4 }} />
 
-        {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '0.8125rem', padding: '8px 12px', borderRadius: '8px' }}>{error}</div>}
+        {error && <div style={{ background: 'rgba(199,70,59,0.15)', border: '1px solid rgba(199,70,59,0.3)', color: '#C7463B', fontSize: '0.8125rem', padding: '8px 12px', borderRadius: '8px' }}>{error}</div>}
 
         <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} style={{ padding: '10px 12px', fontSize: '0.875rem', width: '100%' }} />
         <div style={{ position: 'relative' }}>
           <input type={showPw ? 'text' : 'password'} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: '10px 12px', fontSize: '0.875rem', width: '100%', paddingRight: '36px' }} />
-          <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#7d877e', cursor: 'pointer', fontSize: '0.75rem', padding: '4px' }}>
+          <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#6E837A', cursor: 'pointer', fontSize: '0.75rem', padding: '4px' }}>
             {showPw ? 'Hide' : 'Show'}
           </button>
         </div>
@@ -77,20 +77,20 @@ export default function Login() {
           {loading ? 'Signing in...' : 'Authenticate'}
         </button>
 
-        <hr style={{ borderColor: '#31423a', opacity: 0.4 }} />
+        <hr style={{ borderColor: '#D9E7E3', opacity: 0.4 }} />
 
-        <div style={{ fontSize: '0.75rem', color: '#7d877e', textAlign: 'center', fontWeight: 600 }}>Demo Accounts</div>
+        <div style={{ fontSize: '0.75rem', color: '#6E837A', textAlign: 'center', fontWeight: 600 }}>Demo Accounts</div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button type="button" onClick={() => quickLogin('demopatient', 'Demo@1234')} style={{ flex: 1, padding: '8px', fontSize: '0.7rem', background: '#1d2623', border: '1px solid #31423a', borderRadius: '8px', color: '#8fcbb1', cursor: 'pointer' }}>
-            Patient<br /><span style={{ color: '#7d877e', fontSize: '0.6rem' }}>demopatient</span>
+          <button type="button" onClick={() => quickLogin('demopatient', 'Demo@1234')} style={{ flex: 1, padding: '8px', fontSize: '0.7rem', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '8px', color: '#17796E', cursor: 'pointer' }}>
+            Patient<br /><span style={{ color: '#6E837A', fontSize: '0.6rem' }}>demopatient</span>
           </button>
-          <button type="button" onClick={() => quickLogin('psychdemo', 'Psych@1234')} style={{ flex: 1, padding: '8px', fontSize: '0.7rem', background: '#1d2623', border: '1px solid #31423a', borderRadius: '8px', color: '#f59e0b', cursor: 'pointer' }}>
-            Psychologist<br /><span style={{ color: '#7d877e', fontSize: '0.6rem' }}>psychdemo</span>
+          <button type="button" onClick={() => quickLogin('psychdemo', 'Psych@1234')} style={{ flex: 1, padding: '8px', fontSize: '0.7rem', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '8px', color: '#B7791A', cursor: 'pointer' }}>
+            Psychologist<br /><span style={{ color: '#6E837A', fontSize: '0.6rem' }}>psychdemo</span>
           </button>
         </div>
 
-        <div style={{ fontSize: '0.75rem', color: '#7d877e', textAlign: 'center' }}>
+        <div style={{ fontSize: '0.75rem', color: '#6E837A', textAlign: 'center' }}>
           Don't have an account? <Link to="/register">Register</Link>
         </div>
       </form>
