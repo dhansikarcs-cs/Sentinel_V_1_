@@ -425,6 +425,32 @@ Card shadows softened to teal-tinted instead of pure black.
 **Result:** `tsc` + `vite build` clean (690 modules, 8.85 kB CSS / 825 kB JS); backend serving the
 light build green at `/` + `/health`; everything verified live as `cel`/`1234`.
 
+### 2026-08-05 — Encoding fix + user-selectable light/dark theme
+
+Two issues from the demo readout.
+
+**Mojibake in Follow-Ups (`ðŸ"‹ My Follow-Up Tasks`).** The emoji in a handful of pages showed as
+garbage characters. Root cause: a bulk PowerShell color-edit step read UTF-8 source files as
+Windows-1252 (PowerShell 5.1's `Get-Content` default), double-encoding every non-ASCII character in
+7 pages (Follow-Ups, Crisis, Export, Trustee Portal, Consultation, Patient Insights, Timeline). Fixed
+by reverse-decoding those files through CP1252 back to the original UTF-8 bytes and re-verifying zero
+mojibake remains. (Also learned: the token edits themselves turned 8-digit hex alphas like
+`#17796E60` into invalid `var(--accent)60` — rewrote those as `color-mix(in srgb, …)`.)
+
+**Light/dark choice instead of a debate.** The app now ships a theme system the user controls, rather
+than us picking one palette for them:
+- All colors refactored from hardcoded hexes into ~30 CSS custom properties (`--surface`, `--text`,
+  `--accent`, `--border`, semantic `--ok/--warn/--danger/--info`, alpha helpers, shadows). ~28 files
+  tokenized; the two palettes live in `:root` (light) and `[data-theme="dark"]`.
+- Dark palette reuses the proven sage/earth values (`#101714` bg, `#1D2623` surfaces, bright teal
+  `#4FBF9F`, warm text `#C9D5D0`); status colors shift to brighter tones for dark-bg contrast.
+- `useTheme()` hook (`frontend/src/hooks/useTheme.ts`) + a 🌙/☀️ toggle in the sidebar; choice
+  persisted to `localStorage('sentinel-theme')`, defaulting to the OS `prefers-color-scheme`, with a
+  pre-paint inline script in `index.html` so there's no theme flash on load.
+
+**Result:** `tsc` + `vite build` clean (691 modules, 11.12 kB CSS / 830 kB JS); live check confirms
+correct emoji bytes and both theme blocks in the served bundle.
+
 ---
 
 ## Final Stack

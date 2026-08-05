@@ -1,7 +1,7 @@
 export function sourceColor(source: string) {
-  if (source === 'rule') return '#B7791A'
-  if (source === 'groq') return '#2E8B57'
-  return '#2E7DB8'
+  if (source === 'rule') return 'var(--warn)'
+  if (source === 'groq') return 'var(--ok)'
+  return 'var(--info)'
 }
 
 export default function AiSourceBadge({ source, detailed }: { source?: string; detailed?: boolean }) {
@@ -11,8 +11,8 @@ export default function AiSourceBadge({ source, detailed }: { source?: string; d
       <span
         title="Rule-based fallback: the AI model was offline or returned no usable result, so this entry was scored by deterministic keyword/emotion rules. Treat as degraded, not low-risk."
         style={{
-          background: '#B7791A22', color: '#B7791A', fontSize: '0.6rem', padding: '2px 7px',
-          borderRadius: '3px', fontWeight: 700, border: '1px solid #B7791A55',
+          background: 'color-mix(in srgb, var(--warn) 13%, transparent)', color: 'var(--warn)', fontSize: '0.6rem', padding: '2px 7px',
+          borderRadius: '3px', fontWeight: 700, border: '1px solid color-mix(in srgb, var(--warn) 33%, transparent)',
         }}
       >
         {detailed ? '⚠ RULE-SCORED — MODEL OFFLINE' : '⚠ RULE'}

@@ -1,11 +1,11 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { getUser } from '../stores/auth'
 import { moodIcon, formatTime } from '../constants'
 import PatientSelector from '../components/PatientSelector'
 
 function eventBorder(type: string) {
-  return { borderLeft: `3px solid ${type === 'mood' ? '#2E8B57' : type === 'journal' ? '#6366f1' : type === 'followup' ? '#B7791A' : '#C7463B'}`, background: '#F4F9F8', borderRadius: '6px', padding: '8px 12px', margin: '4px 0' }
+  return { borderLeft: `3px solid ${type === 'mood' ? 'var(--ok)' : type === 'journal' ? '#6366f1' : type === 'followup' ? 'var(--warn)' : 'var(--danger)'}`, background: 'var(--surface-soft)', borderRadius: '6px', padding: '8px 12px', margin: '4px 0' }
 }
 
 export default function TimelinePage() {
@@ -39,9 +39,9 @@ export default function TimelinePage() {
     <div className="animate-fade-in">
       {isPsych && (
         <div>
-          <h2>ðŸ” Behavioral Timeline</h2>
-          <div style={{ color: '#6E837A', fontSize: '0.85rem', marginBottom: '16px' }}>
-            Track behavioral evolution across time â€” not isolated symptoms. Select a patient to see their unified event feed and change metrics.
+          <h2>🔍 Behavioral Timeline</h2>
+          <div style={{ color: 'var(--muted)', fontSize: '0.85rem', marginBottom: '16px' }}>
+            Track behavioral evolution across time — not isolated symptoms. Select a patient to see their unified event feed and change metrics.
           </div>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
             <div style={{ flex: 2 }}>
@@ -51,62 +51,62 @@ export default function TimelinePage() {
             <div style={{ flex: 1 }}>
               <label>Time range</label>
               <input type="range" min={7} max={90} value={days} onChange={e => setDays(Number(e.target.value))} style={{ padding: '0' }} />
-              <div style={{ color: '#6E837A', fontSize: '0.75rem', textAlign: 'center' }}>{days} days</div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', textAlign: 'center' }}>{days} days</div>
             </div>
           </div>
         </div>
       )}
 
-      {!isPsych && <h2>ðŸ“‹ Behavioral Timeline</h2>}
+      {!isPsych && <h2>📋 Behavioral Timeline</h2>}
 
       {!selectedPatient ? (
-        <div className="card"><span style={{ color: '#6E837A' }}>Select a patient to view their timeline.</span></div>
+        <div className="card"><span style={{ color: 'var(--muted)' }}>Select a patient to view their timeline.</span></div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
           {/* Metrics Panel */}
           <div>
-            <h3>ðŸ“Š Change Metrics</h3>
+            <h3>📊 Change Metrics</h3>
             <div className="card-dark" style={{ padding: '14px' }}>
               {metrics && (
                 <>
                   <div style={{ marginBottom: '10px' }}>
-                    <div style={{ color: '#6E837A', fontSize: '0.7rem' }}>MOOD TREND (7d vs 7-14d ago)</div>
-                    <div style={{ color: metrics.mood_trend === 'improving' ? '#2E8B57' : metrics.mood_trend === 'declining' ? '#C7463B' : '#A66E0C', fontSize: '1.3rem', fontWeight: 700 }}>
-                      {metrics.mood_trend === 'improving' ? 'â†—ï¸ improving' : metrics.mood_trend === 'declining' ? 'â†˜ï¸ declining' : metrics.mood_trend === 'stable' ? 'â†’ï¸ stable' : 'â€”'}
+                    <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>MOOD TREND (7d vs 7-14d ago)</div>
+                    <div style={{ color: metrics.mood_trend === 'improving' ? 'var(--ok)' : metrics.mood_trend === 'declining' ? 'var(--danger)' : '#A66E0C', fontSize: '1.3rem', fontWeight: 700 }}>
+                      {metrics.mood_trend === 'improving' ? '↗️ improving' : metrics.mood_trend === 'declining' ? '↘️ declining' : metrics.mood_trend === 'stable' ? '→️ stable' : '—'}
                     </div>
-                    <div style={{ color: '#5F7A70', fontSize: '0.75rem' }}>
+                    <div style={{ color: 'var(--soft)', fontSize: '0.75rem' }}>
                       Current avg: {metrics.current_mood_avg ? `${metrics.current_mood_avg.toFixed(1)}/5` : 'N/A'} | Previous: {metrics.previous_mood_avg ? `${metrics.previous_mood_avg.toFixed(1)}/5` : 'N/A'}
                     </div>
                   </div>
 
                   <div style={{ marginBottom: '10px' }}>
-                    <div style={{ color: '#6E837A', fontSize: '0.7rem' }}>ENGAGEMENT (journal entries)</div>
-                    <div style={{ color: metrics.engagement_trend === 'increasing' ? '#2E8B57' : metrics.engagement_trend === 'declining' ? '#C7463B' : '#A66E0C', fontSize: '1.3rem', fontWeight: 700 }}>
-                      {metrics.engagement_trend === 'increasing' ? 'â†—ï¸' : metrics.engagement_trend === 'declining' ? 'â†˜ï¸' : metrics.engagement_trend === 'stable' ? 'â†’ï¸' : 'â€”'}
+                    <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>ENGAGEMENT (journal entries)</div>
+                    <div style={{ color: metrics.engagement_trend === 'increasing' ? 'var(--ok)' : metrics.engagement_trend === 'declining' ? 'var(--danger)' : '#A66E0C', fontSize: '1.3rem', fontWeight: 700 }}>
+                      {metrics.engagement_trend === 'increasing' ? '↗️' : metrics.engagement_trend === 'declining' ? '↘️' : metrics.engagement_trend === 'stable' ? '→️' : '—'}
                     </div>
-                    <div style={{ color: '#5F7A70', fontSize: '0.75rem' }}>
+                    <div style={{ color: 'var(--soft)', fontSize: '0.75rem' }}>
                       Last 7d: {metrics.journal_count_7 || 0} | Last 14d: {metrics.journal_count_14 || 0}
                     </div>
                   </div>
 
                       {metrics.latest_mood && (
                     <div>
-                      <div style={{ color: '#6E837A', fontSize: '0.7rem' }}>LATEST MOOD</div>
+                      <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>LATEST MOOD</div>
                       <div style={{ fontSize: '1.5rem' }}>{moodIcon(metrics.latest_mood.label)}</div>
-                      <div style={{ color: '#5F7A70', fontSize: '0.75rem' }}>{metrics.latest_mood.label} â€” {formatTime(metrics.latest_mood.timestamp)}</div>
+                      <div style={{ color: 'var(--soft)', fontSize: '0.75rem' }}>{metrics.latest_mood.label} — {formatTime(metrics.latest_mood.timestamp)}</div>
                     </div>
                   )}
                 </>
               )}
-              {!metrics && <div style={{ color: '#6E837A', fontSize: '0.8125rem' }}>No data available.</div>}
+              {!metrics && <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>No data available.</div>}
             </div>
           </div>
 
           {/* Event Feed */}
           <div>
-            <h3>ðŸ“… Event Feed</h3>
+            <h3>📅 Event Feed</h3>
             {events.length === 0 ? (
-              <div className="card"><span style={{ color: '#6E837A' }}>No events in the selected time period.</span></div>
+              <div className="card"><span style={{ color: 'var(--muted)' }}>No events in the selected time period.</span></div>
             ) : (
               <div style={{ maxHeight: '500px', overflowY: 'auto', paddingRight: '6px' }}>
                 {events.map((ev: any, i: number) => {
@@ -116,10 +116,10 @@ export default function TimelinePage() {
                     return (
                       <div key={i} style={eventBorder(etype)}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div><span style={{ color: '#20363C', fontWeight: 600, fontSize: '0.85rem' }}>{moodIcon(label)} [{label.toUpperCase()}]</span></div>
-                          <span style={{ color: '#6E837A', fontSize: '0.7rem' }}>{formatTime(ev.timestamp)}</span>
+                          <div><span style={{ color: 'var(--strong)', fontWeight: 600, fontSize: '0.85rem' }}>{moodIcon(label)} [{label.toUpperCase()}]</span></div>
+                          <span style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>{formatTime(ev.timestamp)}</span>
                         </div>
-                        <div style={{ color: '#5F7A70', fontSize: '0.75rem', marginTop: '2px' }}>Mood logged: {label} on {ev.data?.date || ''}</div>
+                        <div style={{ color: 'var(--soft)', fontSize: '0.75rem', marginTop: '2px' }}>Mood logged: {label} on {ev.data?.date || ''}</div>
                       </div>
                     )
                   }
@@ -128,10 +128,10 @@ export default function TimelinePage() {
                     return (
                       <div key={i} style={eventBorder(etype)}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div><span style={{ color: '#20363C', fontWeight: 600, fontSize: '0.85rem' }}>ðŸ“ {d.title || 'Journal Entry'}</span></div>
-                          <span style={{ color: '#6E837A', fontSize: '0.7rem' }}>{formatTime(ev.timestamp)}</span>
+                          <div><span style={{ color: 'var(--strong)', fontWeight: 600, fontSize: '0.85rem' }}>📝 {d.title || 'Journal Entry'}</span></div>
+                          <span style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>{formatTime(ev.timestamp)}</span>
                         </div>
-                        <div style={{ color: '#5F7A70', fontSize: '0.75rem', marginTop: '2px' }}>{(d.summary || '').slice(0, 200)}</div>
+                        <div style={{ color: 'var(--soft)', fontSize: '0.75rem', marginTop: '2px' }}>{(d.summary || '').slice(0, 200)}</div>
                       </div>
                     )
                   }
@@ -140,10 +140,10 @@ export default function TimelinePage() {
                     return (
                       <div key={i} style={eventBorder(etype)}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div><span style={{ color: '#20363C', fontWeight: 600, fontSize: '0.85rem' }}>{d.status === 'completed' ? 'âœ…' : 'â³'} {d.title || 'Task'}</span></div>
-                          <span style={{ color: '#6E837A', fontSize: '0.7rem' }}>{formatTime(d.completed_at || d.assigned_at || '')}</span>
+                          <div><span style={{ color: 'var(--strong)', fontWeight: 600, fontSize: '0.85rem' }}>{d.status === 'completed' ? '✅' : '⏳'} {d.title || 'Task'}</span></div>
+                          <span style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>{formatTime(d.completed_at || d.assigned_at || '')}</span>
                         </div>
-                        <div style={{ color: '#5F7A70', fontSize: '0.75rem', marginTop: '2px' }}>{d.description || ''}</div>
+                        <div style={{ color: 'var(--soft)', fontSize: '0.75rem', marginTop: '2px' }}>{d.description || ''}</div>
                       </div>
                     )
                   }
@@ -152,10 +152,10 @@ export default function TimelinePage() {
                     return (
                       <div key={i} style={eventBorder(etype)}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div><span style={{ color: '#20363C', fontWeight: 600, fontSize: '0.85rem' }}>ðŸš¨ {(d.event || 'Crisis').toUpperCase()}</span></div>
-                          <span style={{ color: '#6E837A', fontSize: '0.7rem' }}>{formatTime(ev.timestamp)}</span>
+                          <div><span style={{ color: 'var(--strong)', fontWeight: 600, fontSize: '0.85rem' }}>🚨 {(d.event || 'Crisis').toUpperCase()}</span></div>
+                          <span style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>{formatTime(ev.timestamp)}</span>
                         </div>
-                        <div style={{ color: '#5F7A70', fontSize: '0.75rem', marginTop: '2px' }}>{d.details || d.event || ''}</div>
+                        <div style={{ color: 'var(--soft)', fontSize: '0.75rem', marginTop: '2px' }}>{d.details || d.event || ''}</div>
                       </div>
                     )
                   }

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { getUser } from '../stores/auth'
 
@@ -61,32 +61,32 @@ export default function ExportPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1>ðŸ“¦ Export Center</h1>
+      <h1>📦 Export Center</h1>
 
       <div className="card" style={{ padding: '16px' }}>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
           {['patients', 'myself'].map(m => (
             <button key={m} onClick={() => setMode(m as any)}
               style={{
-                flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${mode === m ? '#17796E' : '#D9E7E3'}`,
-                background: mode === m ? '#E3F1EE' : '#FFFFFF', color: mode === m ? '#17796E' : '#3A4F52',
+                flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${mode === m ? 'var(--accent)' : 'var(--border)'}`,
+                background: mode === m ? 'var(--accent-soft)' : 'var(--surface)', color: mode === m ? 'var(--accent)' : 'var(--text)',
                 fontSize: '0.875rem', fontWeight: mode === m ? 600 : 400, cursor: 'pointer',
               }}>
-              {m === 'patients' ? 'ðŸ‘¥ Patients' : 'ðŸ§‘ Me'}
+              {m === 'patients' ? '👥 Patients' : '🧑 Me'}
             </button>
           ))}
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
-          <span style={{ color: '#6E837A', fontSize: '0.8125rem' }}>ðŸ“… Filter by date:</span>
+          <span style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>📅 Filter by date:</span>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            style={{ padding: '6px 10px', fontSize: '0.8rem', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '6px', color: '#7E948C' }} />
-          <span style={{ color: '#90A79F', fontSize: '0.75rem' }}>to</span>
+            style={{ padding: '6px 10px', fontSize: '0.8rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--soft)' }} />
+          <span style={{ color: 'var(--faint)', fontSize: '0.75rem' }}>to</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            style={{ padding: '6px 10px', fontSize: '0.8rem', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '6px', color: '#7E948C' }} />
+            style={{ padding: '6px 10px', fontSize: '0.8rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--soft)' }} />
           {(dateFrom || dateTo) && (
             <button onClick={() => { setDateFrom(''); setDateTo('') }}
-              style={{ padding: '6px 12px', fontSize: '0.75rem', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '6px', color: '#6E837A', cursor: 'pointer' }}>
+              style={{ padding: '6px 12px', fontSize: '0.75rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--muted)', cursor: 'pointer' }}>
               Clear
             </button>
           )}
@@ -95,17 +95,17 @@ export default function ExportPage() {
         {mode === 'patients' ? (
           <>
             {patients.length === 0 ? (
-              <div style={{ color: '#6E837A', fontSize: '0.8125rem' }}>No patients assigned.</div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>No patients assigned.</div>
             ) : (
               <>
-                <div style={{ fontSize: '0.8125rem', color: '#7C9188', fontWeight: 600, marginBottom: '8px' }}>Select a patient</div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--secondary)', fontWeight: 600, marginBottom: '8px' }}>Select a patient</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                   {patients.map((p: any) => (
                     <button key={p.username || p} onClick={() => setSelectedPatient(p.username || p)}
                       style={{
-                        padding: '8px 16px', borderRadius: '8px', border: `1px solid ${selectedPatient === (p.username || p) ? '#17796E' : '#D9E7E3'}`,
-                        background: selectedPatient === (p.username || p) ? '#E3F1EE' : '#FFFFFF',
-                        color: selectedPatient === (p.username || p) ? '#17796E' : '#3A4F52', fontSize: '0.8125rem', cursor: 'pointer',
+                        padding: '8px 16px', borderRadius: '8px', border: `1px solid ${selectedPatient === (p.username || p) ? 'var(--accent)' : 'var(--border)'}`,
+                        background: selectedPatient === (p.username || p) ? 'var(--accent-soft)' : 'var(--surface)',
+                        color: selectedPatient === (p.username || p) ? 'var(--accent)' : 'var(--text)', fontSize: '0.8125rem', cursor: 'pointer',
                       }}>
                       {p.name || p.username || p}
                     </button>
@@ -114,13 +114,13 @@ export default function ExportPage() {
 
                 {selectedPatient && (
                   <>
-                    <h3 style={{ fontSize: '0.9rem', margin: '0 0 8px 0', color: '#17796E' }}>
+                    <h3 style={{ fontSize: '0.9rem', margin: '0 0 8px 0', color: 'var(--accent)' }}>
                       {patients.find((p: any) => (p.username || p) === selectedPatient)?.name || selectedPatient}
                     </h3>
 
-                    <div style={{ fontSize: '0.8125rem', color: '#7C9188', fontWeight: 600, marginBottom: '8px' }}>Journal Entries {dateFrom || dateTo ? `(${filteredEntries.length} shown)` : ''}</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--secondary)', fontWeight: 600, marginBottom: '8px' }}>Journal Entries {dateFrom || dateTo ? `(${filteredEntries.length} shown)` : ''}</div>
                     {filteredEntries.length === 0 ? (
-                      <div style={{ color: '#6E837A', fontSize: '0.8125rem', marginBottom: '16px' }}>No journal entries.</div>
+                      <div style={{ color: 'var(--muted)', fontSize: '0.8125rem', marginBottom: '16px' }}>No journal entries.</div>
                     ) : (
                       entries.map((e: any, i: number) => {
                         const key = `j_${selectedPatient}_${i}`
@@ -131,21 +131,21 @@ export default function ExportPage() {
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <button onClick={() => toggleExpand(setExpandedEntries, key)}
                                 style={{
-                                  flex: 1, padding: '6px 10px', background: '#FFFFFF',
-                                  border: '1px solid #D9E7E3', borderRadius: '6px',
-                                  color: '#3A4F52', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
+                                  flex: 1, padding: '6px 10px', background: 'var(--surface)',
+                                  border: '1px solid var(--border)', borderRadius: '6px',
+                                  color: 'var(--text)', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
                                 }}>
-                                ðŸ“„ {ts} {open ? 'â–²' : 'â–¼'}
+                                📄 {ts} {open ? '▲' : '▼'}
                               </button>
                               <button onClick={() => downloadCsv(`${selectedPatient}_journal_${i}.csv`, [['Timestamp', 'Summary'], [ts, e.summary || '']])}
-                                style={{ padding: '6px 10px', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '6px', color: '#7C9188', cursor: 'pointer', fontSize: '0.75rem' }}>
-                                â¬‡
+                                style={{ padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--secondary)', cursor: 'pointer', fontSize: '0.75rem' }}>
+                                ⬇
                               </button>
                             </div>
                             {open && (
-                              <div style={{ background: '#F4F9F8', border: '1px solid #D9E7E3', borderRadius: '8px', padding: '12px', margin: '4px 0 0 0' }}>
-                                <div style={{ color: '#3A4F52', fontSize: '0.8125rem', lineHeight: 1.6 }}>{e.summary}</div>
-                                {e.emotions && <div style={{ color: '#6E837A', fontSize: '0.6875rem', marginTop: '4px' }}>Emotions: {e.emotions}</div>}
+                              <div style={{ background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', margin: '4px 0 0 0' }}>
+                                <div style={{ color: 'var(--text)', fontSize: '0.8125rem', lineHeight: 1.6 }}>{e.summary}</div>
+                                {e.emotions && <div style={{ color: 'var(--muted)', fontSize: '0.6875rem', marginTop: '4px' }}>Emotions: {e.emotions}</div>}
                               </div>
                             )}
                           </div>
@@ -155,7 +155,7 @@ export default function ExportPage() {
 
                     {filteredNotes.length > 0 && (
                       <>
-                        <div style={{ fontSize: '0.8125rem', color: '#7C9188', fontWeight: 600, margin: '12px 0 8px 0' }}>Clinical Notes {dateFrom || dateTo ? `(${filteredNotes.length} shown)` : ''}</div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--secondary)', fontWeight: 600, margin: '12px 0 8px 0' }}>Clinical Notes {dateFrom || dateTo ? `(${filteredNotes.length} shown)` : ''}</div>
                         {filteredNotes.map((n: any, i: number) => {
                           const key = `c_${selectedPatient}_${i}`
                           const open = expandedNotes[key]
@@ -165,20 +165,20 @@ export default function ExportPage() {
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <button onClick={() => toggleExpand(setExpandedNotes, key)}
                                   style={{
-                                    flex: 1, padding: '6px 10px', background: '#FFFFFF',
-                                    border: '1px solid #D9E7E3', borderRadius: '6px',
-                                    color: '#3A4F52', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
+                                    flex: 1, padding: '6px 10px', background: 'var(--surface)',
+                                    border: '1px solid var(--border)', borderRadius: '6px',
+                                    color: 'var(--text)', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
                                   }}>
-                                  ðŸ“‹ {ts} {open ? 'â–²' : 'â–¼'}
+                                  📋 {ts} {open ? '▲' : '▼'}
                                 </button>
                                 <button onClick={() => downloadCsv(`${selectedPatient}_clinical_${i}.csv`, [['Timestamp', 'Note'], [ts, n.ai_synthesis || n.raw_notes || '']])}
-                                  style={{ padding: '6px 10px', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '6px', color: '#7C9188', cursor: 'pointer', fontSize: '0.75rem' }}>
-                                  â¬‡
+                                  style={{ padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--secondary)', cursor: 'pointer', fontSize: '0.75rem' }}>
+                                  ⬇
                                 </button>
                               </div>
                               {open && (
-                                <div style={{ background: '#F4F9F8', border: '1px solid #D9E7E3', borderRadius: '8px', padding: '12px', margin: '4px 0 0 0' }}>
-                                  <div style={{ color: '#3A4F52', fontSize: '0.8125rem', lineHeight: 1.6 }}>{n.ai_synthesis || n.raw_notes}</div>
+                                <div style={{ background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', margin: '4px 0 0 0' }}>
+                                  <div style={{ color: 'var(--text)', fontSize: '0.8125rem', lineHeight: 1.6 }}>{n.ai_synthesis || n.raw_notes}</div>
                                 </div>
                               )}
                             </div>
@@ -193,9 +193,9 @@ export default function ExportPage() {
           </>
         ) : (
           <div>
-            <div style={{ fontSize: '0.8125rem', color: '#7C9188', fontWeight: 600, marginBottom: '12px' }}>My Journal Entries {dateFrom || dateTo ? `(${filteredOwn.length} shown)` : ''}</div>
+            <div style={{ fontSize: '0.8125rem', color: 'var(--secondary)', fontWeight: 600, marginBottom: '12px' }}>My Journal Entries {dateFrom || dateTo ? `(${filteredOwn.length} shown)` : ''}</div>
             {filteredOwn.length === 0 ? (
-              <div style={{ color: '#6E837A', fontSize: '0.8125rem' }}>No journal entries yet.</div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>No journal entries yet.</div>
             ) : (
               filteredOwn.map((e: any, i: number) => {
                 const key = `j_self_${i}`
@@ -206,21 +206,21 @@ export default function ExportPage() {
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <button onClick={() => toggleExpand(setExpandedEntries, key)}
                         style={{
-                          flex: 1, padding: '6px 10px', background: '#FFFFFF',
-                          border: '1px solid #D9E7E3', borderRadius: '6px',
-                          color: '#3A4F52', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
+                          flex: 1, padding: '6px 10px', background: 'var(--surface)',
+                          border: '1px solid var(--border)', borderRadius: '6px',
+                          color: 'var(--text)', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
                         }}>
-                        ðŸ“„ {ts} {open ? 'â–²' : 'â–¼'}
+                        📄 {ts} {open ? '▲' : '▼'}
                       </button>
                       <button onClick={() => downloadCsv(`journal_${i}.csv`, [['Timestamp', 'Summary'], [ts, e.summary || '']])}
-                        style={{ padding: '6px 10px', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '6px', color: '#7C9188', cursor: 'pointer', fontSize: '0.75rem' }}>
-                        â¬‡
+                        style={{ padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--secondary)', cursor: 'pointer', fontSize: '0.75rem' }}>
+                        ⬇
                       </button>
                     </div>
                     {open && (
-                      <div style={{ background: '#F4F9F8', border: '1px solid #D9E7E3', borderRadius: '8px', padding: '12px', margin: '4px 0 0 0' }}>
-                        <div style={{ color: '#3A4F52', fontSize: '0.8125rem', lineHeight: 1.6 }}>{e.summary}</div>
-                        {e.emotions && <div style={{ color: '#6E837A', fontSize: '0.6875rem', marginTop: '4px' }}>Emotions: {e.emotions}</div>}
+                      <div style={{ background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', margin: '4px 0 0 0' }}>
+                        <div style={{ color: 'var(--text)', fontSize: '0.8125rem', lineHeight: 1.6 }}>{e.summary}</div>
+                        {e.emotions && <div style={{ color: 'var(--muted)', fontSize: '0.6875rem', marginTop: '4px' }}>Emotions: {e.emotions}</div>}
                       </div>
                     )}
                   </div>

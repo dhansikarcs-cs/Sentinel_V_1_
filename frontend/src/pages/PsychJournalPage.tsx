@@ -31,7 +31,7 @@ export default function PsychJournalPage() {
         {trends.map(t => (
           <div key={t.key} className="card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#7C9188', fontSize: '0.75rem' }}>{t.label}</span>
+              <span style={{ color: 'var(--secondary)', fontSize: '0.75rem' }}>{t.label}</span>
               <span style={{ color: t.color, fontSize: '1rem', fontWeight: 700 }}>{t.data[t.data.length - 1]?.v || '-'}{t.unit === '%' ? '%' : t.unit === 'hrs' ? 'h' : ''}</span>
             </div>
             <ResponsiveContainer width="100%" height={80}>
@@ -45,8 +45,8 @@ export default function PsychJournalPage() {
                 <XAxis dataKey="name" hide />
                 <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
                 <Tooltip
-                  contentStyle={{ background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '8px', fontSize: '0.75rem' }}
-                  labelStyle={{ color: '#6E837A' }}
+                  contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.75rem' }}
+                  labelStyle={{ color: 'var(--muted)' }}
                   formatter={(val: any) => [`${val}${t.unit === '%' ? '%' : t.unit === 'hrs' ? 'h' : ''}`, t.label]}
                 />
                 <Area type="monotone" dataKey="v" stroke={t.color} strokeWidth={1.5} fill={`url(#grad_${t.key})`} dot={false} activeDot={{ r: 3, fill: t.color }} />
@@ -61,17 +61,17 @@ export default function PsychJournalPage() {
           {wellness?.mood && (
             <>
               <div>
-                <div style={{ fontSize: '0.75rem', color: '#6E837A' }}>Today's Mood</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Today's Mood</div>
                 <div style={{ fontSize: '2rem' }}>{wellness.mood.emoji}</div>
-                <div style={{ fontSize: '0.8125rem', color: '#7C9188' }}>{wellness.mood.label}</div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--secondary)' }}>{wellness.mood.label}</div>
               </div>
-              <div style={{ width: '1px', height: '40px', background: '#D9E7E3' }} />
+              <div style={{ width: '1px', height: '40px', background: 'var(--border)' }} />
             </>
           )}
           <div>
-            <div style={{ fontSize: '0.75rem', color: '#6E837A' }}>Journal Entries Today</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1E3238' }}>{wellness?.journals_today || 0}</div>
-            <div style={{ fontSize: '0.75rem', color: '#6E837A' }}>entries today</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Journal Entries Today</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--heading)' }}>{wellness?.journals_today || 0}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>entries today</div>
           </div>
         </div>
       </div>
@@ -113,9 +113,9 @@ function MyJournal() {
         {(['write', 'history'] as const).map(st => (
           <button key={st} onClick={() => setSubTab(st)}
             style={{
-              padding: '8px 20px', borderRadius: '6px', border: `1px solid ${subTab === st ? '#17796E' : '#D9E7E3'}`,
-              background: subTab === st ? '#E3F1EE' : 'transparent',
-              color: subTab === st ? '#17796E' : '#7C9188', fontSize: '0.8125rem', cursor: 'pointer',
+              padding: '8px 20px', borderRadius: '6px', border: `1px solid ${subTab === st ? 'var(--accent)' : 'var(--border)'}`,
+              background: subTab === st ? 'var(--accent-soft)' : 'transparent',
+              color: subTab === st ? 'var(--accent)' : 'var(--secondary)', fontSize: '0.8125rem', cursor: 'pointer',
             }}>
             {st === 'write' ? '✍️ Write Entry' : '📖 History'}
           </button>
@@ -129,7 +129,7 @@ function MyJournal() {
               placeholder="Write freely about your day, thoughts, or sessions..."
               style={{ width: '100%', minHeight: '220px', padding: '12px', fontSize: '0.875rem', resize: 'vertical' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-              <span style={{ color: '#6E837A', fontSize: '0.75rem' }}>{wordCount} words · {charCount} characters</span>
+              <span style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{wordCount} words · {charCount} characters</span>
               <button onClick={handleSave} disabled={saving || !text.trim()}
                 className="btn-primary" style={{ padding: '8px 24px' }}>
                 {saving ? 'Saving...' : '💾 Save Entry'}
@@ -140,7 +140,7 @@ function MyJournal() {
       ) : (
         <div>
           {entries.length === 0 ? (
-            <p style={{ color: '#6E837A', fontSize: '0.875rem' }}>No journal entries yet.</p>
+            <p style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>No journal entries yet.</p>
           ) : (
             entries.map((e: any) => {
               const id = e.id
@@ -150,16 +150,16 @@ function MyJournal() {
                 <div key={id} style={{ marginBottom: '8px' }}>
                   <button onClick={() => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })}
                     style={{
-                      width: '100%', padding: '8px 12px', background: open ? '#E3F1EE' : '#FFFFFF',
-                      border: `1px solid ${open ? '#17796E' : '#D9E7E3'}`, borderRadius: '8px',
-                      color: '#3A4F52', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
+                      width: '100%', padding: '8px 12px', background: open ? 'var(--accent-soft)' : 'var(--surface)',
+                      border: `1px solid ${open ? 'var(--accent)' : 'var(--border)'}`, borderRadius: '8px',
+                      color: 'var(--text)', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
                       display: 'flex', alignItems: 'center', gap: '8px',
                     }}>
                     <span>📄 {ts}</span>
-                    <span style={{ marginLeft: 'auto', color: '#6E837A', fontSize: '0.7rem' }}>{open ? 'Collapse' : 'Expand'}</span>
+                    <span style={{ marginLeft: 'auto', color: 'var(--muted)', fontSize: '0.7rem' }}>{open ? 'Collapse' : 'Expand'}</span>
                   </button>
                   {open && (
-                    <div style={{ background: 'linear-gradient(135deg,#FFFFFF,#F4F9F8)', border: '1px solid #D9E7E3', borderRadius: '10px', padding: '16px', margin: '2px 0 0 0' }}>
+                    <div style={{ background: 'linear-gradient(135deg,var(--surface),var(--surface-soft))', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', margin: '2px 0 0 0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                         {e.ai_source && (
                           <span style={{
@@ -169,10 +169,10 @@ function MyJournal() {
                           }}>{e.ai_source.toUpperCase()}</span>
                         )}
                         {e.emotions && (
-                          <span style={{ fontSize: '0.65rem', color: '#7C9188' }}>Emotions: {e.emotions}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--secondary)' }}>Emotions: {e.emotions}</span>
                         )}
                       </div>
-                      <div style={{ color: '#3A4F52', fontSize: '0.8125rem', lineHeight: 1.6 }}>{e.summary}</div>
+                      <div style={{ color: 'var(--text)', fontSize: '0.8125rem', lineHeight: 1.6 }}>{e.summary}</div>
                     </div>
                   )}
                 </div>

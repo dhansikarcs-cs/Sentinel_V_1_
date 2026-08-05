@@ -87,8 +87,8 @@ export default function JournalPage() {
 
       <div className="card" style={{ padding: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#7C9188', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Daily check-in</div>
-          <div style={{ fontSize: '0.6875rem', color: todayMood ? moodColor(todayMood.label) : '#5a6a8a' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Daily check-in</div>
+          <div style={{ fontSize: '0.6875rem', color: todayMood ? moodColor(todayMood.label) : 'var(--soft)' }}>
             {todayMood ? `Logged · ${todayMood.label}` : 'One entry per day'}
           </div>
         </div>
@@ -97,12 +97,12 @@ export default function JournalPage() {
             <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>{todayMood.emoji}</span>
             <div>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', textTransform: 'capitalize', color: moodColor(todayMood.label) }}>{todayMood.label}</div>
-              <div style={{ fontSize: '0.6875rem', color: '#6E837A' }}>Next check-in unlocks tomorrow</div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>Next check-in unlocks tomorrow</div>
             </div>
           </div>
         ) : (
           <div>
-            <div style={{ color: '#5F7A70', fontSize: '0.8125rem', marginBottom: '12px' }}>How are you feeling right now?</div>
+            <div style={{ color: 'var(--soft)', fontSize: '0.8125rem', marginBottom: '12px' }}>How are you feeling right now?</div>
             <MoodPicker locked={moodLocked} onSelect={handleMood} />
           </div>
         )}
@@ -117,7 +117,7 @@ export default function JournalPage() {
         <div className="card" style={{ padding: '20px' }}>
           {recentMoods.length >= 3 && (
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ color: '#5a6a8a', fontSize: '0.7rem', marginBottom: '4px' }}>Mood trend — last 14 days</div>
+              <div style={{ color: 'var(--soft)', fontSize: '0.7rem', marginBottom: '4px' }}>Mood trend — last 14 days</div>
               <svg viewBox="0 0 280 50" style={{ width: '100%', height: '50px', overflow: 'visible' }}>
                 <defs>
                   <linearGradient id="moodFill" x1="0" y1="0" x2="0" y2="1">
@@ -155,8 +155,8 @@ export default function JournalPage() {
             style={{ width: '100%', padding: '12px', fontSize: '0.875rem', resize: 'none' }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px' }}>
-            <span style={{ color: '#5a6a8a', fontSize: '0.7rem' }}>{wordCount} words</span>
-            <span style={{ color: '#5a6a8a', fontSize: '0.7rem' }}>{charCount} characters</span>
+            <span style={{ color: 'var(--soft)', fontSize: '0.7rem' }}>{wordCount} words</span>
+            <span style={{ color: 'var(--soft)', fontSize: '0.7rem' }}>{charCount} characters</span>
             <button onClick={handleSave} disabled={saving || !text.trim()} className="btn-primary" style={{ marginLeft: 'auto', padding: '8px 16px' }}>
               {saving ? 'Saving...' : '💾 Save Entry'}
             </button>
@@ -174,7 +174,7 @@ export default function JournalPage() {
                 )}
               </div>
               <div className="ai-body">{lastSummary}</div>
-              {lastEmotions && <div style={{ fontSize: '0.6875rem', color: '#6E837A', marginTop: '6px' }}>Emotions: {lastEmotions}</div>}
+              {lastEmotions && <div style={{ fontSize: '0.6875rem', color: 'var(--muted)', marginTop: '6px' }}>Emotions: {lastEmotions}</div>}
             </div>
           )}
         </div>
@@ -183,7 +183,7 @@ export default function JournalPage() {
       {tab === 'history' && (
         <div>
           {entries.length > 0 && (
-            <div style={{ color: '#5F7A70', fontSize: '0.75rem', marginBottom: '8px' }}>Showing last {Math.min(20, entries.length)} entries</div>
+            <div style={{ color: 'var(--soft)', fontSize: '0.75rem', marginBottom: '8px' }}>Showing last {Math.min(20, entries.length)} entries</div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {entries.slice(-20).reverse().map((e: any, i: number) => {
@@ -193,12 +193,12 @@ export default function JournalPage() {
               return (
                 <div key={id}>
                   <button onClick={() => toggleExpanded(id)}
-                    style={{ width: '100%', padding: '8px 12px', background: open ? '#E3F1EE' : '#FFFFFF', border: `1px solid ${open ? '#17796E' : '#D9E7E3'}`, borderRadius: '8px', color: '#3A4F52', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    style={{ width: '100%', padding: '8px 12px', background: open ? 'var(--accent-soft)' : 'var(--surface)', border: `1px solid ${open ? 'var(--accent)' : 'var(--border)'}`, borderRadius: '8px', color: 'var(--text)', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>📄 {ts}</span>
-                    <span style={{ marginLeft: 'auto', color: '#6E837A', fontSize: '0.7rem' }}>{open ? 'Collapse' : 'Expand'}</span>
+                    <span style={{ marginLeft: 'auto', color: 'var(--muted)', fontSize: '0.7rem' }}>{open ? 'Collapse' : 'Expand'}</span>
                   </button>
                   {open && (
-                    <div style={{ background: 'linear-gradient(135deg,#FFFFFF,#F4F9F8)', border: '1px solid #D9E7E3', borderRadius: '10px', padding: '16px', margin: '2px 0 8px 0' }}>
+                    <div style={{ background: 'linear-gradient(135deg,var(--surface),var(--surface-soft))', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', margin: '2px 0 8px 0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                         {e.ai_source && (
                           <span style={{
@@ -208,14 +208,14 @@ export default function JournalPage() {
                           }}>{e.ai_source.toUpperCase()}</span>
                         )}
                         {e.emotions && (
-                          <span style={{ fontSize: '0.65rem', color: '#7C9188' }}>Emotions: {e.emotions}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--secondary)' }}>Emotions: {e.emotions}</span>
                         )}
                         <button onClick={async (ev) => { ev.stopPropagation(); try { await api.resummarizeJournal(id); await load() } catch {} }}
-                          style={{ marginLeft: 'auto', fontSize: '0.65rem', padding: '2px 8px', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '4px', color: '#17796E', cursor: 'pointer' }}>
+                          style={{ marginLeft: 'auto', fontSize: '0.65rem', padding: '2px 8px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--accent)', cursor: 'pointer' }}>
                           🔄 Re-summarize
                         </button>
                       </div>
-                      <div style={{ color: '#93A79E', fontSize: '0.8125rem', lineHeight: 1.5 }}>{e.summary || e.raw_content}</div>
+                      <div style={{ color: 'var(--soft)', fontSize: '0.8125rem', lineHeight: 1.5 }}>{e.summary || e.raw_content}</div>
                       {e.summary && e.summary !== e.raw_content && (
                         <div style={{ marginTop: '8px', padding: '6px 10px', borderRadius: '6px', background: 'rgba(183,121,26,0.08)', border: '1px solid rgba(183,121,26,0.25)', color: '#A66E0C', fontSize: '0.68rem', lineHeight: 1.5 }}>
                           This summary was generated by AI and has not been reviewed by a clinician. Sentinel assists monitoring — it never determines whether you are safe. If you feel unsafe, seek help immediately regardless of this summary.
@@ -226,7 +226,7 @@ export default function JournalPage() {
                 </div>
               )
             })}
-            {entries.length === 0 && <p style={{ color: '#6E837A', fontSize: '0.875rem' }}>💬 No entries yet. Start writing above.</p>}
+            {entries.length === 0 && <p style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>💬 No entries yet. Start writing above.</p>}
           </div>
         </div>
       )}

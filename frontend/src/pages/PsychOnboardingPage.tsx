@@ -61,19 +61,19 @@ export default function PsychOnboardingPage() {
     <div className="min-h-screen flex items-center justify-center" style={{ padding: '32px' }}>
       <div style={{ width: '100%', maxWidth: '560px' }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 700, background: 'linear-gradient(135deg,#17796E,#3E9C8F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 700, background: 'linear-gradient(135deg,var(--accent),var(--accent-hover))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>
             Welcome to Sentinel
           </div>
-          <div style={{ color: '#6E837A', fontSize: '0.85rem', marginTop: '4px' }}>Set up your psychologist workspace</div>
+          <div style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '4px' }}>Set up your psychologist workspace</div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '24px' }}>
           {STEPS.map((s, i) => {
             const done = i < step
             const active = i === step
-            const bg = done ? '#E2F5EA' : active ? '#E3F1EE' : '#FFFFFF'
-            const border = done ? '#2E8B5740' : active ? '#17796E60' : '#D9E7E3'
-            const color = done ? '#2E8B57' : active ? '#17796E' : '#A8B9B1'
+            const bg = done ? 'var(--ok-soft)' : active ? 'var(--accent-soft)' : 'var(--surface)'
+            const border = done ? 'color-mix(in srgb, var(--ok) 25%, transparent)' : active ? 'color-mix(in srgb, var(--accent) 38%, transparent)' : 'var(--border)'
+            const color = done ? 'var(--ok)' : active ? 'var(--accent)' : 'var(--faint)'
             const icon = done ? '\u2705' : s.emoji
             return (
               <div key={i} style={{ background: bg, border: `1px solid ${border}`, borderRadius: '8px', padding: '10px 4px', textAlign: 'center', transition: 'all 0.3s' }}>
@@ -88,7 +88,7 @@ export default function PsychOnboardingPage() {
           {step === 0 && (
             <div>
               <h3>🏠 Your Profile</h3>
-              <div style={{ background: 'linear-gradient(135deg,#FFFFFF,#EAF7F0)', border: '1px solid #D9E7E3', borderRadius: '12px', padding: '20px', margin: '12px 0' }}>
+              <div style={{ background: 'linear-gradient(135deg,var(--surface),var(--ok-soft))', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', margin: '12px 0' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   {[
                     { label: 'Name', value: user?.name || user?.username },
@@ -97,13 +97,13 @@ export default function PsychOnboardingPage() {
                     { label: 'Role', value: 'Psychologist' },
                   ].map(f => (
                     <div key={f.label}>
-                      <div style={{ color: '#6E837A', fontSize: '0.75rem' }}>{f.label}</div>
-                      <div style={{ color: '#7E948C', fontSize: '1rem', fontWeight: 600, marginTop: '2px' }}>{f.value}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{f.label}</div>
+                      <div style={{ color: 'var(--soft)', fontSize: '1rem', fontWeight: 600, marginTop: '2px' }}>{f.value}</div>
                     </div>
                   ))}
                 </div>
               </div>
-              <p style={{ color: '#6E837A', fontSize: '0.8rem', marginBottom: '12px' }}>
+              <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
                 Monitor your patients' wellness, review AI-powered journal insights, manage bookings, and receive instant crisis alerts.
               </p>
               <button className="btn-primary btn-full" onClick={() => advance(1)}>Next Step →</button>
@@ -113,7 +113,7 @@ export default function PsychOnboardingPage() {
           {step === 1 && (
             <div>
               <h3>📞 Your Contact Details</h3>
-              <p style={{ color: '#6E837A', fontSize: '0.8rem', marginBottom: '12px' }}>
+              <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
                 Provide a contact method so patients can reach you for appointments, follow-ups, or questions.
               </p>
               <input
@@ -133,7 +133,7 @@ export default function PsychOnboardingPage() {
           {step === 2 && (
             <div>
               <h3>👥 Trusted Contact (Crisis Alerts)</h3>
-              <p style={{ color: '#6E837A', fontSize: '0.8rem', marginBottom: '12px' }}>
+              <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
                 If you trigger a self-crisis alert and cannot be reached, who should we notify?
               </p>
               <input
@@ -153,17 +153,17 @@ export default function PsychOnboardingPage() {
           {step === 3 && (
             <div>
               <h3>🔮 Quick Tips</h3>
-              <div style={{ background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '10px', padding: '16px', margin: '12px 0' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', margin: '12px 0' }}>
                 {[
                   { emoji: '💬', title: 'AI Journal Summaries', desc: 'Your patients\' journal entries are summarized by AI. Review them in the Journal & Wellness tab.' },
                   { emoji: '⚠️', title: 'Crisis Alerts', desc: 'Elevated vitals or high-risk journal entries trigger instant alerts. Acknowledge and escalate from the dashboard.' },
                   { emoji: '📅', title: 'Availability & Bookings', desc: 'Set your available dates in the Bookings tab. Patients will book based on their assigned psychologist.' },
                 ].map((tip, i) => (
                   <div key={i} style={{ display: 'flex', gap: '12px', marginBottom: i < 2 ? '10px' : 0 }}>
-                    <span style={{ color: '#17796E', fontSize: '1.2rem' }}>{tip.emoji}</span>
+                    <span style={{ color: 'var(--accent)', fontSize: '1.2rem' }}>{tip.emoji}</span>
                     <div>
-                      <div style={{ color: '#7E948C', fontWeight: 600, fontSize: '0.875rem' }}>{tip.title}</div>
-                      <div style={{ color: '#6E837A', fontSize: '0.75rem' }}>{tip.desc}</div>
+                      <div style={{ color: 'var(--soft)', fontWeight: 600, fontSize: '0.875rem' }}>{tip.title}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{tip.desc}</div>
                     </div>
                   </div>
                 ))}
@@ -173,10 +173,10 @@ export default function PsychOnboardingPage() {
           )}
 
           {step >= 4 && (
-            <div style={{ background: 'linear-gradient(135deg,#FFFFFF,#EAF7F0)', border: '1px solid rgba(46,139,87,0.25)', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+            <div style={{ background: 'linear-gradient(135deg,var(--surface),var(--ok-soft))', border: '1px solid rgba(46,139,87,0.25)', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '8px' }}>✅</div>
-              <div style={{ color: '#2E8B57', fontSize: '1.5rem', fontWeight: 700 }}>You're all set!</div>
-              <div style={{ color: '#6E837A', fontSize: '0.85rem', marginTop: '8px', lineHeight: 1.6 }}>
+              <div style={{ color: 'var(--ok)', fontSize: '1.5rem', fontWeight: 700 }}>You're all set!</div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '8px', lineHeight: 1.6 }}>
                 Your dashboard is ready. Use the sidebar to manage patients, view journals, set availability, and more.
               </div>
               <ConsentUpload user={user} />
@@ -208,16 +208,16 @@ function ConsentUpload({ user }: { user: any }) {
   }
 
   return (
-    <div style={{ marginTop: '16px', padding: '12px', background: '#F4F9F8', border: '1px solid #DFECE8', borderRadius: '8px', textAlign: 'left' }}>
-      <div style={{ color: '#7C9188', fontSize: '0.8rem', fontWeight: 600, marginBottom: '8px' }}>📄 Consent Form</div>
+    <div style={{ marginTop: '16px', padding: '12px', background: 'var(--surface-soft)', border: '1px solid var(--border-soft)', borderRadius: '8px', textAlign: 'left' }}>
+      <div style={{ color: 'var(--secondary)', fontSize: '0.8rem', fontWeight: 600, marginBottom: '8px' }}>📄 Consent Form</div>
       {uploaded ? (
-        <div style={{ color: '#2E8B57', fontSize: '0.8125rem' }}>✅ Consent form uploaded. <button onClick={() => setUploaded('')} style={{ background: 'none', border: 'none', color: '#17796E', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>Re-upload</button></div>
+        <div style={{ color: 'var(--ok)', fontSize: '0.8125rem' }}>✅ Consent form uploaded. <button onClick={() => setUploaded('')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>Re-upload</button></div>
       ) : (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} accept=".pdf,.jpg,.png"
-            style={{ fontSize: '0.75rem', color: '#7C9188', flex: 1 }} />
+            style={{ fontSize: '0.75rem', color: 'var(--secondary)', flex: 1 }} />
           <button onClick={handleUpload} disabled={!file || uploading}
-            style={{ padding: '6px 14px', fontSize: '0.75rem', background: file ? '#17796E' : '#D9E7E3', border: 'none', borderRadius: '6px', color: file ? '#E8F2F0' : '#A8B9B1', cursor: file ? 'pointer' : 'default' }}>
+            style={{ padding: '6px 14px', fontSize: '0.75rem', background: file ? 'var(--accent)' : 'var(--border)', border: 'none', borderRadius: '6px', color: file ? 'var(--on-accent)' : 'var(--faint)', cursor: file ? 'pointer' : 'default' }}>
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
         </div>

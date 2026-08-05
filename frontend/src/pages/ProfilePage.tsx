@@ -44,23 +44,23 @@ export default function ProfilePage() {
           ].map(f => (
             <div key={f.label}>
               <div className="metric-label">{f.label}</div>
-              <div style={{ fontSize: '0.9rem', color: '#1E3238', marginTop: '2px' }}>{f.value}</div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--heading)', marginTop: '2px' }}>{f.value}</div>
             </div>
           ))}
         </div>
         <hr />
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#7C9188', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Contact Info</label>
+            <label style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Contact Info</label>
             <input value={contact} onChange={e => setContact(e.target.value)} placeholder="Phone or email" style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem' }} />
           </div>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#7C9188', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Trusted Contact</label>
+            <label style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 500, marginBottom: '4px', display: 'block' }}>Trusted Contact</label>
             <input value={trusted} onChange={e => setTrusted(e.target.value)} placeholder="Name and phone/email" style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem' }} />
           </div>
           <div className="flex items-center gap-3">
             <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving...' : '💾 Save'}</button>
-            {msg && <span style={{ fontSize: '0.75rem', color: msg === 'Saved successfully.' ? '#2E8B57' : '#C7463B' }}>{msg}</span>}
+            {msg && <span style={{ fontSize: '0.75rem', color: msg === 'Saved successfully.' ? 'var(--ok)' : 'var(--danger)' }}>{msg}</span>}
           </div>
         </form>
       </div>

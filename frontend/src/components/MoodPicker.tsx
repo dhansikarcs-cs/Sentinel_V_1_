@@ -23,15 +23,15 @@ export default function MoodPicker({ selected, locked, onSelect }: MoodPickerPro
             style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
               padding: '10px 14px', minWidth: '88px',
-              background: isSel ? `${m.color}1f` : '#FFFFFF',
-              border: isSel ? `1px solid ${m.color}` : '1px solid #D9E7E3',
+              background: isSel ? `${m.color}1f` : 'var(--surface)',
+              border: isSel ? `1px solid ${m.color}` : '1px solid var(--border)',
               borderRadius: '10px', cursor: locked ? 'not-allowed' : 'pointer',
               opacity: locked && !isSel ? 0.45 : 1,
               transition: 'all 0.15s ease',
             }}
           >
             <span style={{ fontSize: '1.1rem', lineHeight: 1, opacity: 0.95 }}>{m.emoji}</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 600, textTransform: 'capitalize', letterSpacing: '0.02em', color: isSel ? m.color : '#889F96' }}>{m.label}</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 600, textTransform: 'capitalize', letterSpacing: '0.02em', color: isSel ? m.color : 'var(--soft)' }}>{m.label}</span>
           </button>
         )
       })}

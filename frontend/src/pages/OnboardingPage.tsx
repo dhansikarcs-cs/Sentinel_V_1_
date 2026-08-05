@@ -67,10 +67,10 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex items-center justify-center" style={{ padding: '32px' }}>
       <div style={{ width: '100%', maxWidth: '560px' }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 700, background: 'linear-gradient(135deg,#17796E,#3E9C8F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 700, background: 'linear-gradient(135deg,var(--accent),var(--accent-hover))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>
             Welcome to Sentinel
           </div>
-          <div style={{ color: '#6E837A', fontSize: '0.85rem', marginTop: '4px' }}>Let's get you set up in a few quick steps</div>
+          <div style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '4px' }}>Let's get you set up in a few quick steps</div>
         </div>
 
         {/* Clickable step indicators */}
@@ -78,9 +78,9 @@ export default function OnboardingPage() {
           {STEPS.map((s, i) => {
             const done = i < step
             const active = i === step
-            const bg = done ? '#E2F5EA' : active ? '#E3F1EE' : '#FFFFFF'
-            const border = done ? '#2E8B5740' : active ? '#17796E60' : '#D9E7E3'
-            const color = done ? '#2E8B57' : active ? '#17796E' : '#A8B9B1'
+            const bg = done ? 'var(--ok-soft)' : active ? 'var(--accent-soft)' : 'var(--surface)'
+            const border = done ? 'color-mix(in srgb, var(--ok) 25%, transparent)' : active ? 'color-mix(in srgb, var(--accent) 38%, transparent)' : 'var(--border)'
+            const color = done ? 'var(--ok)' : active ? 'var(--accent)' : 'var(--faint)'
             const icon = done ? '\u2705' : s.emoji
             return (
               <div
@@ -101,8 +101,8 @@ export default function OnboardingPage() {
         </div>
 
         {/* Progress bar */}
-        <div style={{ height: '3px', background: '#FFFFFF', borderRadius: '2px', marginBottom: '20px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${((step + 1) / 4) * 100}%`, background: 'linear-gradient(90deg, #2E8B57, #17796E)', borderRadius: '2px', transition: 'width 0.4s ease' }} />
+        <div style={{ height: '3px', background: 'var(--surface)', borderRadius: '2px', marginBottom: '20px', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${((step + 1) / 4) * 100}%`, background: 'linear-gradient(90deg, var(--ok), var(--accent))', borderRadius: '2px', transition: 'width 0.4s ease' }} />
         </div>
 
         {/* Step content */}
@@ -112,10 +112,10 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div>
               <h3>🏠 About You</h3>
-              <div style={{ background: 'linear-gradient(135deg,#FFFFFF,#EAF7F0)', border: '1px solid #D9E7E3', borderRadius: '12px', padding: '20px', margin: '12px 0' }}>
-                <div style={{ color: '#6E837A', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Account</div>
-                <div style={{ color: '#20363C', fontSize: '1.1rem', fontWeight: 600, marginTop: '4px' }}>{user?.name || user?.username}</div>
-                <div style={{ color: '#6E837A', fontSize: '0.75rem', marginTop: '8px', lineHeight: 1.5 }}>
+              <div style={{ background: 'linear-gradient(135deg,var(--surface),var(--ok-soft))', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', margin: '12px 0' }}>
+                <div style={{ color: 'var(--muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Account</div>
+                <div style={{ color: 'var(--strong)', fontSize: '1.1rem', fontWeight: 600, marginTop: '4px' }}>{user?.name || user?.username}</div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '8px', lineHeight: 1.5 }}>
                   You're registered with Sentinel. Your psychologist will review your journals and vitals to support your well-being.
                 </div>
               </div>
@@ -127,7 +127,7 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div>
               <h3>📝 Your First Journal Entry</h3>
-              <p style={{ color: '#6E837A', fontSize: '0.8rem', marginBottom: '12px' }}>
+              <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
                 Write a few lines about how you're feeling. Your psychologist will see an AI summary.
               </p>
               <textarea
@@ -143,7 +143,7 @@ export default function OnboardingPage() {
                 <button onClick={() => goTo(2)} style={{ flex: 1 }}>Skip for now</button>
               </div>
               <div style={{ marginTop: '8px' }}>
-                <button onClick={() => goTo(0)} style={{ background: 'none', border: 'none', color: '#6E837A', cursor: 'pointer', fontSize: '0.75rem' }}>← Back</button>
+                <button onClick={() => goTo(0)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.75rem' }}>← Back</button>
               </div>
             </div>
           )}
@@ -152,7 +152,7 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div>
               <h3>🛡️ Emergency Contact</h3>
-              <p style={{ color: '#6E837A', fontSize: '0.8rem', marginBottom: '12px' }}>
+              <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
                 If you trigger a crisis alert, your trusted contact will be notified.
               </p>
               <input
@@ -165,7 +165,7 @@ export default function OnboardingPage() {
                 <button onClick={() => goTo(3)} style={{ flex: 1 }}>Skip</button>
               </div>
               <div style={{ marginTop: '8px' }}>
-                <button onClick={() => goTo(1)} style={{ background: 'none', border: 'none', color: '#6E837A', cursor: 'pointer', fontSize: '0.75rem' }}>← Back</button>
+                <button onClick={() => goTo(1)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.75rem' }}>← Back</button>
               </div>
             </div>
           )}
@@ -174,7 +174,7 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div>
               <h3>📱 Contact Preference</h3>
-              <p style={{ color: '#6E837A', fontSize: '0.8rem', marginBottom: '12px' }}>
+              <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
                 How should your psychologist reach you?
               </p>
               <input
@@ -187,21 +187,21 @@ export default function OnboardingPage() {
                 <button onClick={() => goTo(4)} style={{ flex: 1 }}>Skip</button>
               </div>
               <div style={{ marginTop: '8px' }}>
-                <button onClick={() => goTo(2)} style={{ background: 'none', border: 'none', color: '#6E837A', cursor: 'pointer', fontSize: '0.75rem' }}>← Back</button>
+                <button onClick={() => goTo(2)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.75rem' }}>← Back</button>
               </div>
             </div>
           )}
 
           {/* Step 4: Done */}
           {step >= 4 && (
-            <div style={{ background: 'linear-gradient(135deg,#FFFFFF,#EAF7F0)', border: '1px solid rgba(46,139,87,0.25)', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+            <div style={{ background: 'linear-gradient(135deg,var(--surface),var(--ok-soft))', border: '1px solid rgba(46,139,87,0.25)', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '8px' }}>✅</div>
-              <div style={{ color: '#2E8B57', fontSize: '1.5rem', fontWeight: 700 }}>You're all set!</div>
-              <div style={{ color: '#6E837A', fontSize: '0.85rem', marginTop: '8px', lineHeight: 1.6 }}>
+              <div style={{ color: 'var(--ok)', fontSize: '1.5rem', fontWeight: 700 }}>You're all set!</div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '8px', lineHeight: 1.6 }}>
                 Your dashboard is ready. Track your wellness, write journal entries, manage bookings, and more.
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
-                <button onClick={() => goTo(3)} style={{ flex: 1, padding: '10px', background: '#FFFFFF', border: '1px solid #D9E7E3', borderRadius: '8px', color: '#6E837A', cursor: 'pointer' }}>← Back</button>
+                <button onClick={() => goTo(3)} style={{ flex: 1, padding: '10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--muted)', cursor: 'pointer' }}>← Back</button>
                 <button className="btn-primary" onClick={finish} style={{ flex: 2, padding: '12px', fontSize: '1rem' }}>🚀 Open Dashboard</button>
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Bottom nav hint */}
-        <div style={{ textAlign: 'center', marginTop: '12px', color: '#A8B9B1', fontSize: '0.7rem' }}>
+        <div style={{ textAlign: 'center', marginTop: '12px', color: 'var(--faint)', fontSize: '0.7rem' }}>
           Click any completed step above to go back
         </div>
       </div>
