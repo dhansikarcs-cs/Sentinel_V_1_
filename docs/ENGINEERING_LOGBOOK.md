@@ -451,6 +451,23 @@ than us picking one palette for them:
 **Result:** `tsc` + `vite build` clean (691 modules, 11.12 kB CSS / 830 kB JS); live check confirms
 correct emoji bytes and both theme blocks in the served bundle.
 
+**Incubation-centre documentation pack.** Prepared three companion technical documents for an incubation-centre
+visit:
+- **Research paper** — `docs/sentinel_paper.pdf` (21 pp) regenerated via `generate_paper.py` (unchanged content, current build).
+- **White paper** — new `generate_whitepaper.py` → `sentinel_whitepaper.pdf` (5 pp): industry positioning, problem,
+  solution, crisis engine, privacy-first AI, security, deployment/TCO, roadmap.
+- **Validation & Timing Report** — new `generate_validation_report.py` → `sentinel_validation_report.pdf` (4 pp):
+  reads `backend/benchmarks/logbook_benchmark.csv` + embedded pytest/live-API results.
+
+Fresh validation data captured 2026-08-06 with Ollama live:
+- pytest: **98 passed** (12 modules, 71.37 s, zero skips).
+- Benchmark harness: 47 logged runs, 45 PASS / 2 expected-skip (Groq, no key). Key numbers: discrepancy engine
+  96.0% accuracy (TP=21 FP=2 TN=27 FN=0, Prec 91%, Rec 100%) at 0.1 ms; crisis concurrency 1-25 loads 102-109 ms,
+  0 dropped threads; halt protocol fired stages correctly at 15/45/65 sim-s; storage 23-181 ms at 10-500 profiles;
+  real local Ollama inference 5,076 ms cold / 1,449-1,746 ms warm; PBKDF2 4.2-155.6 ms; Fernet <2 ms; JWT ~0.5 ms.
+- Live API (127.0.0.1:8000): REST 7-41 ms, login 397.5 ms, full AI triage pipeline 4,711.6 ms.
+- Committed fresh logbook to `backend/benchmarks/logbook_benchmark.csv` (47 rows, `#0001`-`#0047`).
+
 **Dark-mode polish pass.** User feedback: the gradient was "cool but ruins UI/UX" in dark. Fixed:
 - Dark body is now a flat `#101714` (no gradient banding); the subtle light-mode gradient is kept.
 - Killed a hardcoded light stop (`#FBFDFC`) in `.card` that turned dark cards two-tone.
