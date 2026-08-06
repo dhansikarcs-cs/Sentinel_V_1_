@@ -1,43 +1,40 @@
 # Team & Credentials
 
 **Sentinel — Incubation Application**
-*Fill in the fields marked [ ... ]. Remove this note once complete.*
 
 ---
 
-## 1. Team Overview
+## Founder
 
-| Member | Role | Key skills / background |
-|--------|------|--------------------------|
-| [Name] | [Project lead / full-stack] | [e.g. FastAPI + React, systems engineering] |
-| [Name] | [AI / ML] | [e.g. NLP, LLM deployment, GoEmotions] |
-| [Name] | [Hardware / BLE] | [e.g. embedded systems, wearable SDKs] |
+| Field | Detail |
+|-------|--------|
+| Name | Dhansika |
+| Role | Founder and sole builder of Sentinel |
+| Background | 10th-grade student with 3 years of independent research in psychology and technology |
+| Contribution | All aspects of Sentinel — research, architecture, software (backend + frontend), AI pipeline, hardware abstraction (ring SDK), security, documentation, and validation |
 
-## 2. Relevant Experience
+## Independent work
 
-- [ ] Completed project(s): **[project / hackathon / research project, with year]**
-- [ ] Technologies: **[FastAPI, React/TypeScript, SQLAlchemy, Ollama/LLMs, BLE/bleak]**
-- [ ] Prior validation work: **[benchmarking, published reports, university coursework]**
+Sentinel was built and is maintained by a single person. In three years of independent research, this included:
 
-## 3. Education & Credentials
+- **Research:** psychophysiological integration (wearables + emotion-labelled language), crisis-escalation design,
+  explainable AI, privacy-preserving clinical software.
+- **Engineering:** FastAPI + SQLAlchemy backend, React 19 + TypeScript + Vite PWA frontend, BLE/vendor ring SDK,
+  offline LLM deployment (Ollama), encryption and audit infrastructure.
+- **Validation:** 98-test automated suite, a 47-run benchmark harness with timing accuracy, live end-to-end
+  measurements — all reproducible from the repository.
+- **Documentation:** research paper, white paper, validation report, technical design, business plan, and this
+  incubation pack.
 
-| Member | Qualification | Institution |
-|--------|---------------|-------------|
-| [Name] | [B.E. / B.Tech / M.Sc. ...] | [Institution] |
+## Why this program
 
-## 4. Commitment & Time
+Sentinel is at the point where it needs partners, not code: a clinical partner for a validation pilot, hardware
+access to test live ring ingestion, and guidance on regulatory and product paths. The founder is available to
+participate fully in incubation activities.
 
-- Hours per week available: **[e.g. 25-40]**
-- Availability for incubation activities: **[full-time / part-time]**
-- Any competing commitments: **[coursework, job, internships]**
+## References (optional)
 
-## 5. Why this program?
-
-- Short statement on what the team wants from incubation (infrastructure for hardware pilots, clinical-partner
-  access, regulatory mentorship, funding).
-
-## 6. References (optional)
-
+- [Add 1-2 mentors / teachers / judges who can speak to the work]
 - [Name / role / contact]
 
 ---

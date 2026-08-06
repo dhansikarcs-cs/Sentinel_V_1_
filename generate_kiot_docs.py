@@ -80,6 +80,16 @@ class KiotDoc(FPDF):
         self.multi_cell(0, 5.5, text)
         self.ln(1.2)
 
+    def mission(self, text):
+        self.ln(1)
+        self.set_fill_color(232, 245, 242)
+        self.set_draw_color(*ACCENT)
+        self.set_font("Helvetica", "I", 11)
+        self.set_text_color(20, 90, 82)
+        self.multi_cell(0, 6, text, border=1, fill=True)
+        self.set_text_color(0, 0, 0)
+        self.ln(3)
+
     def bullet(self, text):
         self.set_font("Helvetica", "", 10)
         self.cell(5, 5.5, "-")
@@ -121,6 +131,7 @@ p.body(
     "no-login trusted-contact page provides signed escalation links during crisis events. Every clinical loop - "
     "journal to insight, crisis to acknowledgement, task to graded proof - closes inside the platform."
 )
+p.mission("Sentinel is designed to support mental health professionals, not replace clinical judgment.")
 
 p.section("2", "The Problem")
 p.body(
@@ -327,3 +338,109 @@ p.body(
 )
 p.output(os.path.join(KIOT, "09_Demo_and_Evaluation_Guide.pdf"))
 print("09_Demo_and_Evaluation_Guide.pdf", p.pages_count, "pages")
+
+# ──────────────────────────────────────────────────────────────
+# 4. Pitch & Demo Guide
+# ──────────────────────────────────────────────────────────────
+p = KiotDoc()
+p.title_block(
+    "Sentinel - Pitch and Demo Guide",
+    "Current stage, roadmap, support needed, and your three spoken demos",
+    "Prepared for Dhansika  |  Incubation visit  |  Live app demo",
+)
+
+p.section("1", "Start With the Story")
+p.body(
+    "Mental health professionals often work under time pressure while trying to understand complex patient data. "
+    "Sentinel was created to support - not replace - their clinical decision-making, by bringing the right "
+    "information together in one place: a patient's physiology, their own words, and the context a clinician "
+    "needs to act."
+)
+p.mission("Sentinel is designed to support mental health professionals, not replace clinical judgment.")
+p.body(
+    "Then describe the system in one breath: a patient wears a smart ring and journals; the platform fuses "
+    "physiology, language, and mood; a deterministic crisis engine escalates through a staged protocol that any "
+    "psychologist can halt with one tap; and the whole thing runs offline at zero monthly cost."
+)
+
+p.section("2", "Current Stage - Where Sentinel Is Today")
+p.bullet("Done: Research completed.")
+p.bullet("Done: AI architecture designed.")
+p.bullet("Done: Working software prototype - 98/98 tests passing, benchmarked end to end.")
+p.bullet("Done: Documentation completed (research paper, white paper, validation report).")
+p.bullet("Next: Clinical validation (planned).")
+p.bullet("Next: Hardware prototype / live ring pilot (planned).")
+p.bullet("Next: Pilot deployment (planned).")
+
+p.section("3", "Roadmap - One Page")
+p.bullet("Research (complete) - literature, architecture, psychophysiological foundation.")
+p.bullet("Prototype (complete) - working dual-portal software with crisis engine and offline AI.")
+p.bullet("Clinical validation (next) - a partner institution, a defined cohort, measured outcomes.")
+p.bullet("Pilot - one counselling centre or university counselling office running daily.")
+p.bullet("Hardware - live BLE/vendor ring ingestion at scale (M0 SDK is already done).")
+p.bullet("Deployment - campus or clinic-wide rollout on commodity hardware.")
+p.bullet("Scaling - multi-site deployment, managed tier, FHIR-adjacent export for regulated use.")
+p.body(
+    "Read it as a staircase: each stage unlocks the next, and the two steps below the current line are already "
+    "finished and verifiable."
+)
+
+p.section("4", "Support Needed - How the Incubator Can Help")
+p.bullet("Clinical mentorship - guidance from practising psychologists and psychiatrists.")
+p.bullet("Validation guidance - designing a sound clinical validation study.")
+p.bullet("Product feedback - iterating the interface with real users.")
+p.bullet("Industry connections - clinics, universities, and wearable device makers.")
+p.bullet("Regulatory guidance - the path to compliance and clearance.")
+p.bullet("Grants for hardware pilot testing - funding for more rings and devices so a real pilot can run.")
+p.body(
+    "Be specific when asked: the fastest help is a clinical partner for a validation pilot and access to hardware "
+    "for real-world ring testing."
+)
+
+p.section("5", "Your Three Demos")
+p.sub("5.1  Thirty seconds (elevator)")
+p.body(
+    "Sentinel is a mental-health platform that connects patients, psychologists, and trusted contacts in real time. "
+    "A patient wears a smart ring and journals; the system fuses physiology, language, and mood to flag risk early. "
+    "When a patient is in crisis, it escalates automatically through a staged protocol that any psychologist can "
+    "stop with one tap. It runs fully offline on open-source software at zero monthly cost - and it is designed to "
+    "support clinicians, not replace them. It is already built and tested."
+)
+p.sub("5.2  Two minutes (room pitch)")
+p.body(
+    "Mental health professionals are under time pressure and patient risk evolves between sessions. Most tools "
+    "only see one signal - an app, a wearable, a chat. [Open the app.] This is Sentinel. The patient portal captures "
+    "biometric trends from a smart ring and AI-summarized journals, with emotion labels - 28 categories - feeding "
+    "every summary. The psychologist side ranks patients by risk and auto-expands crisis cases. The key piece is "
+    "the crisis engine: a staged escalation - patient feedback, trusted-contact email with a signed link, then "
+    "helpline - that a clinician halts with one tap. Everything is explainable, and the AI path runs locally, so no "
+    "patient data leaves the clinic. It is validated: 98 tests passing, 96 percent discrepancy accuracy at 0.1 "
+    "milliseconds. Today it is at the clinical-validation stage, and that is exactly where I need an incubator's help."
+)
+p.sub("5.3  Five minutes (full walkthrough)")
+p.bullet("0:00-0:30 Story opener: the sentence from section 1.")
+p.bullet("0:30-1:30 Log in as the patient (alaya): show biometric trends and one AI journal summary with emotion "
+         "labels; note the warm patient-facing tone.")
+p.bullet("1:30-3:00 Log in as the psychologist (cel): open the triage dashboard, expand a patient to show the five "
+         "bio metric cards and the clinical insight, then open the 'Why this summary?' explainability panel.")
+p.bullet("3:00-4:00 Trigger a crisis from the patient view; show it appear live on the psychologist dashboard; "
+         "acknowledge it and point out the frozen escalation timer. Name the staged protocol.")
+p.bullet("4:00-5:00 Close with validation: 98/98 tests, 96% discrepancy accuracy, 0.1 ms rule engine, 1.4-1.7 s "
+         "local AI, 7-41 ms REST. End on the one-line ask: clinical partner + hardware for a validation pilot.")
+p.body(
+    "Full click-through instructions and demo accounts are in 09_Demo_and_Evaluation_Guide. Rehearse each script "
+    "out loud at least three times - especially the 30-second one."
+)
+
+p.section("6", "Notes Before Tomorrow")
+p.bullet("You are the product as much as the documents are - lead with the story, then the numbers.")
+p.bullet("Keep the app warm: start the backend and Ollama, and click through the demo twice before presenting.")
+p.bullet("If the live demo fails, fall back to the 2-minute room pitch - it needs no screen.")
+p.bullet("You built this alone, as a 10th-grade student, over three years of independent research - say it plainly "
+         "once; it is a strength, not a caveat.")
+p.body(
+    "Companion documents: Executive Summary (01), Validation & Timing Report (04), Demo & Evaluation Guide (09), "
+    "Team & Credentials (11)."
+)
+p.output(os.path.join(KIOT, "14_Pitch_and_Demo_Guide.pdf"))
+print("14_Pitch_and_Demo_Guide.pdf", p.pages_count, "pages")

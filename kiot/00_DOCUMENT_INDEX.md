@@ -20,15 +20,17 @@ Main repository: https://github.com/anomalyco/opencode (local: `sentinel3`)
 | 11 | Team & Credentials | **Template — fill in before submitting** |
 | 12 | Engineering Decisions | Key architectural trade-offs and rationale |
 | 13 | Judges' Prep Q&A | Anticipated evaluator questions with answers |
+| 14 | Pitch & Demo Guide | Current stage, roadmap, support needed, and 3 spoken demo scripts |
 | LICENSE | — | Apache 2.0 |
 
 ## Suggested reading order for evaluators
 
 1. **01 Executive Summary** — 2 minutes
-2. **09 Demo & Evaluation Guide** — run it yourself
-3. **04 Validation & Timing Report** — the numbers
-4. **03 White Paper / 06 Business Plan** — positioning & commercial case
-5. **02 Research Paper / 05 Technical Design** — deep dive
+2. **14 Pitch & Demo Guide** — where you are, where you're going, what you need
+3. **09 Demo & Evaluation Guide** — run it yourself
+4. **04 Validation & Timing Report** — the numbers
+5. **03 White Paper / 06 Business Plan** — positioning & commercial case
+6. **02 Research Paper / 05 Technical Design** — deep dive
 
 ## Reproduce every number
 
@@ -44,7 +46,7 @@ python -m pytest tests -q                                            # 98 tests
 python generate_paper.py              # 02 Research Paper
 python generate_whitepaper.py         # 03 White Paper
 python generate_validation_report.py  # 04 Validation & Timing Report
-python generate_kiot_docs.py          # 01, 06, 09
+python generate_kiot_docs.py          # 01, 06, 09, 14
 ```
 
 *Copyright 2026 Sentinel Ecosystem (Independent Research). Licensed under the Apache License, Version 2.0.*
