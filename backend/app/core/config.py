@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     trustee_link_secret: str = ""
     trustee_link_expire_seconds: int = 3600
+    sentinel_ack_link: str = "http://localhost:5173/trustee"
 
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587

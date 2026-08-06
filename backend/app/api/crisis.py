@@ -1,7 +1,6 @@
 import hashlib
 import hmac as hmac_mod
 import logging
-import os
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -22,7 +21,7 @@ logger = logging.getLogger("sentinel.crisis")
 
 router = APIRouter(prefix="/crisis", tags=["crisis"])
 
-TRUSTEE_PORTAL_BASE = os.environ.get("SENTINEL_ACK_LINK", "http://localhost:5173/trustee")
+TRUSTEE_PORTAL_BASE = settings.sentinel_ack_link
 
 
 def _trustee_hmac_key() -> bytes:
