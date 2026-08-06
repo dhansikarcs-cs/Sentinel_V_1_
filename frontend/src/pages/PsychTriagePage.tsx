@@ -11,9 +11,9 @@ function MetricCard({ label, value, unit, color }: { label: string; value: strin
       border: `1px solid ${color}44`,
       textAlign: 'center',
     }}>
-      <div style={{ color: '#889', fontSize: '12px' }}>{label}</div>
-      <div style={{ color: 'white', fontSize: '24px', fontWeight: 700 }}>{value}</div>
-      <div style={{ color: '#889', fontSize: '11px' }}>{unit}</div>
+      <div style={{ color: 'var(--muted)', fontSize: '12px' }}>{label}</div>
+      <div style={{ color: 'var(--strong)', fontSize: '24px', fontWeight: 700 }}>{value}</div>
+      <div style={{ color: 'var(--muted)', fontSize: '11px' }}>{unit}</div>
     </div>
   )
 }
