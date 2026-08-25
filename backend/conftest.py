@@ -22,6 +22,7 @@ from app.services import ai_service
 
 os.makedirs(WORKDIR / "data", exist_ok=True)
 
+
 async def _noop_dispatch(self, request, call_next):
     return await call_next(request)
 
