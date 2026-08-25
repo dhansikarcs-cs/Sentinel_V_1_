@@ -74,9 +74,7 @@ def test_recent_pending_followup_not_flagged():
 
     ctx = _baseline()
     assigned = (datetime.now(UTC) - timedelta(days=2)).isoformat()
-    ctx["followups"] = [
-        {"id": "f1", "status": "pending", "title": "Daily reflection", "assigned_at": assigned}
-    ]
+    ctx["followups"] = [{"id": "f1", "status": "pending", "title": "Daily reflection", "assigned_at": assigned}]
     items = derive_priorities(**ctx)
     assert all("Follow-up overdue" not in i["title"] for i in items)
 

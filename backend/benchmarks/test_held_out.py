@@ -37,7 +37,6 @@ HELD_OUT_PROFILES = [
     HeldOutProfile(6, "Life is good and I feel energetic", 122, 17, True, "pos+high"),
     HeldOutProfile(7, "Feeling peaceful and content with everything", 135, 12, True, "pos+high"),
     HeldOutProfile(8, "I'm happy, really happy today", 110, 25, True, "pos+high"),
-
     # === Group B: Negative text + low stress biometrics → EXPECTED TRUE ===
     HeldOutProfile(9, "I'm struggling with anxiety and can't cope", 75, 60, True, "neg+low"),
     HeldOutProfile(10, "The fear is overwhelming, I feel scared", 70, 65, True, "neg+low"),
@@ -47,7 +46,6 @@ HELD_OUT_PROFILES = [
     HeldOutProfile(14, "Everything is falling apart and I can't breathe", 68, 68, True, "neg+low"),
     HeldOutProfile(15, "I feel terrible and numb inside", 76, 57, True, "neg+low"),
     HeldOutProfile(16, "The darkness is consuming me, I'm drowning", 74, 63, True, "neg+low"),
-
     # === Group C: Negative text + moderate biometrics → EXPECTED TRUE ===
     HeldOutProfile(17, "I'm anxious and worried about everything", 95, 40, True, "neg+mod"),
     HeldOutProfile(18, "I feel scared and can't stop worrying", 100, 35, True, "neg+mod"),
@@ -57,7 +55,6 @@ HELD_OUT_PROFILES = [
     HeldOutProfile(22, "The anxiety is unbearable right now", 88, 48, True, "neg+mod"),
     HeldOutProfile(23, "I'm drowning in my own thoughts", 98, 38, True, "neg+mod"),
     HeldOutProfile(24, "Panic is taking over, I can't escape", 92, 42, True, "neg+mod"),
-
     # === Group D: Positive text + calm biometrics → EXPECTED FALSE ===
     HeldOutProfile(25, "I feel great and happy today", 72, 65, False, "pos+calm"),
     HeldOutProfile(26, "What a wonderful morning, feeling refreshed", 68, 70, False, "pos+calm"),
@@ -67,7 +64,6 @@ HELD_OUT_PROFILES = [
     HeldOutProfile(30, "I love this beautiful weather today", 69, 72, False, "pos+calm"),
     HeldOutProfile(31, "Feeling energetic and full of joy", 71, 66, False, "pos+calm"),
     HeldOutProfile(32, "I'm cured and feeling peaceful", 67, 74, False, "pos+calm"),
-
     # === Group E: Negative text + high stress biometrics → EXPECTED FALSE ===
     HeldOutProfile(33, "I feel anxious and scared today", 120, 20, False, "neg+high"),
     HeldOutProfile(34, "The fear is overwhelming me completely", 130, 15, False, "neg+high"),
@@ -77,14 +73,12 @@ HELD_OUT_PROFILES = [
     HeldOutProfile(38, "I feel alone and the darkness is here", 118, 24, False, "neg+high"),
     HeldOutProfile(39, "The anxiety is unbearable and I'm terrified", 140, 10, False, "neg+high"),
     HeldOutProfile(40, "I'm drowning in fear and panic", 128, 16, False, "neg+high"),
-
     # === Group F: Neutral text + various biometrics ===
     HeldOutProfile(41, "It was a day.", 72, 65, False, "neutral+calm"),
     HeldOutProfile(42, "Nothing special happened today", 100, 40, False, "neutral+mod"),
     HeldOutProfile(43, "I went to school and came home", 70, 68, False, "neutral+calm"),
     HeldOutProfile(44, "The weather was okay today", 115, 22, True, "neutral+high"),
     HeldOutProfile(45, "I ate lunch at noon", 130, 15, True, "neutral+high"),
-
     # === Group G: Edge cases ===
     HeldOutProfile(46, "", 72, 65, False, "edge-empty"),
     HeldOutProfile(47, "Fine.", 72, 65, False, "edge-minimal+calm"),
@@ -117,15 +111,17 @@ def run_held_out_evaluation():
             else:
                 fn += 1
 
-        results.append({
-            "id": p.id,
-            "text": p.journal_text[:40],
-            "bpm": p.bpm,
-            "hrv": p.hrv,
-            "expected": p.expected_discrepancy,
-            "got": result,
-            "correct": result == p.expected_discrepancy,
-        })
+        results.append(
+            {
+                "id": p.id,
+                "text": p.journal_text[:40],
+                "bpm": p.bpm,
+                "hrv": p.hrv,
+                "expected": p.expected_discrepancy,
+                "got": result,
+                "correct": result == p.expected_discrepancy,
+            }
+        )
 
     total = tp + fp + tn + fn
     accuracy = (tp + tn) / total * 100 if total else 0
@@ -133,7 +129,7 @@ def run_held_out_evaluation():
     recall = tp / (tp + fn) * 100 if (tp + fn) else 0
     avg_lat = sum(latencies) / len(latencies)
 
-    print(f"=== HELD-OUT EVALUATION (50 fresh profiles, frozen thresholds) ===")
+    print("=== HELD-OUT EVALUATION (50 fresh profiles, frozen thresholds) ===")
     print(f"Total profiles:  {total}")
     print(f"True Positives:  {tp}")
     print(f"True Negatives:  {tn}")
@@ -150,14 +146,22 @@ def run_held_out_evaluation():
     if mismatches:
         print(f"=== MISMATCHES ({len(mismatches)}) ===")
         for m in mismatches:
-            print(f"  #{m['id']}: expected={m['expected']} got={m['got']} | bpm={m['bpm']} hrv={m['hrv']} | '{m['text']}'")
+            print(
+                f"  #{m['id']}: expected={m['expected']} got={m['got']} | bpm={m['bpm']} hrv={m['hrv']} | '{m['text']}'"
+            )
     else:
         print("=== NO MISMATCHES ===")
 
     return {
-        "tp": tp, "fp": fp, "tn": tn, "fn": fn,
-        "accuracy": accuracy, "precision": precision, "recall": recall,
-        "avg_latency_ms": avg_lat, "mismatches": mismatches,
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "avg_latency_ms": avg_lat,
+        "mismatches": mismatches,
     }
 
 

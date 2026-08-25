@@ -446,6 +446,7 @@ def _generate_training_data() -> tuple[list[str], list[list[int]]]:
 def _build_model() -> OneVsRestClassifier:
     try:
         from datasets import load_dataset
+
         ds = load_dataset("google-research-datasets/go_emotions", "simplified")
         texts, labels = [], []
         for split in ["train", "validation", "test"]:
