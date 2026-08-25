@@ -444,21 +444,38 @@ def _generate_training_data() -> tuple[list[str], list[list[int]]]:
 
 
 def _build_model() -> OneVsRestClassifier:
-    texts, labels = _generate_training_data()
+    try:
+        from datasets import load_dataset
+        ds = load_dataset("google-research-datasets/go_emotions", "simplified")
+        texts, labels = [], []
+        for split in ["train", "validation", "test"]:
+            for ex in ds[split]:
+                lbl = [0] * 28
+                for idx in ex["labels"]:
+                    if idx < 28:
+                        lbl[idx] = 1
+                texts.append(ex["text"])
+                labels.append(lbl)
+        y = np.array(labels, dtype=np.float32)
+    except Exception:
+        texts, labels = _generate_training_data()
+        y = np.array(labels, dtype=np.float32)
     vectorizer = TfidfVectorizer(
-        max_features=5000,
+        max_features=10000,
         ngram_range=(1, 3),
         sublinear_tf=True,
         lowercase=True,
         strip_accents="unicode",
         token_pattern=r"(?u)\b\w+\b",
+        min_df=2,
+        max_df=0.95,
     )
-    X = vectorizer.fit_transform(texts)  # noqa: N806
+    X = vectorizer.fit_transform(texts).copy()  # noqa: N806
     classifier = OneVsRestClassifier(
         LogisticRegression(C=2.0, class_weight="balanced", max_iter=1000, solver="liblinear"),
-        n_jobs=-1,
+        n_jobs=1,
     )
-    classifier.fit(X, labels)
+    classifier.fit(X, y)
     return classifier, vectorizer
 
 

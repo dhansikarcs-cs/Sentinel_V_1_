@@ -70,9 +70,12 @@ def test_overdue_followup_escalates_with_age():
 
 
 def test_recent_pending_followup_not_flagged():
+    from datetime import UTC, datetime, timedelta
+
     ctx = _baseline()
+    assigned = (datetime.now(UTC) - timedelta(days=2)).isoformat()
     ctx["followups"] = [
-        {"id": "f1", "status": "pending", "title": "Daily reflection", "assigned_at": "2026-08-02T09:00:00"}
+        {"id": "f1", "status": "pending", "title": "Daily reflection", "assigned_at": assigned}
     ]
     items = derive_priorities(**ctx)
     assert all("Follow-up overdue" not in i["title"] for i in items)

@@ -44,7 +44,7 @@ def generate_profiles(n: int) -> list[dict]:
     return profiles
 
 
-def test_json_io(profiles: list[dict], encrypt: bool) -> dict:
+def _json_io(profiles: list[dict], encrypt: bool) -> dict:
     """Benchmark JSON save/load with optional encryption."""
     key = Fernet.generate_key()
     cipher = Fernet(key)
@@ -79,7 +79,7 @@ def test_json_io(profiles: list[dict], encrypt: bool) -> dict:
     }
 
 
-def test_sqlite_io(profiles: list[dict]) -> dict:
+def _sqlite_io(profiles: list[dict]) -> dict:
     """Benchmark SQLite write/read via SQLAlchemy."""
     from sqlalchemy import Column, Float, Integer, String, create_engine
     from sqlalchemy.orm import declarative_base, sessionmaker
@@ -140,7 +140,7 @@ def run_storage_benchmarks(log_func, quick=False):
         profiles = generate_profiles(n)
 
         # Unencrypted JSON
-        r = test_json_io(profiles, encrypt=False)
+        r = _json_io(profiles, encrypt=False)
         total_ms = r["write_ms"] + r["read_ms"]
         size_kb = r["file_size_bytes"] / 1024
         log_func(
@@ -155,7 +155,7 @@ def run_storage_benchmarks(log_func, quick=False):
         )
 
         # Encrypted JSON
-        r = test_json_io(profiles, encrypt=True)
+        r = _json_io(profiles, encrypt=True)
         total_ms = r["write_ms"] + r["read_ms"]
         size_kb = r["file_size_bytes"] / 1024
         log_func(
@@ -170,7 +170,7 @@ def run_storage_benchmarks(log_func, quick=False):
         )
 
         # SQLite (current production)
-        r = test_sqlite_io(profiles)
+        r = _sqlite_io(profiles)
         total_ms = r["write_ms"] + r["read_ms"]
         size_kb = r["file_size_bytes"] / 1024
         log_func(
@@ -192,7 +192,7 @@ def run_storage_benchmarks(log_func, quick=False):
 
     def concurrent_write(profiles_subset):
         try:
-            test_json_io(profiles_subset, encrypt=False)
+            _json_io(profiles_subset, encrypt=False)
         except Exception as e:
             errors.append(str(e))
 

@@ -105,7 +105,7 @@ registry.register(
     model_type="tfidf_logistic_regression",
     path=str(Path(__file__).parent / "emotion_model.pkl"),
     description="GoEmotions 28-class TF-IDF + LogisticRegression one-vs-rest classifier",
-    metrics={"accuracy": 0.85, "training_samples": 500},
+    metrics={"micro_f1": 0.465, "macro_f1": 0.412, "training_samples": 54263},
 )
 
 registry.register(

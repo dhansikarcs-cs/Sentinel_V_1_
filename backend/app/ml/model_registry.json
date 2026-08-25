@@ -6,8 +6,9 @@
     "path": "C:\\Users\\dhans\\Desktop\\sentinel3\\backend\\app\\ml\\emotion_model.pkl",
     "trained_at": "2026-08-03T07:00:21Z",
     "metrics": {
-      "accuracy": 0.85,
-      "training_samples": 500
+      "micro_f1": 0.465,
+      "macro_f1": 0.412,
+      "training_samples": 54263
     },
     "description": "GoEmotions 28-class TF-IDF + LogisticRegression one-vs-rest classifier"
   },
