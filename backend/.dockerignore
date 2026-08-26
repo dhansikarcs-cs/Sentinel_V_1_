@@ -11,3 +11,6 @@ README.md
 data/
 venv/
 .venv/
+train_goemotions.py
+emotion_model_real.joblib
+test_held_out.py
