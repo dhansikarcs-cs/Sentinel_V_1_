@@ -440,12 +440,9 @@ db.commit()
 print("  4 notifications")
 
 # ── 12. CRISIS STATE RESET ────────────────────────────────────
-cs = db.query(CrisisState).first()
-if cs:
+for cs in db.query(CrisisState).filter(CrisisState.active == 1).all():
     cs.active = 0
     cs.patient_username = ""
-else:
-    db.add(CrisisState(active=0))
 db.commit()
 print("  crisis state reset")
 

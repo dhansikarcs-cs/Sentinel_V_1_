@@ -165,9 +165,9 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
                     )
                     return
 
-            existing = db.query(CrisisState).first()
+            existing = db.query(CrisisState).filter(CrisisState.patient_username == patient_username).first()
             if not existing:
-                existing = CrisisState(active=0)
+                existing = CrisisState(active=0, patient_username=patient_username)
                 db.add(existing)
             if not existing.active:
                 existing.active = 1

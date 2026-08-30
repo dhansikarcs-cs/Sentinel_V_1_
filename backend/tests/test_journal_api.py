@@ -125,6 +125,20 @@ def test_crisis_journal_triggers_crisis_state(client, make_user, db_session):
     assert log.patient == user["username"]
 
 
+def test_crisis_rows_are_per_patient(client, make_user, db_session):
+    crisis_text = "I want to die, nobody can help me, end my life"
+    alice = make_user(username="alice")
+    bob = make_user(username="bob")
+    client.post("/api/journal", json={"raw_content": crisis_text}, headers=_auth(alice["access_token"]))
+    client.post("/api/journal", json={"raw_content": crisis_text}, headers=_auth(bob["access_token"]))
+
+    alice_state = db_session.query(CrisisState).filter(CrisisState.patient_username == "alice").first()
+    bob_state = db_session.query(CrisisState).filter(CrisisState.patient_username == "bob").first()
+    assert alice_state is not None and bob_state is not None
+    assert alice_state.active == 1 and bob_state.active == 1
+    assert alice_state.id != bob_state.id
+
+
 def test_crisis_cooldown_prevents_second_auto_trigger(client, make_user, db_session):
     user = make_user()
     crisis_text = "I want to die, nobody can help me, end my life"

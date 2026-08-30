@@ -132,7 +132,7 @@ def triage_summary(
         reasons = ["AI unavailable, used rule fallback"]
         priority = "low"
 
-    crisis_state = db.query(CrisisState).first()
+    crisis_state = db.query(CrisisState).filter(CrisisState.patient_username == req.patient_username).first()
     crisis = bool(crisis_state and crisis_state.active and crisis_state.patient_username == req.patient_username)
     tier = derive_triage_tier(priority, crisis=crisis)
 

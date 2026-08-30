@@ -57,19 +57,43 @@ def _require_valid_trustee_link(
     return patient
 
 
-def _get_or_create_state(db: Session) -> CrisisState:
-    state = db.query(CrisisState).first()
+def _get_or_create_state(db: Session, patient: str) -> CrisisState:
+    """Fetch (or create) the crisis state row for a specific patient.
+
+    Unlike the old single-row model, each patient owns their own CrisisState row,
+    so multiple patients can hold an active crisis concurrently without overwriting
+    one another.
+    """
+    state = db.query(CrisisState).filter(CrisisState.patient_username == patient).first()
     if not state:
-        state = CrisisState(active=0)
+        state = CrisisState(active=0, patient_username=patient)
         db.add(state)
         db.commit()
         db.refresh(state)
     return state
 
 
+def _active_state_for(db: Session, patient: str = "") -> CrisisState | None:
+    """Resolve the crisis state a caller should see.
+
+    Priority:
+      1. An explicitly requested patient with an active crisis.
+      2. The caller's own active crisis (patients see their own).
+      3. The single currently-active row (backward compatible when one
+         crisis is active and the caller is a psychologist without a row).
+    """
+    if patient:
+        state = db.query(CrisisState).filter(CrisisState.patient_username == patient).first()
+        if state and state.active:
+            return state
+        return state or _get_or_create_state(db, patient)
+    active = db.query(CrisisState).filter(CrisisState.active == 1).first()
+    return active if active else _get_or_create_state(db, "")
+
+
 @router.get("/state", response_model=CrisisStateResponse)
 def get_crisis_state(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+    state = _active_state_for(db) if user.role == "psychologist" else _get_or_create_state(db, user.username)
     return CrisisStateResponse(
         active=bool(state.active),
         patient=state.patient_username or "",
@@ -87,17 +111,21 @@ def get_crisis_state(user: User = Depends(get_current_user), db: Session = Depen
 
 @router.post("/trigger")
 def trigger_crisis(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+    state = _get_or_create_state(db, user.username)
     now = datetime.now(UTC).isoformat()
     state.active = 1
     state.patient_username = user.username
     state.triggered_at = now
     state.triggered_by = user.role
     state.acknowledged = 0
+    state.acknowledged_by = ""
+    state.acknowledged_at = ""
     state.trusted_contact_notified = 0
     state.trustee_acknowledged = 0
     state.trustee_clicked = 0
     state.helpline_escalated = 0
+    state.tc_ack_emailed = 0
+    state.helpline_ack_emailed = 0
     log = CrisisLog(event="triggered", patient=user.username, timestamp=now, source=user.role)
     db.add(log)
     db.commit()
@@ -106,8 +134,12 @@ def trigger_crisis(user: User = Depends(get_current_user), db: Session = Depends
 
 
 @router.post("/acknowledge")
-def acknowledge_crisis(user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+def acknowledge_crisis(
+    patient: str = Query(""),
+    user: User = Depends(require_role("psychologist")),
+    db: Session = Depends(get_db),
+):
+    state = _active_state_for(db, patient)
     if not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
@@ -130,8 +162,12 @@ def acknowledge_crisis(user: User = Depends(require_role("psychologist")), db: S
 
 
 @router.post("/resolve")
-def resolve_crisis(user: User = Depends(require_role("psychologist")), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+def resolve_crisis(
+    patient: str = Query(""),
+    user: User = Depends(require_role("psychologist")),
+    db: Session = Depends(get_db),
+):
+    state = _active_state_for(db, patient)
     if not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
@@ -168,7 +204,7 @@ def resolve_crisis(user: User = Depends(require_role("psychologist")), db: Sessi
 
 @router.post("/trustee-acknowledge")
 def trustee_acknowledge(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+    state = _active_state_for(db, user.username if user.role != "psychologist" else "")
     if not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
@@ -187,26 +223,27 @@ def trustee_acknowledge(user: User = Depends(get_current_user), db: Session = De
 
 @router.post("/trustee-clicked")
 def trustee_clicked(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+    state = _active_state_for(db, user.username if user.role != "psychologist" else "")
     if not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
-    state.trustee_clicked = 1
-    log = CrisisLog(
-        event="trustee_clicked",
-        patient=state.patient_username,
-        timestamp=now,
-        source=user.username,
-        details="Trusted contact clicked notification",
-    )
-    db.add(log)
-    db.commit()
+    if not state.trustee_clicked:
+        state.trustee_clicked = 1
+        log = CrisisLog(
+            event="trustee_clicked",
+            patient=state.patient_username,
+            timestamp=now,
+            source=user.username,
+            details="Trusted contact clicked notification",
+        )
+        db.add(log)
+        db.commit()
     return ok(message="Trustee clicked")
 
 
 @router.post("/notify-trusted-contact")
 def notify_trusted_contact(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+    state = _active_state_for(db, user.username if user.role != "psychologist" else "")
     if not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
@@ -238,7 +275,7 @@ def public_crisis_state(
     patient: str = Depends(_require_valid_trustee_link),
     db: Session = Depends(get_db),
 ):
-    state = _get_or_create_state(db)
+    state = _get_or_create_state(db, patient)
     return {
         "active": bool(state.active),
         "patient": state.patient_username or "",
@@ -254,10 +291,8 @@ def public_trustee_acknowledge(
     patient: str = Depends(_require_valid_trustee_link),
     db: Session = Depends(get_db),
 ):
-    state = _get_or_create_state(db)
-    if not state.active:
-        return ok(message="No active crisis")
-    if state.patient_username != patient:
+    state = _get_or_create_state(db, patient)
+    if state.patient_username != patient or not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
     state.trustee_acknowledged = 1
@@ -278,8 +313,8 @@ def public_trustee_clicked(
     patient: str = Depends(_require_valid_trustee_link),
     db: Session = Depends(get_db),
 ):
-    state = _get_or_create_state(db)
-    if not state.active:
+    state = _get_or_create_state(db, patient)
+    if state.patient_username != patient or not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
     if not state.trustee_clicked:
@@ -297,8 +332,12 @@ def public_trustee_clicked(
 
 
 @router.post("/helpline-escalate")
-def helpline_escalate(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+def helpline_escalate(
+    patient: str = Query(""),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    state = _active_state_for(db, patient or (user.username if user.role != "psychologist" else ""))
     if not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
@@ -382,7 +421,7 @@ def _handle_escalation(state: CrisisState, db: Session):
 
 @router.get("/elapsed")
 def crisis_elapsed(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    state = _get_or_create_state(db)
+    state = _active_state_for(db) if user.role == "psychologist" else _get_or_create_state(db, user.username)
     _handle_escalation(state, db)
     if not state.active or not state.triggered_at:
         return {"elapsed": 0, "stage": "inactive", "is_active": False}
