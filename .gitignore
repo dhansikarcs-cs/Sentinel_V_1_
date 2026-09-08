@@ -25,6 +25,11 @@ frontend/dist/
 archive/
 *.zip
 *.tgz
+*.log
+docs - Copy/
+IRIS/
+IRIS_2026_SENTINEL/
+MindRise*
 *.tsbuildinfo
 test.pdf
 # private review artifacts (never pushed)

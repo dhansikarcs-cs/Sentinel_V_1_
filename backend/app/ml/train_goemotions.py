@@ -1,4 +1,12 @@
-"""Train the GoEmotions classifier on the REAL GoEmotions dataset."""
+"""Train the GoEmotions classifier on the REAL GoEmotions dataset.
+
+IMPORTANT (audit fix, Aug 2026): earlier versions merged the official
+train/validation/test splits and then took a random 80/20 split from the whole
+pool. That leaked ~4,346 of the 5,427 official test rows into the training
+partition, which inflated any subsequently-reported official-test numbers.
+This version TRAINS on the official train+validation splits ONLY and reserves
+the official test split exclusively for evaluation (no leakage).
+"""
 
 import os
 import sys
@@ -10,7 +18,6 @@ from datasets import load_dataset
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, f1_score
-from sklearn.model_selection import train_test_split
 from sklearn.multiclass import OneVsRestClassifier
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -50,38 +57,43 @@ MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "emotion_m
 
 
 def load_goemotions():
-    """Load the real GoEmotions dataset from Hugging Face."""
+    """Load the real GoEmotions dataset from Hugging Face (no leakage).
+
+    Returns (train_texts, train_labels, test_texts, test_labels) where the
+    train pool = official train + validation splits and test = official test.
+    """
     print("Loading GoEmotions dataset from Hugging Face...")
     ds = load_dataset("google-research-datasets/go_emotions", "simplified")
 
-    # The 'simplified' config has 28 labels (27 emotions + neutral)
-    # Each example has 'text' and 'labels' (list of integer label indices)
-    texts = []
-    labels = []
-
-    for split in ["train", "validation", "test"]:
+    def to_arrays(split):
+        texts, labels = [], []
         for example in ds[split]:
-            text = example["text"]
-            label_indices = example["labels"]
-            # Convert to multi-hot vector
             label_vec = [0] * 28
-            for idx in label_indices:
+            for idx in example["labels"]:
                 if idx < 28:
                     label_vec[idx] = 1
-            texts.append(text)
+            texts.append(example["text"])
             labels.append(label_vec)
+        return texts, np.array(labels, dtype=np.float32)
 
-    print(f"Loaded {len(texts)} examples")
-    labels_arr = np.array(labels, dtype=np.float32)
-    labels_arr = np.ascontiguousarray(labels_arr)
-    return texts, labels_arr
+    train_texts, train_labels = to_arrays("train")
+    val_texts, val_labels = to_arrays("validation")
+    test_texts, test_labels = to_arrays("test")
+
+    # training pool = official train + official validation (never the test split)
+    train_texts = train_texts + val_texts
+    train_labels = np.vstack([train_labels, val_labels])
+    train_labels = np.ascontiguousarray(train_labels)
+
+    print(f"Loaded {len(train_texts)} train examples (+official val), {len(test_texts)} official test examples")
+    print(f"train shape={train_labels.shape} test shape={test_labels.shape}")
+    return train_texts, train_labels, test_texts, test_labels
 
 
-def train_model(texts, labels):
+def train_model(x_train, y_train, x_test, y_test):
     """Train TF-IDF + LogisticRegression on real GoEmotions data."""
-    print("Splitting data 80/20...")
-    x_train, x_test, y_train, y_test = train_test_split(texts, labels, test_size=0.2, random_state=42)
-    print(f"Train: {len(x_train)}, Test: {len(x_test)}")
+    print("Splitting data (train+val -> fit, official test -> eval)...")
+    print(f"Train: {len(x_train)}, Test (official, held out): {len(x_test)}")
 
     print("Building TF-IDF vectorizer...")
     vectorizer = TfidfVectorizer(
@@ -115,8 +127,8 @@ def train_model(texts, labels):
     train_time = time.time() - t0
     print(f"Training completed in {train_time:.1f}s")
 
-    # Evaluate on test set
-    print("\nEvaluating on test set...")
+    # Evaluate on official test set (never seen by the model)
+    print("\nEvaluating on official held-out test set (no leakage)...")
     y_pred = classifier.predict(x_test_tfidf)
 
     # Per-emotion metrics
@@ -163,7 +175,7 @@ def save_model(classifier, vectorizer, metrics):
     print(f"Model size: {size_kb:.1f} KB")
     print("\n=== Summary ===")
     print("Dataset: GoEmotions (real, from Google Research via Hugging Face)")
-    print(f"Examples: {metrics['train_size']} train, {metrics['test_size']} test")
+    print(f"Examples: {metrics['train_size']} train, {metrics['test_size']} test (official, no leakage)")
     print(f"Features: {metrics['n_features']} TF-IDF features")
     print(f"Training time: {metrics['train_time_s']:.1f}s")
     print(f"Micro F1: {metrics['micro_f1']:.4f}")
@@ -172,6 +184,6 @@ def save_model(classifier, vectorizer, metrics):
 
 
 if __name__ == "__main__":
-    texts, labels = load_goemotions()
-    classifier, vectorizer, metrics = train_model(texts, labels)
+    train_texts, train_labels, test_texts, test_labels = load_goemotions()
+    classifier, vectorizer, metrics = train_model(train_texts, train_labels, test_texts, test_labels)
     save_model(classifier, vectorizer, metrics)

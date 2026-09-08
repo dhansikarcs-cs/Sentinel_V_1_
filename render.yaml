@@ -21,7 +21,7 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false
-      - key: HELPLINE_EMAIL
+      - key: CRISIS_HELPLINE_EMAIL
         sync: false
 
   - type: web

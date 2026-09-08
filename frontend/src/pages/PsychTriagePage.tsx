@@ -68,7 +68,7 @@ export default function PsychTriagePage() {
     <div className="animate-fade-in">
       <h2>📊 Priority Triage Dashboard</h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
+      <div data-tour="triage" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {[
           { label: '🚨 Crisis', count: counts.crisis, color: 'var(--danger)' },
           { label: '🟠 High', count: counts.high, color: 'var(--warn)' },
@@ -88,7 +88,7 @@ export default function PsychTriagePage() {
         const patient = p.patient
         const isCrisis = p.crisis
         const open = expanded[patient]
-        const ring = { bpm: p.bpm || 72, stress: p.stress || 35, sleep: p.sleep || 7, spo2: p.spo2 || 98, mood: (p.mood || 'neutral').toLowerCase() }
+        const mood = (p.mood || 'neutral').toLowerCase()
 
         return (
           <div key={patient} className="expander" style={{ borderColor: isCrisis ? 'var(--danger)' : 'var(--border)', borderWidth: isCrisis ? '2px' : '1px' }}>
@@ -98,13 +98,8 @@ export default function PsychTriagePage() {
             </div>
             {open && (
               <div className="expander-body">
-                {/* 5 Bio metric cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '12px' }}>
-                  <MetricCard label="BPM" value={`${ring.bpm}`} unit="" color="#CC5A4E" />
-                  <MetricCard label="Stress" value={`${ring.stress}%`} unit="" color="#ffd93d" />
-                  <MetricCard label="Sleep" value={`${ring.sleep}h`} unit="" color="var(--accent-hover)" />
-                  <MetricCard label="SpO₂" value={`${ring.spo2}%`} unit="" color="#6bffb8" />
-                  <MetricCard label="Mood" value={ring.mood.charAt(0).toUpperCase() + ring.mood.slice(1)} unit="" color="var(--accent)" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', marginBottom: '12px' }}>
+                  <MetricCard label="Mood" value={mood.charAt(0).toUpperCase() + mood.slice(1)} unit="" color="var(--accent)" />
                 </div>
 
                 {/* AI Clinical Insight */}

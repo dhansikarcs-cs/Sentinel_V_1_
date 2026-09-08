@@ -60,7 +60,7 @@ Set `BACKEND_URL` to `https://sentinel-backend.onrender.com` (public) or the int
 | `SENTINEL_TRUSTEE_LINK_SECRET` | unset | HMAC key for signed trustee-portal links; falls back to `JWT_SECRET` |
 | `SENTINEL_TRUSTEE_LINK_EXPIRE_SECONDS` | `3600` | lifetime of a signed trustee alert link |
 | `SMTP_HOST/PORT/USER/PASSWORD` | gmail defaults | for crisis notifications; unset → email disabled (logs only) |
-| `EMAIL_FROM`, `HELPLINE_EMAIL` | — | sender + helpline contact |
+| `EMAIL_FROM`, `CRISIS_HELPLINE_EMAIL` | — | sender + helpline contact (crisis escalation) |
 | `LOG_FORMAT` | `json` | `json` = one JSON object per line; `text` = human-readable |
 
 All settings are read in `backend/app/core/config.py` (`pydantic-settings`, env file

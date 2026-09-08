@@ -36,7 +36,7 @@ Built entire app in Streamlit 1.28. Monolithic architecture:
 - `crisis_.py` — crisis detection with timer
 - `patient_portal_.py`, `psychologist_.py` — dual portals
 - `ring_.py` — ring data simulator
-- `models/emotion_tfidf.pkl` (4 MB) — GoEmotions TF-IDF model
+- `app/ml/emotion_model.pkl` (2.5 MB) — GoEmotions TF-IDF model, trained on official train+val (48,836 real GoEmotions examples), evaluated on official test (Micro F1 = 0.464) — leak-free split (audit F5, Sep 2026)
 
 **Bug:** Streamlit single-threaded. `time.sleep(3)` auto-refresh for crisis alerts locked the entire app. Patient typing journal? Frozen.
 

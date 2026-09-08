@@ -9,6 +9,7 @@ from app.models.followup import FollowupTask
 from app.models.journal import JournalEntry
 from app.models.mood import MoodLog
 from app.models.notification import Notification
+from app.models.physiological_signal import PhysiologicalSignal
 from app.models.psych_journal import PsychJournalEntry
 from app.models.ring import RingSensorLog
 from app.models.ring_device import RingDevice
@@ -31,6 +32,7 @@ __all__ = [
     "JournalEntry",
     "MoodLog",
     "Notification",
+    "PhysiologicalSignal",
     "PsychJournalEntry",
     "RingSensorLog",
     "RingDevice",

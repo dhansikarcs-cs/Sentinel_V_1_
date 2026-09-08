@@ -75,20 +75,42 @@ def update_followup(
         return {"error": "Not found"}
     _assert_owner(task, user)
     now = datetime.now(UTC).isoformat()
+    grade_changed = False
+    feedback_changed = False
     if update.status:
         task.status = update.status
         if update.status == "completed":
             task.completed_at = now
     if "grade" in update.model_fields_set and update.grade:
         if user.role == "psychologist" or update.grade == "none":
+            if task.grade != update.grade:
+                grade_changed = user.role == "psychologist"
             task.grade = update.grade
         if user.role == "psychologist":
             task.approved_by = user.username
             task.approved_at = now
     if "feedback" in update.model_fields_set and user.role == "psychologist":
+        if task.feedback != (update.feedback or ""):
+            feedback_changed = True
         task.feedback = update.feedback or ""
+    if grade_changed:
+        task.grade_updated_at = now
+    if feedback_changed:
+        task.feedback_updated_at = now
     db.commit()
     db.refresh(task)
+
+    if user.role == "psychologist" and (grade_changed or feedback_changed):
+        from app.services.notify import create_notification
+
+        create_notification(
+            db,
+            patient_username=task.patient_username,
+            title="📋 Follow-up evaluated",
+            message=f"Your clinician updated your follow-up “{task.title}”. Check it in Follow-ups.",
+            notification_type="info",
+        )
+
     get_event_bus().emit(
         "followup:updated",
         task_id=task_id,

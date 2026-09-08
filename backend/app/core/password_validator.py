@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 
 
 class PasswordPolicy:
-    MIN_LENGTH = 8
+    MIN_LENGTH = 6
     MAX_LENGTH = 128
     MIN_UPPERCASE = 1
     MIN_LOWERCASE = 1
@@ -13,18 +13,17 @@ class PasswordPolicy:
     SPECIAL_CHARS = r"[!@#$%^&*(),.?\":{}|<>]"
     COMMON_PASSWORDS = {
         "password",
-        "12345678",
-        "qwerty123",
+        "123456",
+        "654321",
+        "qwerty",
+        "abc123",
         "letmein",
-        "admin",
+        "admin1",
         "welcome",
         "monkey",
         "dragon",
-        "login",
-        "abc123",
-        "password1",
-        "123456789",
-        "1234567890",
+        "login1",
+        "pass123",
         "iloveyou",
     }
 
@@ -55,5 +54,5 @@ class PasswordPolicy:
         if errors:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Password does not meet policy requirements",
+                detail="; ".join(errors),
             )

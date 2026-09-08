@@ -97,8 +97,6 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
   const identity = overview.patient || {}
   const changes = overview.changes_since_last_visit || {}
   const followups = overview.followups || {}
-  const sensor = overview.sensor_trends || []
-  const latestSensor = sensor[0]
   const risk = overview.risk
   const crisis = overview.crisis
   const brief = overview.clinical_brief
@@ -106,7 +104,7 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
 
   return (
     <>
-      <div className="card" style={{ padding: '14px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="card" data-tour="session" style={{ padding: '14px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.75rem', marginBottom: '4px' }}>SESSION FOR</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--strong)' }}>{identity.name || identity.username}</div>
@@ -145,7 +143,7 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
 
       <PrioritiesPanel priorities={overview.priorities} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '16px' }}>
         <Snapshot label="MOOD TREND" value={changes.mood_trend === 'declining' ? '\u2198 declining' : changes.mood_trend === 'improving' ? '\u2197 improving' : changes.mood_trend === 'stable' ? '\u2192 stable' : '\u2014'}
           sub={`Now ${changes.current_mood_avg ? Number(changes.current_mood_avg).toFixed(1) : 'N/A'} / Prev ${changes.previous_mood_avg ? Number(changes.previous_mood_avg).toFixed(1) : 'N/A'}`}
           color={changes.mood_trend === 'declining' ? 'var(--danger)' : changes.mood_trend === 'improving' ? 'var(--ok)' : '#A66E0C'} />
@@ -153,9 +151,6 @@ function Workspace({ overview, selected, rawNotes, setRawNotes, saving, saveNote
           color={changes.engagement_trend === 'declining' ? 'var(--danger)' : 'var(--ok)'} />
         <Snapshot label="RISK" value={risk ? `${risk.risk_score}/10` : 'N/A'} sub={risk ? `${formatDate(risk.created_at)} · v${risk.algorithm_version || '?'}` : 'no assessments'}
           color={risk?.triggered ? 'var(--danger)' : risk && risk.risk_score >= 7 ? 'var(--warn)' : 'var(--ok)'} />
-        <Snapshot label="LATEST RING" value={latestSensor ? `${latestSensor.bpm || '—'} bpm` : '\u2014'}
-          sub={latestSensor ? `${latestSensor.stress || '—'} stress · ${latestSensor.sleep_hours || '—'}h sleep` : 'no ring data'}
-          color={latestSensor?.bpm >= 100 || (latestSensor?.spo2 && latestSensor.spo2 < 94) ? 'var(--danger)' : latestSensor?.stress >= 70 ? 'var(--warn)' : 'var(--ok)'} />
         <Snapshot label="FOLLOW-UPS" value={`${followups.pending || 0} pending`} sub={`${followups.completed || 0} completed`}
           color={followups.pending > 0 ? 'var(--warn)' : 'var(--ok)'} />
       </div>

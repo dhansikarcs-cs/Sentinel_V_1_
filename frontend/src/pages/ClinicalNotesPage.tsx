@@ -87,7 +87,7 @@ export default function ClinicalNotesPage() {
         note: j2n.note || j2n.suggestion || '',
         themes: j2n.themes || [],
         journalDate: (latest.timestamp || latest.created_at || '').slice(0, 10),
-        journalPreview: (latest.summary || latest.raw_content || '').slice(0, 90),
+        journalPreview: (latest.summary || 'Summary pending — the AI note will use this journal entry.').slice(0, 90),
       })
     } catch {
       setJ2n({ status: 'error', patient: p.username })
@@ -102,7 +102,7 @@ export default function ClinicalNotesPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', alignItems: 'start' }}>
         <div className="space-y-4">
-          <div className="card" style={{ padding: '20px' }}>
+          <div className="card" style={{ padding: '20px' }} data-tour="clinical-notes">
             <h2 style={{ fontSize: '0.9rem', margin: '0 0 12px 0' }}>✍️ New Session Note</h2>
             <PatientSelector
               patients={patients}

@@ -47,6 +47,39 @@ export function sourceColor(src?: string | null): string {
   return SOURCE_COLORS[(src || '').toLowerCase()] || '#888'
 }
 
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Country/Timezone preferences — collected at registration, editable in Profile.
+export const COUNTRIES: string[] = [
+  'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore',
+  'United Arab Emirates', 'Saudi Arabia', 'Germany', 'France', 'Netherlands',
+  'Japan', 'China', 'South Korea', 'Indonesia', 'Malaysia', 'Philippines',
+  'Thailand', 'Brazil', 'South Africa', 'Nigeria', 'Kenya', 'New Zealand',
+]
+
+export const TIMEZONES: { label: string; value: string }[] = [
+  { label: 'India (GMT+5:30)', value: 'Asia/Kolkata' },
+  { label: 'Japan / Korea (GMT+9)', value: 'Asia/Tokyo' },
+  { label: 'China (GMT+8)', value: 'Asia/Shanghai' },
+  { label: 'Singapore / Malaysia (GMT+8)', value: 'Asia/Singapore' },
+  { label: 'Dubai / UAE (GMT+4)', value: 'Asia/Dubai' },
+  { label: 'Saudi Arabia (GMT+3)', value: 'Asia/Riyadh' },
+  { label: 'UK / Ireland (GMT+0)', value: 'Europe/London' },
+  { label: 'France / Central Europe (GMT+1)', value: 'Europe/Paris' },
+  { label: 'Germany / Central Europe (GMT+1)', value: 'Europe/Berlin' },
+  { label: 'US East (GMT-5)', value: 'America/New_York' },
+  { label: 'US Central (GMT-6)', value: 'America/Chicago' },
+  { label: 'US Mountain (GMT-7)', value: 'America/Denver' },
+  { label: 'US West (GMT-8)', value: 'America/Los_Angeles' },
+  { label: 'Canada East (GMT-5)', value: 'America/Toronto' },
+  { label: 'Brazil (GMT-3)', value: 'America/Sao_Paulo' },
+  { label: 'Australia East (GMT+10)', value: 'Australia/Sydney' },
+  { label: 'New Zealand (GMT+12)', value: 'Pacific/Auckland' },
+  { label: 'South Africa (GMT+2)', value: 'Africa/Johannesburg' },
+  { label: 'West Africa (GMT+1)', value: 'Africa/Lagos' },
+  { label: 'UTC (GMT+0)', value: 'UTC' },
+]
+
 // Time/date helpers — was re-implemented ~15 times.
 export function formatTime(ts?: string | null): string {
   if (!ts) return ''

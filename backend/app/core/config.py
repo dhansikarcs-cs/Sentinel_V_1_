@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     encryption_passphrase: str | None = None
     encryption_salt: str = ""
+    encryption_required: bool = True
 
     ollama_url: str = "http://host.docker.internal:11434"
     ollama_model: str = "sentinel"
@@ -30,9 +31,13 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     email_from: str = "sentinel@example.com"
-    helpline_email: str = ""
+    crisis_helpline_email: str = ""
 
     cors_origins: str = "http://localhost:5173"
+    cookie_secure: bool = False
+
+    rate_limit_max: int = 300
+    rate_limit_window: int = 60
 
     class Config:
         env_file = "../.env"

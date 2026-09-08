@@ -10,7 +10,7 @@ interface TourStep {
 }
 
 const PATIENT_STEPS: TourStep[] = [
-  { icon: '🌿', title: 'Your Wellness Dashboard', desc: 'This is your personal health command center. Each tab is a tool to help you and your psychologist track how you\'re doing.', tip: 'Start with the Wellness tab each day to check your vitals and mood at a glance.', color: 'var(--accent)' },
+  { icon: '🌿', title: 'Your Wellness Dashboard', desc: 'This is your personal health command center. Each tab is a tool to help you and your psychologist track how you\'re doing.', tip: 'Start with the Wellness tab each day to log your mood at a glance.', color: 'var(--accent)' },
   { icon: '📝', title: 'Journal', desc: 'Write freely about your thoughts and feelings. An AI analyzes your entry and creates a brief summary for your psychologist to review.', tip: 'Your psychologist sees only the AI summary, not your raw text. Be honest — it helps them help you.', color: '#A66E0C' },
   { icon: '📅', title: 'Booking', desc: 'Request appointments with your assigned psychologist. See their available dates and submit a request.', tip: 'When your psych proposes a slot, check the Psych Suggested tab to accept or decline.', color: 'var(--accent)' },
   { icon: '📋', title: 'Follow-Up', desc: 'Your psychologist may assign tasks between sessions — like mindfulness exercises or mood tracking. Complete them here.', tip: 'Finishing tasks helps your psych see what\'s working. Even a quick check-in counts.', color: 'var(--accent-hover)' },
@@ -20,9 +20,9 @@ const PATIENT_STEPS: TourStep[] = [
 
 const PSYCH_STEPS: TourStep[] = [
   { icon: '🔮', title: 'Your Command Center', desc: 'This is your clinical cockpit. From here you monitor all your patients, review their wellness data, and manage care.', tip: 'The Patient Triage tab opens first — scan it daily to catch any high-priority patients.', color: 'var(--accent)' },
-  { icon: '📋', title: 'Patient Triage', desc: 'A priority-ranked list of all your patients. Scores are computed from crisis status, ring vitals, silent periods, and journal activity.', tip: 'Red/Crisis patients need immediate attention. Amber/High patients should be reviewed within the hour.', color: 'var(--danger)' },
+  { icon: '📋', title: 'Patient Triage', desc: 'A priority-ranked list of all your patients. Scores are computed from crisis status, journal activity, silent periods, and engagement.', tip: 'Red/Crisis patients need immediate attention. Amber/High patients should be reviewed within the hour.', color: 'var(--danger)' },
   { icon: '📝', title: 'Clinical Notes', desc: 'Review AI-summarized journal entries from any patient, then write and save structured clinical notes.', tip: 'Use the Journal-to-Note panel: pick a patient, review their latest entry, and click Analyze & Draft.', color: '#2FA05C' },
-  { icon: '📓', title: 'Journal & Wellness', desc: 'Your own personal journal space plus live vitals from your ring. Track your own stress, sleep, and heart rate trends.', tip: 'This is your self-care space. Writing your own notes helps you reflect on your day.', color: '#A66E0C' },
+  { icon: '📓', title: 'Journal & Wellness', desc: 'Your own private journal space for reflections and self-care check-ins with your psychologist.', tip: 'This is your self-care space. Writing your own notes helps you reflect on your day.', color: '#A66E0C' },
   { icon: '📅', title: 'Bookings', desc: 'Set your available dates in the Calendar view so patients know when to book. The Booking Queue shows incoming requests.', tip: 'Toggle dates on the calendar as available/unavailable. Respond to requests quickly.', color: 'var(--accent)' },
   { icon: '📋', title: 'Follow-Up', desc: 'Assign tasks to patients between sessions — mood logs, mindfulness exercises, or custom check-ins.', tip: 'Use the AI side panel to generate a follow-up plan based on the patient\'s latest journal entry.', color: 'var(--accent-hover)' },
   { icon: '📦', title: 'Export Center', desc: 'Download patient data, journal summaries, and clinical notes as CSV for your records or external reporting.', tip: 'Exports include only AI summaries — no raw journal text leaves the system.', color: 'var(--muted)' },

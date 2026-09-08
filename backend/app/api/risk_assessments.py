@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.rbac import ensure_owns_or_psych
 from app.models.risk_assessment import RiskAssessment
 from app.models.user import User
 from app.schemas.risk_assessment import RiskAssessmentResponse
@@ -17,6 +18,7 @@ def get_risk_assessment_by_journal(
     result = db.query(RiskAssessment).filter(RiskAssessment.journal_id == journal_id).first()
     if not result:
         raise HTTPException(status_code=404, detail="Risk assessment not found")
+    ensure_owns_or_psych(result.patient_username, user)
     return result
 
 
@@ -24,6 +26,7 @@ def get_risk_assessment_by_journal(
 def get_risk_assessments_for_patient(
     username: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
+    ensure_owns_or_psych(username, user)
     return (
         db.query(RiskAssessment)
         .filter(RiskAssessment.patient_username == username)

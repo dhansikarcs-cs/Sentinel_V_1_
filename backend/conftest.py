@@ -7,6 +7,7 @@ WORKDIR = Path(__file__).resolve().parent
 
 os.environ["DATABASE_URL"] = f"sqlite:///{WORKDIR / 'data' / ('pytest_' + uuid.uuid4().hex[:8] + '.db')}"
 os.environ.setdefault("JWT_SECRET", "pytest-secret-not-for-production")
+os.environ["ENCRYPTION_REQUIRED"] = "false"
 
 import asyncio
 
@@ -73,19 +74,50 @@ def db_session():
 @pytest.fixture()
 def make_user(client):
     def _make(username=None, role="patient", **overrides):
+        from datetime import UTC, datetime as _dt
+
+        import os as _os
+
+        from app.core.database import SessionLocal
+        from app.core.security import hash_password
+        from app.models.user import User
+
         username = username or f"user_{uuid.uuid4().hex[:8]}"
         payload = {
             "username": username,
             "password": "Str0ng!Pass1",
             "name": "Test User",
             "role": role,
-            "age": 30,
+            "dob": "1996-01-01",
             "occupation": "Engineer",
             "clinic_code": "SENTINEL-TEST",
             **overrides,
         }
-        resp = client.post("/api/auth/register", json=payload)
-        assert resp.status_code == 200, resp.text
+        # Self-registration only creates patients; non-patient roles must be
+        # provisioned server-side (mirrors the production flow).
+        if role != "patient":
+            session = SessionLocal()
+            try:
+                session.add(
+                    User(
+                        username=payload["username"],
+                        password_hash=hash_password(payload["password"]),
+                        name=payload["name"],
+                        role=role,
+                        dob=payload["dob"],
+                        occupation=payload["occupation"],
+                        clinic_code=payload["clinic_code"],
+                        onboarding_step=0,
+                        encryption_salt=_os.urandom(16).hex(),
+                        created_at=_dt.now(UTC).isoformat(),
+                    )
+                )
+                session.commit()
+            finally:
+                session.close()
+        else:
+            resp = client.post("/api/auth/register", json=payload)
+            assert resp.status_code == 200, resp.text
         login = client.post(
             "/api/auth/login",
             json={"username": username, "password": payload["password"]},

@@ -345,13 +345,11 @@ Layer 3: Rule-Based Keyword Extraction
 
 #### Training Data Pipeline
 
-The `generate_training_data.py` script creates training examples across four task types:
-1. **Journal summarization** (15 clinical scenarios): Long journal → structured summary
-2. **SOAP note generation** (5 session observations): Session notes → clinical format
-3. **Crisis risk assessment** (5 risk levels): Crisis text → structured risk JSON
-4. **Emotion classification** (15 examples): Text → emotion labels
+The GoEmotions classifier is trained on the **real GoEmotions dataset** (official train+validation splits: 48,836 Reddit comments labeled across 28 emotion categories) from Google Research via Hugging Face (`google-research-datasets/go_emotions`, simplified config).
 
-Training data mixes synthetic examples (generated from templates) with real data from `counsel-chat.json` and `mental_health_chatbot_dataset.json`.
+Training: TF-IDF vectorizer (10,000 features, 1-3 ngrams) + OneVsRest LogisticRegression (C=2.0, balanced class weights). Split: official train+validation for training; the **official test split (5,427 rows)** is held out for evaluation (leak-free — see research audit F5). Training time: ~10s on CPU.
+
+Results on held-out official test set (5,427 examples): Micro F1 = 0.464, Macro F1 = 0.405, Samples F1 = 0.495. Top-performing emotions: gratitude (0.86), love (0.77), amusement (0.77), fear (0.52). Lower-performing emotions reflect inherent ambiguity in short text (e.g., relief 0.12, disappointment 0.17).
 
 ---
 

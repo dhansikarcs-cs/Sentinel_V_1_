@@ -1,5 +1,6 @@
 """Text-biometric mismatch detection + WS broadcast."""
 
+import re
 import time
 
 from fastapi import APIRouter, Depends
@@ -33,7 +34,23 @@ POSITIVE_SET = {
     "content",
     "grateful",
     "optimistic",
+    "hopeful",
+    "well",
+    "calm",
+    "warm",
+    "proud",
+    "laugh",
+    "laughing",
+    "laughed",
+    "smile",
+    "smiling",
+    "smiled",
+    "progress",
+    "strong",
+    "win",
 }
+# Clinically-relevant depression/anxiety vocabulary. Tokens with a space are
+# matched as exact phrases; single tokens are matched at word boundaries.
 NEGATIVE_SET = {
     "anxious",
     "scared",
@@ -43,6 +60,7 @@ NEGATIVE_SET = {
     "afraid",
     "hopeless",
     "die",
+    "killing",
     "kill",
     "suicide",
     "disappear",
@@ -57,6 +75,44 @@ NEGATIVE_SET = {
     "darkness",
     "terrible",
     "falling apart",
+    "nothing",
+    # Depression symptom language
+    "sad",
+    "depressed",
+    "worthless",
+    "guilt",
+    "guilty",
+    "burden",
+    "heaviness",
+    "cried",
+    "crying",
+    "tears",
+    "ruminating",
+    "rumination",
+    "empty",
+    "emptiness",
+    "helpless",
+    "despair",
+    "miserable",
+    "misery",
+    "isolated",
+    "lonely",
+    "apathetic",
+    "overwhelmed",
+    "exhausted",
+    "stuck",
+    "broken",
+    "defeated",
+    "trapped",
+    "agonizing",
+    "pain",
+    "canceled",
+    "cancelled",
+    "give up",
+    "giving up",
+    "break down",
+    "breaking down",
+    "sleep forever",
 }
 NEGATION_PREFIXES = {
     "not",
@@ -80,28 +136,97 @@ NEGATION_PREFIXES = {
     "shouldnt",
     "wouldn't",
     "wouldnt",
+    "didn't",
+    "didnt",
     "hardly",
     "barely",
     "neither",
     "nor",
+    "nothing",
+    "nobody",
+    "none",
+    "without",
 }
+# Trailing negators: "joy anymore" => joy is negated by what follows it.
+NEGATION_SUFFIXES = {"anymore"}
+# "can't stop crying" / "can't stop laughing": the negator feeds into an
+# intensifier, so it must not flip the emotion that comes after it.
+IDIOM_INTENSIFIERS = {"stop", "help", "keep"}
+NEGATION_WINDOW = 3
+_TOKEN_RE = re.compile(r"[a-z']+")
+_MULTIWORD_NEGATIVE = {w for w in NEGATIVE_SET if " " in w}
 
 
-def _strip_negated_words(text: str, keywords: set) -> set:
-    """Return keywords after removing those preceded by a negation prefix."""
-    words = text.split()
-    negated = set()
-    i = 0
-    while i < len(words):
-        if words[i] in NEGATION_PREFIXES and i + 1 < len(words):
-            for j in range(i + 1, min(i + 4, len(words))):
-                candidate = words[j].rstrip(".,!?;:")
-                if candidate in keywords:
-                    negated.add(candidate)
-            i += 2
-        else:
-            i += 1
-    return keywords - negated
+def _tokenize(lower: str) -> list[str]:
+    return _TOKEN_RE.findall(lower)
+
+
+def _negation_scope(tokens: list[str]) -> tuple[list[bool], list[bool]]:
+    """Return (prefix_negated, suffix_negated) masks.
+
+    Prefix negators ("not", "never", "nothing" ...) reach up to
+    NEGATION_WINDOW tokens ahead, but a prefix feeding straight into an
+    intensifier ("stop"/"help"/"keep") is an intensifying idiom and stops.
+    Trailing negators ("anymore") reach up to NEGATION_WINDOW tokens back.
+    """
+    n = len(tokens)
+    prefix_negated = [False] * n
+    suffix_negated = [False] * n
+    for i, w in enumerate(tokens):
+        if w in NEGATION_PREFIXES:
+            for j in range(i + 1, min(n, i + 1 + NEGATION_WINDOW)):
+                if j == i + 1 and tokens[j] in IDIOM_INTENSIFIERS:
+                    break  # "can't stop X": idiom, not a flip
+                prefix_negated[j] = True
+    for i, w in enumerate(tokens):
+        if w in NEGATION_SUFFIXES:
+            for j in range(max(0, i - NEGATION_WINDOW), i):
+                suffix_negated[j] = True
+    return prefix_negated, suffix_negated
+
+
+def _effective_sentiment(lower: str) -> tuple[set[str], set[str]]:
+    """Return (positive_hits, negative_hits) with polarity-aware negation.
+
+    - A negated positive keyword flips to a negative signal ("not happy",
+      "no joy anymore").
+    - A prefix-negated negative keyword is neutralized ("not terrible");
+      a suffix-negated one ("anymore") still counts — "I can't handle this
+      anymore" stays negative.
+    - Negation words themselves ("can't", "nothing") count as negative
+      signals unless they head an intensifying idiom.
+    - Multi-word phrases are matched as exact substrings.
+    """
+    tokens = _tokenize(lower)
+    prefix_negated, suffix_negated = _negation_scope(tokens)
+
+    pos_hits: set[str] = set()
+    neg_hits: set[str] = set()
+
+    for i, w in enumerate(tokens):
+        # "can't stop crying"/"can't stop laughing": the negator heads an
+        # intensifier, so the emotion word after it carries the signal and
+        # the negator itself must not be double-counted.
+        idiom_headed = (
+            w in {"can't", "cannot", "cant", "couldn't", "couldnt", "won't", "wont"}
+            and i + 1 < len(tokens)
+            and tokens[i + 1] in IDIOM_INTENSIFIERS
+        )
+        if w in POSITIVE_SET:
+            if prefix_negated[i] or suffix_negated[i]:
+                neg_hits.add(w)
+            else:
+                pos_hits.add(w)
+        elif not idiom_headed and (
+            w in {"nothing", "nobody", "none"} or w in NEGATIVE_SET and not prefix_negated[i]
+        ):
+            neg_hits.add(w)
+
+    for phrase in _MULTIWORD_NEGATIVE:
+        if phrase in lower:
+            neg_hits.add(phrase)
+
+    return pos_hits, neg_hits
 
 
 class DiscrepancyRequest(BaseModel):
@@ -122,10 +247,9 @@ def _detect(text: str, bpm: int, hrv: int) -> tuple:
     t0 = time.perf_counter()
     lower = text.lower().strip()
 
-    effective_pos = _strip_negated_words(lower, POSITIVE_SET)
-    effective_neg = _strip_negated_words(lower, NEGATIVE_SET)
-    has_pos = any(w in lower for w in effective_pos)
-    has_neg = any(w in lower for w in effective_neg)
+    effective_pos, effective_neg = _effective_sentiment(lower)
+    has_pos = bool(effective_pos)
+    has_neg = bool(effective_neg)
 
     if has_pos and not has_neg:
         sentiment = "positive"

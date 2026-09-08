@@ -33,7 +33,7 @@ def get_activity_feed(
                     "type": "journal",
                     "patient": p,
                     "timestamp": j.timestamp,
-                    "summary": (j.summary or j.raw_content)[:80],
+                    "summary": (j.summary or "New journal entry — AI summary pending")[:80],
                     "severity": "info",
                 }
             )

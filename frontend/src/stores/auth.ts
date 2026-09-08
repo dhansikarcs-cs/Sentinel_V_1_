@@ -5,10 +5,16 @@ export interface User {
   name: string
   role: string
   clinic: string
+  professional_code?: string
+  occupation?: string
+  country?: string
+  timezone?: string
   contact_info?: string
   trusted_contact?: string
   assigned_psych?: string
   onboarding_step?: number
+  psych_email?: string
+  helpline_email?: string
 }
 
 let _user: User | null = null

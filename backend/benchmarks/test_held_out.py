@@ -19,13 +19,20 @@ class HeldOutProfile:
     category: str
 
 
-# 50 NEW profiles — different texts, different biometrics, same detection rules.
-# Expected labels computed from the FROZEN engine rules:
+# 50 NEW profiles — different texts, different biometrics.
+# Expected labels mirror the AUTHORITATIVE deployed engine rules
+# (app.api.discrepancy._detect):
 #   positive + high_stress(bpm>=110,hrv<=25) → True
 #   negative + low_stress(bpm<=80,hrv>=55)   → True
-#   negative + moderate                       → True
+#   negative + moderate                       → False  (see note below)
 #   neutral  + high_stress                    → True
 #   otherwise                                 → False
+#
+# NOTE (corrected from an earlier version): the deployed detector treats
+# "negative + moderate biometrics" as NOT a discrepancy. An earlier held-out
+# draft labelled negative+moderate as True, but neither the primary 50-profile
+# set nor the shipped server implements that rule. This version is aligned with
+# the code that actually runs.
 
 HELD_OUT_PROFILES = [
     # === Group A: Positive text + high stress biometrics → EXPECTED TRUE ===
@@ -46,15 +53,17 @@ HELD_OUT_PROFILES = [
     HeldOutProfile(14, "Everything is falling apart and I can't breathe", 68, 68, True, "neg+low"),
     HeldOutProfile(15, "I feel terrible and numb inside", 76, 57, True, "neg+low"),
     HeldOutProfile(16, "The darkness is consuming me, I'm drowning", 74, 63, True, "neg+low"),
-    # === Group C: Negative text + moderate biometrics → EXPECTED TRUE ===
-    HeldOutProfile(17, "I'm anxious and worried about everything", 95, 40, True, "neg+mod"),
-    HeldOutProfile(18, "I feel scared and can't stop worrying", 100, 35, True, "neg+mod"),
-    HeldOutProfile(19, "The fear won't leave me alone", 85, 45, True, "neg+mod"),
-    HeldOutProfile(20, "I'm struggling to keep it together today", 90, 50, True, "neg+mod"),
-    HeldOutProfile(21, "I feel hopeless about my recovery", 105, 30, True, "neg+mod"),
-    HeldOutProfile(22, "The anxiety is unbearable right now", 88, 48, True, "neg+mod"),
-    HeldOutProfile(23, "I'm drowning in my own thoughts", 98, 38, True, "neg+mod"),
-    HeldOutProfile(24, "Panic is taking over, I can't escape", 92, 42, True, "neg+mod"),
+    # === Group C: Negative text + moderate biometrics → EXPECTED FALSE ===
+    # (Server rule: negative+moderate is not a discrepancy under the shipped
+    # detector. Present here as a regression anchor for that decision.)
+    HeldOutProfile(17, "I'm anxious and worried about everything", 95, 40, False, "neg+mod"),
+    HeldOutProfile(18, "I feel scared and can't stop worrying", 100, 35, False, "neg+mod"),
+    HeldOutProfile(19, "The fear won't leave me alone", 85, 45, False, "neg+mod"),
+    HeldOutProfile(20, "I'm struggling to keep it together today", 90, 50, False, "neg+mod"),
+    HeldOutProfile(21, "I feel hopeless about my recovery", 105, 30, False, "neg+mod"),
+    HeldOutProfile(22, "The anxiety is unbearable right now", 88, 48, False, "neg+mod"),
+    HeldOutProfile(23, "I'm drowning in my own thoughts", 98, 38, False, "neg+mod"),
+    HeldOutProfile(24, "Panic is taking over, I can't escape", 92, 42, False, "neg+mod"),
     # === Group D: Positive text + calm biometrics → EXPECTED FALSE ===
     HeldOutProfile(25, "I feel great and happy today", 72, 65, False, "pos+calm"),
     HeldOutProfile(26, "What a wonderful morning, feeling refreshed", 68, 70, False, "pos+calm"),

@@ -13,6 +13,11 @@ logger = logging.getLogger("sentinel.ai")
 
 _ollama_lock = Lock()
 _ollama_last_call = 0.0
+_ollama_consecutive_failures = 0
+_ollama_breaker_until = 0.0
+
+OLLAMA_BREAKER_THRESHOLD = 2
+OLLAMA_BREAKER_COOLDOWN = 30.0
 
 _emotion_clf = EmotionClassifier()
 
@@ -48,6 +53,16 @@ NOTE_SYNTHESIS_PROMPT_V1 = (
 
 def _query_ollama(prompt: str, timeout: int = 20, prompt_version: str = "") -> str | None:
     global _ollama_last_call
+    global _ollama_consecutive_failures
+    global _ollama_breaker_until
+    now = time.time()
+    if now < _ollama_breaker_until:
+        logger.info(
+            "ai_request provider=ollama ok=false skipped reason=circuit_open prompt_version=%s",
+            prompt_version,
+            extra={"extra_fields": {"provider": "ollama", "ok": False, "skipped": "circuit_open"}},
+        )
+        return None
     with _ollama_lock:
         now = time.time()
         if now - _ollama_last_call < 0.5:
@@ -64,6 +79,7 @@ def _query_ollama(prompt: str, timeout: int = 20, prompt_version: str = "") -> s
         resp = urllib.request.urlopen(req, timeout=timeout)
         result = json.loads(resp.read().decode())
         latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        _ollama_consecutive_failures = 0
         logger.info(
             "ai_request provider=ollama ok=true latency_ms=%s prompt_version=%s prompt_len=%s",
             latency_ms,
@@ -74,6 +90,10 @@ def _query_ollama(prompt: str, timeout: int = 20, prompt_version: str = "") -> s
         return result.get("response", "")
     except Exception as e:
         latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        _ollama_consecutive_failures += 1
+        if _ollama_consecutive_failures >= OLLAMA_BREAKER_THRESHOLD:
+            _ollama_breaker_until = time.time() + OLLAMA_BREAKER_COOLDOWN
+            _ollama_consecutive_failures = 0
         logger.info(
             "ai_request provider=ollama ok=false latency_ms=%s prompt_version=%s error=%s",
             latency_ms,

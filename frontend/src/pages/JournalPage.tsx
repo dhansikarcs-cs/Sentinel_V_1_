@@ -15,6 +15,9 @@ export default function JournalPage() {
   const [moodHistory, setMoodHistory] = useState<any[]>([])
   const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set())
   const [tab, setTab] = useState<'write' | 'history'>('write')
+  const [savedOffline, setSavedOffline] = useState(false)
+  const [prompts, setPrompts] = useState<any[]>([])
+  const [answers, setAnswers] = useState<Record<string, string>>({})
 
   async function load() {
     try {
@@ -32,6 +35,10 @@ export default function JournalPage() {
         const tm = mh.find((m: any) => (m.date || '').slice(0, 10) === todayStr())
         if (tm) setTodayMood(tm)
       }
+    } catch {}
+    try {
+      const p = await api.getJournalPrompts()
+      if (Array.isArray(p?.prompts)) setPrompts(p.prompts)
     } catch {}
   }
 
@@ -52,7 +59,21 @@ export default function JournalPage() {
     if (!text.trim()) return
     setSaving(true)
     try {
-      const res = await api.createJournal(text.trim())
+      const checkin = prompts
+        .filter(p => answers[p.key])
+        .map(p => ({ question: p.question, answer: answers[p.key] }))
+      const res = await api.createJournal(text.trim(), checkin)
+      setAnswers({})
+      if (res?.queued) {
+        setLastSummary('')
+        setLastSource('')
+        setLastEmotions('')
+        setText('')
+        setSavedOffline(true)
+        setTimeout(() => setSavedOffline(false), 4000)
+        await load()
+        return
+      }
       setLastSummary(res.summary || '')
       setLastSource(res.ai_source || '')
       setLastEmotions(res.emotions || '')
@@ -85,7 +106,7 @@ export default function JournalPage() {
     <div className="space-y-4 animate-fade-in">
       <h1>📝 Wellness Journal</h1>
 
-      <div className="card" style={{ padding: '20px' }}>
+      <div className="card" style={{ padding: '20px' }} data-tour="journal">
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Daily check-in</div>
           <div style={{ fontSize: '0.6875rem', color: todayMood ? moodColor(todayMood.label) : 'var(--soft)' }}>
@@ -147,10 +168,51 @@ export default function JournalPage() {
             </div>
           )}
 
+          {prompts.length > 0 && (
+            <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ color: 'var(--soft)', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>✨ Quick check-in cards</div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.72rem', marginTop: '-6px' }}>Tap an answer for each — they get tucked into your entry so your psychologist gets the fuller picture.</div>
+              {prompts.map(p => (
+                <div key={p.key} style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '12px 14px', background: 'var(--surface-soft)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{p.emoji}</span>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--heading)' }}>{p.question}</div>
+                      {p.title && <div style={{ fontSize: '0.68rem', color: 'var(--muted)' }}>{p.title}</div>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {(p.options || []).map((opt: string) => {
+                      const sel = answers[p.key] === opt
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setAnswers(a => {
+                            if (a[p.key] === opt) { const n = { ...a }; delete n[p.key]; return n }
+                            return { ...a, [p.key]: opt }
+                          })}
+                          style={{
+                            padding: '6px 10px', fontSize: '0.75rem', borderRadius: '999px', cursor: 'pointer',
+                            background: sel ? 'var(--accent)' : 'var(--surface)',
+                            border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`,
+                            color: sel ? 'var(--on-accent)' : 'var(--secondary)',
+                          }}
+                        >
+                          {sel ? '✓ ' : ''}{opt}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="What's on your mind? Write freely..."
+            placeholder={prompts.length > 0 ? "Anything else on your mind? Write freely..." : "What's on your mind? Write freely..."}
             rows={6}
             style={{ width: '100%', padding: '12px', fontSize: '0.875rem', resize: 'none' }}
           />
@@ -161,6 +223,11 @@ export default function JournalPage() {
               {saving ? 'Saving...' : '💾 Save Entry'}
             </button>
           </div>
+          {savedOffline && (
+            <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(183,121,26,0.08)', border: '1px solid rgba(183,121,26,0.3)', color: '#A66E0C', fontSize: '0.75rem' }}>
+              📡 You're offline — entry saved on this device. It will sync to the clinic automatically when you're back online.
+            </div>
+          )}
           {lastSummary && (
             <div className="ai-box" style={{ marginTop: '12px' }}>
               <div className="ai-header">

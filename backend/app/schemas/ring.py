@@ -8,6 +8,8 @@ class SensorDataCreate(BaseModel):
     sleep_hours: float = Field(default=7.0, ge=0, le=24)
     spo2: float = Field(default=98.0, ge=50, le=100)
     hrv: int = Field(default=50, ge=0, le=300)
+    seq: int | None = Field(default=None, ge=0, le=2_147_483_647)
+    timestamp: str | None = None
 
 
 class SensorDataResponse(BaseModel):
@@ -19,6 +21,7 @@ class SensorDataResponse(BaseModel):
     sleep_hours: float
     spo2: float
     hrv: int
+    seq: int | None = None
     logged_at: str
 
     class Config:

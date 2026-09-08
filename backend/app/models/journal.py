@@ -21,6 +21,7 @@ class JournalEntry(Base):
     ai_source = Column(String, default="")
     emotions = Column(String, default="")
     emotion_probabilities = Column(Text, default="")
+    checkin_data = Column(Text, default="")
     timestamp = Column(String, nullable=False)
     created_at = Column(String, default="")
     updated_at = Column(String, default="")

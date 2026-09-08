@@ -1,130 +1,24 @@
-"""Discrepancy detection — 50 profiles, logs TP/FP/FN/TN."""
+"""Discrepancy detection — 50 profiles, logs TP/FP/FN/TN.
+
+IMPORTANT: this uses the SAME detector the server runs on every request
+(`app.api.discrepancy._detect`) so the benchmark characterizes the deployed
+system, not a divergent local copy. Latency includes the server source of
+truth overhead.
+"""
 
 import os
 import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.api.discrepancy import _detect
 from benchmarks.profiles import DISCREPANCY_PROFILES
 
 
 def _detect_discrepancy(text: str, bpm: int, hrv: int) -> bool:
-    """Local deterministic discrepancy detector (mirrors server logic)."""
-    text_lower = text.lower().strip()
-
-    positive_words = {
-        "great",
-        "happy",
-        "good",
-        "wonderful",
-        "amazing",
-        "fantastic",
-        "energetic",
-        "refreshed",
-        "joy",
-        "love",
-        "beautiful",
-        "perfect",
-        "cured",
-        "better",
-        "peaceful",
-        "content",
-        "grateful",
-        "optimistic",
-    }
-    negative_words = {
-        "anxious",
-        "scared",
-        "terrified",
-        "panic",
-        "fear",
-        "afraid",
-        "hopeless",
-        "die",
-        "kill",
-        "suicide",
-        "disappear",
-        "worried",
-        "can't",
-        "cannot",
-        "unbearable",
-        "drowning",
-        "alone",
-        "numb",
-        "struggling",
-        "darkness",
-        "terrible",
-        "falling apart",
-    }
-    negation_prefixes = {
-        "not",
-        "no",
-        "never",
-        "don't",
-        "dont",
-        "doesn't",
-        "doesnt",
-        "isn't",
-        "isnt",
-        "wasn't",
-        "wasnt",
-        "won't",
-        "wont",
-        "can't",
-        "cant",
-        "couldn't",
-        "couldnt",
-        "shouldn't",
-        "shouldnt",
-        "wouldn't",
-        "wouldnt",
-        "hardly",
-        "barely",
-        "neither",
-        "nor",
-    }
-
-    words = text_lower.split()
-    negated = set()
-    i = 0
-    while i < len(words):
-        if words[i] in negation_prefixes and i + 1 < len(words):
-            for j in range(i + 1, min(i + 4, len(words))):
-                candidate = words[j].rstrip(".,!?;:")
-                if candidate in positive_words:
-                    negated.add(candidate)
-                if candidate in negative_words:
-                    negated.add(candidate)
-            i += 2
-        else:
-            i += 1
-
-    effective_pos = positive_words - negated
-    effective_neg = negative_words - negated
-
-    has_positive = any(w in text_lower for w in effective_pos)
-    has_negative = any(w in text_lower for w in effective_neg)
-
-    if has_positive and not has_negative:
-        text_stress = "low"
-    elif has_negative and not has_positive:
-        text_stress = "high"
-    else:
-        text_stress = "neutral"
-
-    # Biometric stress
-    high_stress = bpm >= 110 and hrv <= 25
-    low_stress = bpm <= 80 and hrv >= 55
-    moderate = not high_stress and not low_stress
-
-    # Discrepancy = mismatch between text sentiment and biometric state
-    if text_stress == "low" and high_stress:
-        return True
-    if text_stress == "high" and low_stress:
-        return True
-    if text_stress == "high" and moderate:
-        return True  # anxious words + mid biometrics = still a concern
-    return text_stress == "neutral" and high_stress  # neutral text but extreme biometrics
+    """Call the deployed server detector; return just the boolean."""
+    discrepancy, _, _, _ = _detect(text, bpm, hrv)
+    return discrepancy
 
 
 def run_discrepancy_tests(log_func, quick=False):

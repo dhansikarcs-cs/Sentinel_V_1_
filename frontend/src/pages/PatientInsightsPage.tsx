@@ -92,7 +92,7 @@ function CurrentStateSection({ patient, overview }: { patient: string; overview:
   return (
     <>
       {identity.name && (
-        <div className="card" style={{ padding: '14px', marginBottom: '16px' }}>
+        <div className="card" data-tour="patient-insights" style={{ padding: '14px', marginBottom: '16px' }}>
           <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--strong)' }}>{identity.name}</div>
           <div style={{ color: 'var(--soft)', fontSize: '0.7rem', marginTop: '2px' }}>
             @{identity.username}
@@ -168,8 +168,6 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
   const changes = overview.changes_since_last_visit || {}
   const moodTrend = overview.mood_trend || []
   const followups = overview.followups || {}
-  const sensor = overview.sensor_trends || []
-  const latestSensor = sensor[0]
   const events = overview.timeline || []
   const risk = overview.risk
   const crisis = overview.crisis
@@ -211,7 +209,7 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div className="card" style={{ padding: '14px' }}>
           <div style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>RISK SNAPSHOT</div>
           {risk ? (
@@ -247,26 +245,6 @@ function OverviewData({ overview, loading }: { overview: any; loading: boolean }
               {f.status === 'completed' ? '\u2705' : '\u23F3'} {f.title}
             </div>
           ))}
-        </div>
-
-        <div className="card" style={{ padding: '14px' }}>
-          <div style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.75rem', marginBottom: '8px' }}>LATEST RING</div>
-          {latestSensor ? (
-            <>
-              <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', color: 'var(--soft)' }}>
-                <span><span style={{ color: 'var(--strong)', fontWeight: 700 }}>{latestSensor.bpm || '—'}</span> BPM</span>
-                <span><span style={{ color: 'var(--strong)', fontWeight: 700 }}>{latestSensor.stress || '—'}</span> stress</span>
-                <span><span style={{ color: 'var(--strong)', fontWeight: 700 }}>{latestSensor.sleep_hours || '—'}</span>h sleep</span>
-              </div>
-              <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', color: 'var(--soft)', marginTop: '3px' }}>
-                <span><span style={{ color: 'var(--strong)', fontWeight: 700 }}>{latestSensor.spo2 || '—'}</span> SpO2</span>
-                <span><span style={{ color: 'var(--strong)', fontWeight: 700 }}>{latestSensor.hrv || '—'}</span> HRV</span>
-              </div>
-              <div style={{ color: 'var(--muted)', fontSize: '0.6rem', marginTop: '4px' }}>{formatTime(latestSensor.logged_at)}</div>
-            </>
-          ) : (
-            <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>No ring data yet.</div>
-          )}
         </div>
       </div>
 

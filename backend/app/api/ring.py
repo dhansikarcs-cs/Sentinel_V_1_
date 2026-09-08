@@ -1,8 +1,10 @@
 import hashlib
+import json
 import secrets
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -145,6 +147,32 @@ def push_sensor_data(
     )
     now = datetime.now(UTC).isoformat()
     device_id = data.device_id or (identity.device.serial if identity.device else "") or f"ring_{user.username}"
+
+    # Cloud transports deliver at-least-once: replay the same seq idempotently
+    # so retries and duplicates land exactly one row (seq is NULL for legacy
+    # pushes, which keep the old always-insert behaviour).
+    envelope = None
+    if data.seq is not None:
+        envelope = json.dumps(
+            {
+                "device_id": device_id,
+                "seq": data.seq,
+                "bpm": data.bpm,
+                "stress": data.stress,
+                "sleep_hours": data.sleep_hours,
+                "spo2": data.spo2,
+                "hrv": data.hrv,
+                "timestamp": data.timestamp or "",
+                "logged_at": now,
+            }
+        )
+        existing = db.query(RingSensorLog).filter_by(device_id=device_id, seq=data.seq).first()
+        if existing:
+            db.commit()
+            return existing
+
+    from app.models.sensor_reading import SensorReading
+
     log = RingSensorLog(
         device_id=device_id,
         patient_username=user.username,
@@ -153,12 +181,19 @@ def push_sensor_data(
         sleep_hours=data.sleep_hours,
         spo2=data.spo2,
         hrv=data.hrv,
+        seq=data.seq,
+        raw_json=envelope,
         logged_at=now,
     )
     db.add(log)
-    db.flush()
-
-    from app.models.sensor_reading import SensorReading
+    try:
+        db.flush()  # surfaces the unique (device_id, seq) violation under race
+    except IntegrityError:
+        db.rollback()
+        existing = db.query(RingSensorLog).filter_by(device_id=device_id, seq=data.seq).first()
+        if existing:
+            return existing
+        raise
 
     sr = SensorReading(
         patient_username=user.username,

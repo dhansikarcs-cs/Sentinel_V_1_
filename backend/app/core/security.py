@@ -119,8 +119,26 @@ def initialize_encryption(passphrase: str):
 _FERNET: Optional = None
 
 
+class EncryptionNotReadyError(RuntimeError):
+    """Raised when an encrypted write is attempted before the master key is set."""
+
+
+def _encryption_required() -> bool:
+    return getattr(settings, "encryption_required", True)
+
+
 def encrypt_text(plain: str) -> str:
     if not _FERNET or not _MASTER_KEY:
+        if _encryption_required():
+            raise EncryptionNotReadyError(
+                "Encryption not initialized — refusing to write plaintext. "
+                "Call POST /api/auth/unlock or set SENTINEL_ENCRYPTION_PASSPHRASE."
+            )
+        import logging
+
+        logging.getLogger("sentinel.security").warning(
+            "Writing unencrypted data: encryption not initialized (encryption_required=false)"
+        )
         return plain
     return _FERNET.encrypt(plain.encode()).decode()
 

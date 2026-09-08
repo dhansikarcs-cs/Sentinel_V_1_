@@ -28,7 +28,7 @@ A: The numbers are worst in India, but the problem is global. Rural US, sub-Saha
 A: A false negative in a triage pipeline is lethal. ML produces probabilistic outputs with no hard guarantees. Our rule-based system is deterministic — same input, same output, every time. Every classification can be traced to specific trigger words. Adding a language requires only adding new keywords, not retraining a model.
 
 **Q: But doesn't ML get better accuracy?**
-A: On benchmark datasets, yes. On clinical real-world data with sarcasm, code-switching, and clinical jargon — no. The ML models we tested (TF-IDF, DistilBERT) produced 82-91% accuracy on GoEmotions, but their failures were unpredictable. A deterministic system with 100% accuracy on 50 hand-crafted profiles is safer for triage.
+A: On benchmark datasets, yes. On clinical real-world data with sarcasm, code-switching, and clinical jargon — no. The GoEmotions classifier (trained on 48,836 real examples, official-test Micro F1 = 0.464, macro-F1 0.405; leak-audited) is useful for clinical emotion profiling and AI summarization, but its failures are unpredictable on edge cases. The keyword-based discrepancy engine is deterministic — same input, same output, every time — which is safer for triage.
 
 **Q: Why SQLite instead of PostgreSQL?**
 A: Target deployment is clinics and community centers — not tech companies. SQLite requires zero configuration, zero maintenance, and zero database administrator. It's a file. Backup is a copy command. PostgreSQL needs a server, connection management, and ~100MB idle RAM. SQLite uses ~4MB. For a clinic with <100 concurrent users, SQLite with WAL mode performs identically.
@@ -103,10 +103,10 @@ A: The AI summaries could hallucinate content. We mitigate this with two mechani
 A: The benchmark runs inside a Docker container that doesn't have Ollama installed or Groq API keys configured. Tests 28 and 29 correctly detect that these services are unavailable and report FAIL. In production, where Ollama runs on the same host or Groq API keys are configured, these tests pass. The FAIL result validates that the benchmark correctly detects missing services.
 
 **Q: How was the training data created?**
-A: Synthetic data generation using templates (`generate_training_data.py` produces 40+ clinical scenarios across 4 task types). Real data from `counsel-chat.json` and `mental_health_chatbot_dataset.json` is mixed in for diversity. The fine-tuning scripts in `scripts/training/` include DistilBERT, TF-IDF, and Ollama Modelfile approaches — all documented and reproducible.
+A: The GoEmotions classifier is trained on the official GoEmotions train+validation splits (48,836 Reddit comments labeled across 28 emotion categories) from Google Research via Hugging Face, and evaluated on the official held-out test split. Training uses TF-IDF (10,000 features) + OneVsRest LogisticRegression. The model achieves Micro F1 = 0.464 and Macro F1 = 0.405 on that held-out test set (leak-free split; see research audit F5). The discrepancy engine uses a separate keyword-based sentiment classifier (curated word lists, rule-based) for deterministic triage decisions.
 
 **Q: What about patient data privacy in training?**
-A: No real patient data was used in training. All benchmark data is synthetic. The synthetic journal generator creates realistic but entirely fabricated patient profiles. The September 2026 pilot will collect real data under institutional ethics board approval with informed consent.
+A: No real patient data was used. The GoEmotions dataset is public Reddit comments (not clinical data). All benchmark/journal data is synthetic. The September 2026 pilot will collect real data under institutional ethics board approval with informed consent.
 
 ---
 

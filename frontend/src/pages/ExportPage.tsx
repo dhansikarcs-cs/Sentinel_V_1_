@@ -63,7 +63,7 @@ export default function ExportPage() {
     <div className="space-y-6 animate-fade-in">
       <h1>📦 Export Center</h1>
 
-      <div className="card" style={{ padding: '16px' }}>
+      <div className="card" style={{ padding: '16px' }} data-tour="export">
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
           {['patients', 'myself'].map(m => (
             <button key={m} onClick={() => setMode(m as any)}

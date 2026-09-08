@@ -1,6 +1,7 @@
-from sqlalchemy import CheckConstraint, Column, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import CheckConstraint, Column, Float, ForeignKey, Index, Integer, String
 
 from app.core.database import Base
+from app.core.encrypted_fields import EncryptedText
 
 
 class AIAnalysis(Base):
@@ -18,11 +19,11 @@ class AIAnalysis(Base):
     journal_id = Column(Integer, ForeignKey("journal_entries.id"), nullable=False)
     patient_username = Column(String, ForeignKey("patient_profiles.username"), nullable=False)
 
-    summary_patient = Column(Text, default="")
-    summary_clinical = Column(Text, default="")
+    summary_patient = Column(EncryptedText, default="")
+    summary_clinical = Column(EncryptedText, default="")
     priority = Column(String, default="low")
     confidence = Column(Float, default=0.0)
-    explanation = Column(Text, default="")
+    explanation = Column(EncryptedText, default="")
     provider = Column(String, default="rule")  # rule | ollama | groq
     model_version = Column(String, default="1.0.0")
     prompt_version = Column(String, default="")

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.dates import compute_age
 from app.core.dependencies import require_role
 from app.events import get_event_bus
 from app.models.clinical_note import ClinicalNote
@@ -21,7 +22,8 @@ def get_assigned_patients(user: User = Depends(require_role("psychologist")), db
         {
             "username": p.username,
             "name": p.name,
-            "age": p.age,
+            "age": compute_age(p.dob),
+            "dob": p.dob or "",
             "occupation": p.occupation,
             "clinic": p.clinic_code or "",
             "onboarding_step": p.onboarding_step or 0,
@@ -33,7 +35,10 @@ def get_assigned_patients(user: User = Depends(require_role("psychologist")), db
 @router.get("/available")
 def get_available_psychologists(clinic: str = "", db: Session = Depends(get_db)):
     repo = PatientRepository(db)
-    return [{"username": p.username, "name": p.name} for p in repo.get_psychologists(clinic)]
+    return [
+        {"username": p.username, "name": p.name, "professional_code": p.professional_code or "", "clinic": p.clinic_code or "", "specialisation": p.occupation or ""}
+        for p in repo.get_psychologists(clinic)
+    ]
 
 
 @router.post("/notes")

@@ -12,6 +12,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.models.crisis import CrisisLog, CrisisState
 from app.models.user import User
+from app.repositories import PatientRepository
 from app.schemas.crisis import CrisisLogResponse, CrisisRiskResponse, CrisisStateResponse, RiskAssessmentRequest
 from app.services.ai_service import assess_crisis_risk
 from app.services.audit import log_audit
@@ -35,6 +36,17 @@ def _make_trustee_link(patient: str) -> str:
     message = f"{patient}|{exp}"
     sig = hmac_mod.new(_trustee_hmac_key(), message.encode("utf-8"), hashlib.sha256).hexdigest()
     return f"{TRUSTEE_PORTAL_BASE}?patient={patient}&exp={exp}&sig={sig}"
+
+
+def _psych_email(db: Session, patient_username: str) -> str:
+    """Resolve the assigned psychologist's contact email for a patient."""
+    if not patient_username:
+        return ""
+    repo = PatientRepository(db)
+    patient = repo.get_by_username_raw(patient_username)
+    if not patient or not patient.assigned_psych:
+        return ""
+    return repo.contact_email(patient.assigned_psych)
 
 
 def _verify_trustee_link(patient: str, exp: int, sig: str) -> bool:
@@ -248,26 +260,47 @@ def notify_trusted_contact(user: User = Depends(get_current_user), db: Session =
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
     patient = db.query(User).filter(User.username == state.patient_username).first()
+    trustee_link = _make_trustee_link(state.patient_username)
     tc_email = patient.trusted_contact if patient else ""
     email_sent = False
     if tc_email:
-        trustee_link = _make_trustee_link(state.patient_username)
         email_sent = send_email(
             to=tc_email,
             subject="[Sentinel] Crisis Alert — Your loved one needs you",
             body=f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {now}\n\nYour loved one has triggered a crisis alert through Sentinel. Please reach out to them as soon as possible.\n\nAcknowledge this alert: {trustee_link}\n\n- Sentinel Safety System",
         )
+    psych_email = _psych_email(db, state.patient_username)
+    psych_email_sent = False
+    if psych_email:
+        psych_email_sent = send_email(
+            to=psych_email,
+            subject="[Sentinel] Crisis Alert — Your patient needs you",
+            body=f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {now}\n\nYour patient has triggered a crisis alert through Sentinel. Please reach out to them as soon as possible.\n\nTrusted contact alert link: {trustee_link}\n\n- Sentinel Safety System",
+        )
     state.trusted_contact_notified = 1
-    log = CrisisLog(
-        event="trusted_contact_notified",
-        patient=state.patient_username,
-        timestamp=now,
-        source=user.username,
-        details=f"Trusted contact {'emailed' if email_sent else 'logged (no SMTP)'}",
+    db.add(
+        CrisisLog(
+            event="trusted_contact_notified",
+            patient=state.patient_username,
+            timestamp=now,
+            source=user.username,
+            details=f"Trusted contact {'emailed' if email_sent else 'logged (no SMTP)'}",
+        )
     )
-    db.add(log)
+    db.add(
+        CrisisLog(
+            event="psychologist_notified",
+            patient=state.patient_username,
+            timestamp=now,
+            source=user.username,
+            details=f"Psychologist {psych_email or 'no email on file'} {'emailed' if psych_email_sent else 'logged (no SMTP)'}",
+        )
+    )
     db.commit()
-    return ok(data={"email_sent": email_sent}, message="Trusted contact notified")
+    return ok(
+        data={"email_sent": email_sent, "psych_email_sent": psych_email_sent},
+        message="Trusted contact and psychologist notified",
+    )
 
 
 @router.get("/public-state")
@@ -341,7 +374,7 @@ def helpline_escalate(
     if not state.active:
         return ok(message="No active crisis")
     now = datetime.now(UTC).isoformat()
-    helpline = settings.helpline_email or settings.email_from
+    helpline = settings.crisis_helpline_email or settings.email_from
     email_sent = send_email(
         to=helpline,
         subject="[Sentinel] CRISIS ESCALATION — Immediate attention required",
@@ -381,27 +414,45 @@ def _handle_escalation(state: CrisisState, db: Session):
     if elapsed >= 30 and not state.trusted_contact_notified:
         state.trusted_contact_notified = 1
         patient = db.query(User).filter(User.username == state.patient_username).first()
+        trustee_link = _make_trustee_link(state.patient_username)
         tc_email = patient.trusted_contact if patient else ""
         email_sent = False
         if tc_email:
-            trustee_link = _make_trustee_link(state.patient_username)
             email_sent = send_email(
                 tc_email,
                 "[Sentinel] Crisis Alert — Your loved one needs you",
                 f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {datetime.now(UTC).isoformat()}\n\nYour loved one has triggered a crisis alert. Please reach out to them as soon as possible.\n\nAcknowledge this alert: {trustee_link}\n\n- Sentinel Safety System",
             )
-        log = CrisisLog(
-            event="trustee_notified_auto",
-            patient=state.patient_username,
-            timestamp=datetime.now(UTC).isoformat(),
-            source="system",
-            details=f"Trusted contact {'emailed' if email_sent else 'logged (no SMTP)'}",
+        db.add(
+            CrisisLog(
+                event="trustee_notified_auto",
+                patient=state.patient_username,
+                timestamp=datetime.now(UTC).isoformat(),
+                source="system",
+                details=f"Trusted contact {'emailed' if email_sent else 'logged (no SMTP)'}",
+            )
         )
-        db.add(log)
+        psych_email = _psych_email(db, state.patient_username)
+        psych_email_sent = False
+        if psych_email:
+            psych_email_sent = send_email(
+                psych_email,
+                "[Sentinel] Crisis Alert — Your patient needs you",
+                f"Sentinel Crisis Alert\n\nPatient: {state.patient_username}\nTime: {datetime.now(UTC).isoformat()}\n\nYour patient has triggered a crisis alert through Sentinel. Please reach out to them as soon as possible.\n\nTrusted contact alert link: {trustee_link}\n\n- Sentinel Safety System",
+            )
+        db.add(
+            CrisisLog(
+                event="psychologist_notified_auto",
+                patient=state.patient_username,
+                timestamp=datetime.now(UTC).isoformat(),
+                source="system",
+                details=f"Psychologist {psych_email or 'no email on file'} {'emailed' if psych_email_sent else 'logged (no SMTP)'}",
+            )
+        )
 
     if elapsed >= 60 and not state.helpline_escalated:
         state.helpline_escalated = 1
-        helpline = settings.helpline_email or settings.email_from
+        helpline = settings.crisis_helpline_email or settings.email_from
         email_sent = send_email(
             helpline,
             "[Sentinel] CRISIS ESCALATION — Immediate attention required",
@@ -455,5 +506,8 @@ def assess_risk(req: RiskAssessmentRequest, user: User = Depends(get_current_use
 
 @router.get("/log", response_model=list[CrisisLogResponse])
 def get_crisis_log(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    logs = db.query(CrisisLog).order_by(CrisisLog.timestamp.desc()).limit(50).all()
+    query = db.query(CrisisLog)
+    if user.role != "psychologist":
+        query = query.filter(CrisisLog.patient == user.username)
+    logs = query.order_by(CrisisLog.timestamp.desc()).limit(50).all()
     return logs

@@ -47,7 +47,7 @@ function PatientBookings() {
         </div>
       )}
 
-      <div className="sub-tabs">
+      <div className="sub-tabs" data-tour="bookings">
         <button className={`sub-tab ${tab === 0 ? 'active' : ''}`} onClick={() => setTab(0)}>📨 Psych Suggested</button>
         <button className={`sub-tab ${tab === 1 ? 'active' : ''}`} onClick={() => setTab(1)}>📅 Book Appointment</button>
       </div>
@@ -257,7 +257,7 @@ function PsychBookings() {
       <h2>📅 Bookings</h2>
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '24px' }}>
         <div>
-          <div className="sub-tabs">
+          <div className="sub-tabs" data-tour="psych-bookings">
             <button className={`sub-tab ${tab === 0 ? 'active' : ''}`} onClick={() => setTab(0)}>📅 Calendar</button>
             <button className={`sub-tab ${tab === 1 ? 'active' : ''}`} onClick={() => setTab(1)}>📋 Queue</button>
           </div>

@@ -1,9 +1,10 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { getUser, logout, subscribe } from '../stores/auth'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
+import { flushOutbox, getOutboxCount, subscribeOutbox } from '../api/outbox'
 import { computeCrisisStage, CRISIS_STAGE_MESSAGES, todayStr } from '../constants'
-import TourGuide from './TourGuide'
+import OnboardingTour from './OnboardingTour'
 import { useTheme } from '../hooks/useTheme'
 
 const QUOTES = [
@@ -47,14 +48,43 @@ export default function Layout() {
   const [quoteIdx] = useState(() => Math.floor(Math.random() * QUOTES.length))
   const [crisisElapsed, setCrisisElapsed] = useState(0)
   const [theme, setTheme] = useTheme()
+  const [pendingSync, setPendingSync] = useState(0)
 
   const [patients, setPatients] = useState<any[]>([])
   const [bookings, setBookings] = useState<any[]>([])
   const [journals, setJournals] = useState<any[]>([])
   const [moods, setMoods] = useState<any[]>([])
-  const [sensorData, setSensorData] = useState<any>(null)
   const [notifications, setNotifications] = useState<any[]>([])
   const unreadCount = notifications.filter((n: any) => !n.read).length
+  const [toasts, setToasts] = useState<any[]>([])
+  const seenToastIds = useRef<Set<number>>(new Set())
+  const toastInit = useRef(false)
+
+  function syncToasts(list: any[]) {
+    const all = Array.isArray(list) ? list : []
+    const unread = all.filter((n: any) => !n.read)
+    if (!toastInit.current) {
+      unread.forEach((n: any) => seenToastIds.current.add(n.id))
+      toastInit.current = true
+      return
+    }
+    const fresh = unread.filter((n: any) => !seenToastIds.current.has(n.id))
+    fresh.forEach((n: any) => {
+      seenToastIds.current.add(n.id)
+      const key = `${n.id}-${Date.now()}`
+      setToasts(prev => [...prev, { key, ...n }].slice(-4))
+      window.setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.key !== key))
+      }, 7000)
+    })
+  }
+
+  function dismissToast(t: any) {
+    setToasts(prev => prev.filter(x => x.key !== t.key))
+    api.markNotificationRead(t.id)
+      .then(() => setNotifications(prev => prev.map(p => p.id === t.id ? { ...p, read: true } : p)))
+      .catch(() => {})
+  }
   const [triagePriorities, setTriagePriorities] = useState<any[]>([])
   const [aiInsights, setAiInsights] = useState<Record<string, any>>({})
   const [aiStatus, setAiStatus] = useState<any>(null)
@@ -71,6 +101,27 @@ export default function Layout() {
   }, [])
 
   useEffect(() => {
+    const refresh = () => {
+      getOutboxCount().then(setPendingSync).catch(() => setPendingSync(0))
+    }
+    refresh()
+    const unsub = subscribeOutbox(refresh)
+    const onOnline = () => {
+      refresh()
+      flushOutbox(api).then(() => refresh()).catch(() => refresh())
+    }
+    window.addEventListener('online', onOnline)
+    const flushTimer = setInterval(() => {
+      getOutboxCount().then((n) => {
+        if (n > 0 && !('onLine' in navigator && !navigator.onLine)) {
+          flushOutbox(api).then(() => refresh()).catch(() => refresh())
+        }
+      }).catch(() => {})
+    }, 45000)
+    return () => { unsub(); window.removeEventListener('online', onOnline); clearInterval(flushTimer) }
+  }, [])
+
+  useEffect(() => {
     const interval = setInterval(() => {
       api.getCrisisState().then((state) => {
         setCrisisState(state)
@@ -79,7 +130,7 @@ export default function Layout() {
         }
       }).catch(() => {})
       api.get('/crisis/log').then((d: any) => setCrisisLog(Array.isArray(d) ? d : [])).catch(() => {})
-      api.getNotifications().then((d: any) => setNotifications(Array.isArray(d) ? d : [])).catch(() => {})
+      api.getNotifications().then((d: any) => { setNotifications(Array.isArray(d) ? d : []); syncToasts(d) }).catch(() => {})
     }, 5000)
     return () => clearInterval(interval)
   }, [])
@@ -118,8 +169,7 @@ export default function Layout() {
       }).catch(() => {})
     } else {
       api.getWellness().then((d: any) => {}).catch(() => {})
-      api.getSensorData().then(d => setSensorData(d)).catch(() => {})
-      api.getNotifications().then((d: any) => setNotifications(Array.isArray(d) ? d : [])).catch(() => {})
+      api.getNotifications().then((d: any) => { setNotifications(Array.isArray(d) ? d : []); syncToasts(d) }).catch(() => {})
     }
     api.getBookings().then((d: any) => setBookings(Array.isArray(d) ? d : [])).catch(() => {})
   }, [role])
@@ -134,7 +184,6 @@ export default function Layout() {
   const tabs = role === 'Psychologist' ? psychTabs : patientTabs
   const activeTab = tabs.find(t => location.pathname === t.to) || tabs[0]
 
-  const heartRate = sensorData?.bpm || sensorData?.heart_rate || '-'
   const journalOk = journals.some((j: any) => {
     const d = (j.created_at || j.timestamp || '').slice(0, 10)
     return d === todayStr()
@@ -222,6 +271,15 @@ export default function Layout() {
         <div style={{ fontSize: '0.6875rem', padding: '0 4px', color: aiStatus?.any_available ? 'var(--ok)' : 'var(--danger)' }}>
           🤖 AI: {aiStatus?.any_available ? 'Connected' : 'Unavailable'}
         </div>
+        {pendingSync > 0 && (
+          <button
+            onClick={() => flushOutbox(api).then(() => getOutboxCount().then(setPendingSync)).catch(() => {})}
+            style={{ marginTop: '6px', width: '100%', padding: '6px 8px', fontSize: '0.68rem', background: 'rgba(183,121,26,0.1)', border: '1px solid rgba(183,121,26,0.35)', borderRadius: '6px', color: '#A66E0C', cursor: 'pointer', textAlign: 'left' }}
+            title="Tap to sync now"
+          >
+            📡 {pendingSync} offline entr{pendingSync === 1 ? 'y' : 'ies'} — tap to sync
+          </button>
+        )}
 
         {isPsychRole ? (
           <>
@@ -440,7 +498,7 @@ export default function Layout() {
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: role === 'Psychologist' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
             {role === 'Psychologist' ? (
               <>
                 <StatusCard label="Patients" value={patientCount} unit="under care" color="var(--accent)" />
@@ -450,7 +508,6 @@ export default function Layout() {
               </>
             ) : (
               <>
-                <StatusCard label="Heart" value={heartRate} unit="bpm" color="#CC5A4E" />
                 <StatusCard label="Journal" value={journalOk} unit="today" color={journalOk === 'Logged' ? 'var(--ok)' : 'var(--muted)'} />
                 <StatusCard label="Next Session" value={nextSession} unit="" color={nextSession !== '-' ? 'var(--ok)' : 'var(--muted)'} />
                 <StatusCard label="Mood" value={todayMood} unit="today" color={todayMood !== '-' ? 'var(--ok)' : 'var(--muted)'} />
@@ -473,7 +530,21 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
-      <TourGuide role={role} />
+      <OnboardingTour role={role} />
+      <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '340px' }}>
+        {toasts.map(t => (
+          <div key={t.key} onClick={() => dismissToast(t)} title="Click to dismiss"
+            style={{
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderLeft: `3px solid ${t.notification_type === 'crisis' ? 'var(--danger)' : 'var(--accent)'}`,
+              borderRadius: '10px', padding: '10px 12px', cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.18)', animation: 'slideIn 0.25s ease',
+            }}>
+            <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: t.notification_type === 'crisis' ? 'var(--danger)' : 'var(--accent)' }}>{t.title}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--secondary)', marginTop: '2px' }}>{t.message}</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

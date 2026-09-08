@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.dependencies import get_current_user
 from app.ml.model_registry import registry
@@ -16,5 +16,5 @@ def list_models(user: User = Depends(get_current_user)):
 def get_model(name: str, user: User = Depends(get_current_user)):
     model = registry.get_active(name)
     if not model:
-        return {"error": "Model not found"}
+        raise HTTPException(status_code=404, detail="Model not found")
     return model

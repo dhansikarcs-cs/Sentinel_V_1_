@@ -7,6 +7,7 @@ export default function MoodPage() {
   const [logs, setLogs] = useState<any[]>([])
   const [todayDone, setTodayDone] = useState(false)
   const [todayLabel, setTodayLabel] = useState('')
+  const [savedOffline, setSavedOffline] = useState(false)
 
   async function load() {
     try {
@@ -28,9 +29,10 @@ export default function MoodPage() {
     if (!m) return
     const date = new Date().toISOString().split('T')[0]
     try {
-      await api.logMood(date, m.emoji, m.label)
+      const res = await api.logMood(date, m.emoji, m.label)
       setTodayDone(true)
       setTodayLabel(m.label)
+      if (res?.queued) setSavedOffline(true)
       await load()
     } catch (err: any) {
       alert(err.message)
@@ -52,6 +54,11 @@ export default function MoodPage() {
             <span>✅</span>
             <span style={{ fontSize: '0.875rem', color: 'var(--ok)' }}>Mood logged for today{todayLabel ? ` (${todayLabel})` : ''}. Check back tomorrow!</span>
           </div>
+        </div>
+      )}
+      {savedOffline && (
+        <div className="card" style={{ borderColor: 'rgba(183,121,26,0.3)', background: 'rgba(183,121,26,0.08)', padding: '10px 14px' }}>
+          <span style={{ fontSize: '0.75rem', color: '#A66E0C' }}>📡 You're offline — mood saved on this device. It will sync automatically when you're back online.</span>
         </div>
       )}
       <div>

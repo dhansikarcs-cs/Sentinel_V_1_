@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.rbac import ensure_owns_or_psych
 from app.models.journal import JournalEntry
 from app.models.user import User
 
@@ -81,6 +82,7 @@ def get_emotion_summary(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    ensure_owns_or_psych(username, user)
     from datetime import datetime, timedelta
 
     cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()

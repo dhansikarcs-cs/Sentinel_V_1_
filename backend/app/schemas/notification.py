@@ -11,6 +11,7 @@ class NotificationCreate(BaseModel):
 class NotificationResponse(BaseModel):
     id: int
     patient_username: str
+    recipient_username: str | None = None
     title: str
     message: str
     notification_type: str

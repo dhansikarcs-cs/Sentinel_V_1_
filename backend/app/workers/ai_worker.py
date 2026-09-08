@@ -18,14 +18,24 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
     logger.info("Background AI analysis started for journal %s", journal_id)
     now = datetime.now(UTC).isoformat()
 
-    patient_result = summarize_journal(raw_content, mode="patient")
-    clinical_result = summarize_journal(raw_content, mode="clinical")
-
     from app.core.database import SessionLocal as _PreSessionDB
+    from app.models.journal import JournalEntry as _JournalEntry
     from app.services.patient_context import recent_patient_context
 
+    checkin_lines = ""
     _pre_db = _PreSessionDB()
     try:
+        _e0 = _pre_db.query(_JournalEntry).filter(_JournalEntry.id == journal_id).first()
+        if _e0 and _e0.checkin_data:
+            try:
+                _answers = json.loads(_e0.checkin_data)
+                _items = [a for a in _answers if isinstance(a, dict) and a.get("question") and a.get("answer")]
+                if _items:
+                    checkin_lines = "\n\nQuick check-in answers (tapped cards on the journal page):\n" + "\n".join(
+                        f"- {a['question']}: {a['answer']}" for a in _items
+                    )
+            except (json.JSONDecodeError, TypeError):
+                pass
         _recent = recent_patient_context(_pre_db, patient_username, journal_limit=10).journals
         _recent_texts = [j.raw_content for j in reversed(_recent) if j.id != journal_id]
     except Exception:
@@ -33,7 +43,12 @@ def analyze_journal_background(journal_id: int, raw_content: str, patient_userna
     finally:
         _pre_db.close()
 
-    risk = assess_risk_with_history(raw_content, recent_texts=_recent_texts)
+    effective = (raw_content + checkin_lines).strip()
+
+    patient_result = summarize_journal(effective, mode="patient")
+    clinical_result = summarize_journal(effective, mode="clinical")
+
+    risk = assess_risk_with_history(effective, recent_texts=_recent_texts)
 
     emotion_probs = risk.get("emotion_probabilities", {})
     if isinstance(emotion_probs, str):

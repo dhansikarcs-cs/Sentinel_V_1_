@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getUser, fetchMe } from '../stores/auth'
 import { api } from '../api/client'
+import { EMAIL_RE } from '../constants'
 
 const STEPS = [
   { emoji: '\u{1F3E0}', label: 'Your Profile' },
@@ -17,6 +18,8 @@ export default function PsychOnboardingPage() {
   const [step, setStep] = useState(0)
   const [contactInfo, setContactInfo] = useState('')
   const [trustedContact, setTrustedContact] = useState('')
+  const [contactError, setContactError] = useState('')
+  const [tcError, setTcError] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -34,18 +37,30 @@ export default function PsychOnboardingPage() {
   }
 
   async function handleSaveContact() {
+    const email = contactInfo.trim()
+    if (email && !EMAIL_RE.test(email)) {
+      setContactError('Enter a valid email — crisis alerts to you are sent there.')
+      return
+    }
+    setContactError('')
     setSaving(true)
     try {
-      await api.updateContact({ contact_info: contactInfo, trusted_contact: '' })
+      await api.updateContact({ contact_info: email, trusted_contact: '' })
     } catch {}
     setSaving(false)
     advance(2)
   }
 
   async function handleSaveTrusted() {
+    const tc = trustedContact.trim()
+    if (tc && !EMAIL_RE.test(tc)) {
+      setTcError('Enter a valid email address — crisis alerts are sent there.')
+      return
+    }
+    setTcError('')
     setSaving(true)
     try {
-      await api.updateContact({ contact_info: contactInfo, trusted_contact: trustedContact })
+      await api.updateContact({ contact_info: contactInfo, trusted_contact: tc })
     } catch {}
     setSaving(false)
     advance(3)
@@ -93,6 +108,8 @@ export default function PsychOnboardingPage() {
                   {[
                     { label: 'Name', value: user?.name || user?.username },
                     { label: 'Clinic', value: user?.clinic || 'Not assigned' },
+                    { label: 'Professional Code', value: user?.professional_code || '—' },
+                    { label: 'Specialisation', value: user?.occupation || '—' },
                     { label: 'Username', value: user?.username },
                     { label: 'Role', value: 'Psychologist' },
                   ].map(f => (
@@ -112,15 +129,17 @@ export default function PsychOnboardingPage() {
 
           {step === 1 && (
             <div>
-              <h3>📞 Your Contact Details</h3>
+              <h3>📞 Your Contact Email</h3>
               <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
-                Provide a contact method so patients can reach you for appointments, follow-ups, or questions.
+                Your crisis alerts are sent to this email. Use the one you check most often.
               </p>
               <input
-                value={contactInfo} onChange={e => setContactInfo(e.target.value)}
-                placeholder="Mobile number or email"
+                type="email"
+                value={contactInfo} onChange={e => { setContactInfo(e.target.value); if (contactError) setContactError('') }}
+                placeholder="your email (e.g. you@example.com)"
                 style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem', marginBottom: '12px' }}
               />
+              {contactError && <div style={{ color: 'var(--danger)', fontSize: '0.75rem', marginBottom: '12px' }}>{contactError}</div>}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button className="btn-primary" onClick={handleSaveContact} disabled={saving} style={{ flex: 1 }}>
                   {saving ? 'Saving...' : 'Save & Continue'}
@@ -134,13 +153,15 @@ export default function PsychOnboardingPage() {
             <div>
               <h3>👥 Trusted Contact (Crisis Alerts)</h3>
               <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
-                If you trigger a self-crisis alert and cannot be reached, who should we notify?
+                If you trigger a self-crisis alert and cannot be reached, this trusted contact email is notified.
               </p>
               <input
-                value={trustedContact} onChange={e => setTrustedContact(e.target.value)}
-                placeholder="Trusted contact email or phone"
+                type="email"
+                value={trustedContact} onChange={e => { setTrustedContact(e.target.value); if (tcError) setTcError('') }}
+                placeholder="trusted contact's email (e.g. friend@example.com)"
                 style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem', marginBottom: '12px' }}
               />
+              {tcError && <div style={{ color: 'var(--danger)', fontSize: '0.75rem', marginBottom: '12px' }}>{tcError}</div>}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button className="btn-primary" onClick={handleSaveTrusted} disabled={saving} style={{ flex: 1 }}>
                   {saving ? 'Saving...' : 'Save & Continue'}

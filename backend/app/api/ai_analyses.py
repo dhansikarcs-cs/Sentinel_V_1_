@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.rbac import ensure_owns_or_psych
 from app.models.ai_analysis import AIAnalysis
 from app.models.user import User
 from app.schemas.ai_analysis import AIAnalysisResponse
@@ -15,11 +16,13 @@ def get_ai_analysis_by_journal(journal_id: int, user: User = Depends(get_current
     result = db.query(AIAnalysis).filter(AIAnalysis.journal_id == journal_id).first()
     if not result:
         raise HTTPException(status_code=404, detail="AI analysis not found")
+    ensure_owns_or_psych(result.patient_username, user)
     return result
 
 
 @router.get("/patient/{username}", response_model=list[AIAnalysisResponse])
 def get_ai_analyses_for_patient(username: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    ensure_owns_or_psych(username, user)
     return (
         db.query(AIAnalysis)
         .filter(AIAnalysis.patient_username == username)

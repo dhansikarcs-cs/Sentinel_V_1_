@@ -13,6 +13,14 @@ class PatientRepository(BaseRepository[User]):
     def get_by_username(self, username: str) -> User | None:
         return self.db.query(User).filter(User.username == username, User.deleted_at.is_(None)).first()
 
+    def contact_email(self, username: str) -> str:
+        if not username:
+            return ""
+        user = self.get_by_username_raw(username)
+        if not user:
+            return ""
+        return (user.contact_info or "").strip() or (user.trusted_contact or "").strip()
+
     def get_by_username_raw(self, username: str) -> User | None:
         return self.db.query(User).filter(User.username == username).first()
 

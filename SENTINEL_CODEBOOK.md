@@ -385,7 +385,7 @@ if submitted and raw_text.strip():
 
 ---
 
-## `emotion_classifier.py` — GoEmotions TF-IDF (50 lines)
+## `emotion_classifier.py` — GoEmotions TF-IDF (~500 lines)
 
 ```python
 EMOTIONS = [
@@ -415,7 +415,7 @@ def classify_text(text: str, threshold: float = 0.2) -> str:
     return ", ".join(labels)                             # "sadness, fear, nervousness"
 ```
 
-Model is a scikit-learn `Pipeline` with `TfidfVectorizer + LogisticRegression` trained on the GoEmotions dataset. Saved as `software/models/emotion_tfidf.pkl` (~4MB).
+Model is a scikit-learn `Pipeline` with `TfidfVectorizer + LogisticRegression` trained on 54,263 real GoEmotions examples (Micro F1 = 0.465). Saved as `app/ml/emotion_model.pkl` (~2.6MB).
 
 **Lazy loading:** The model is loaded only on first call via `_load()`. If the pickle file doesn't exist, `classify_text` returns `""` (no crash).
 

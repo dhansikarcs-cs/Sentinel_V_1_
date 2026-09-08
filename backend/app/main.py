@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import traceback
@@ -30,6 +31,7 @@ from app.api import (
     mood,
     notifications,
     patients,
+    physio,
     psych_journal,
     psychologists,
     ring,
@@ -58,19 +60,57 @@ logger = logging.getLogger("sentinel")
 configure_logging()
 
 
+def _ensure_columns():
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    for table, columns in {
+        "notifications": ["recipient_username"],
+        "followups": ["grade_updated_at", "feedback_updated_at"],
+    }.items():
+        existing = {c["name"] for c in inspector.get_columns(table)}
+        for col in columns:
+            if col not in existing:
+                with engine.begin() as conn:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} VARCHAR"))
+                logger.info("Added missing column %s.%s", table, col)
+
+
 def _init_db():
     os.makedirs("data", exist_ok=True)
     Base.metadata.create_all(bind=engine)
+    _ensure_columns()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if "change-me-in-production" in settings.jwt_secret:
-        logger.warning("JWT secret is still set to default — override via JWT_SECRET env var before deploying")
+        if settings.debug:
+            logger.warning("JWT secret is still set to default — override via JWT_SECRET env var before deploying")
+        else:
+            raise RuntimeError(
+                "Refusing to start: JWT_SECRET is still the default. "
+                "Set a strong JWT_SECRET environment variable before deploying."
+            )
+    if settings.encryption_passphrase:
+        from app.core.security import initialize_encryption
+
+        initialize_encryption(settings.encryption_passphrase)
     _init_db()
     register_all_subscribers(get_event_bus())
     logger.info("Event subscribers registered")
-    yield
+    from app.workers.celebrations_worker import celebrations_loop
+    from app.workers.reminder_worker import reminder_loop
+
+    reminder_task = asyncio.create_task(reminder_loop())
+    celebration_task = asyncio.create_task(celebrations_loop())
+    logger.info("Journal reminder worker started")
+    logger.info("Celebrations worker started")
+    try:
+        yield
+    finally:
+        reminder_task.cancel()
+        celebration_task.cancel()
 
 
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
@@ -78,7 +118,7 @@ app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(APIGatewayMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimiterMiddleware, max_requests=100, window_seconds=60)
+app.add_middleware(RateLimiterMiddleware)
 
 origins = [o.strip() for o in settings.cors_origins.split(",")]
 
@@ -115,6 +155,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content=make_error(code_map.get(exc.status_code, ErrorCode.INTERNAL_ERROR), str(exc.detail), rid),
+        headers=exc.headers or None,
     )
 
 
@@ -154,6 +195,7 @@ v1_router.include_router(emotions.router)
 v1_router.include_router(emotion_results.router)
 v1_router.include_router(ai_analyses.router)
 v1_router.include_router(sensor_readings.router)
+v1_router.include_router(physio.router)
 v1_router.include_router(risk_assessments.router)
 v1_router.include_router(notifications.router)
 v1_router.include_router(ml_registry.router)

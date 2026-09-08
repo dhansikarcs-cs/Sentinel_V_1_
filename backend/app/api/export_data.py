@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.dates import compute_age
 from app.core.dependencies import require_role
 from app.models.journal import JournalEntry
 from app.models.user import User
@@ -26,7 +27,7 @@ def export_journal_summaries(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Patient", "Date", "Entry", "AI Summary", "Emotions", "AI Source", "HMAC"])
+    writer.writerow(["Patient", "Date", "AI Summary", "Patient Summary", "Emotions", "AI Source", "HMAC"])
 
     for p in patients:
         entries = (
@@ -40,7 +41,7 @@ def export_journal_summaries(
                 [
                     p.username,
                     e.timestamp[:10] if e.timestamp else "",
-                    (e.raw_content or "")[:200],
+                    e.clinical_summary or e.summary or "",
                     e.summary or "",
                     e.emotions or "",
                     e.ai_source or "",
@@ -111,7 +112,7 @@ def export_patient_data(user: User = Depends(require_role("psychologist")), db: 
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(
-        ["Patient", "Name", "Age", "Occupation", "Clinic", "Assigned Psych", "Onboarding Step", "Registered"]
+        ["Patient", "Name", "Age", "Date of Birth", "Occupation", "Clinic", "Assigned Psych", "Onboarding Step", "Registered"]
     )
 
     for p in patients:
@@ -119,7 +120,8 @@ def export_patient_data(user: User = Depends(require_role("psychologist")), db: 
             [
                 p.username,
                 p.name,
-                p.age,
+                compute_age(p.dob),
+                p.dob or "",
                 p.occupation,
                 p.clinic_code or "",
                 p.assigned_psych or "",

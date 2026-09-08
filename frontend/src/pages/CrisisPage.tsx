@@ -1,7 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { api } from '../api/client'
+import { api, isNetworkError } from '../api/client'
 import { getUser } from '../stores/auth'
 import { computeCrisisStage, CRISIS_STAGES, CRISIS_STAGE_MESSAGES } from '../constants'
+
+function mailto(email: string, subject: string, body: string) {
+  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
 
 function playAlertAudio() {
   try {
@@ -33,6 +37,8 @@ export default function CrisisPage() {
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
   const [error, setError] = useState('')
+  const [me, setMe] = useState<any>(getUser() || {})
+  const [offline, setOffline] = useState(false)
   const intervalRef = useRef<any>(null)
   const stopAudioRef = useRef<(() => void) | null>(null)
   const prevActiveRef = useRef(false)
@@ -45,13 +51,17 @@ export default function CrisisPage() {
       ])
       setCs(state || {})
       setElapsed(el?.elapsed || 0)
-    } catch {}
+      setOffline(false)
+    } catch (err) {
+      if (isNetworkError(err)) setOffline(true)
+    }
     setLoading(false)
   }
 
   useEffect(() => {
     load()
     intervalRef.current = setInterval(load, 3000)
+    api.getMe().then((d: any) => setMe(d || {})).catch(() => {})
     return () => clearInterval(intervalRef.current)
   }, [])
 
@@ -125,19 +135,61 @@ export default function CrisisPage() {
     return { color: 'var(--faint)', background: 'var(--surface-soft)', border: '1px solid var(--border-soft)' }
   }
 
-  const helplineNumber = '📞 National Helpline: 988 (Suicide & Crisis Lifeline)'
+  const helplineNumber = me.helpline_email
+    ? `📞 National Helpline: 988 (Suicide & Crisis Lifeline) · 📧 ${me.helpline_email}`
+    : '📞 National Helpline: 988 (Suicide & Crisis Lifeline)'
+
+  const directEmailCard = (offline || active) && (me.psych_email || me.helpline_email)
 
   return (
     <div className="animate-fade-in">
       <h2>🚨 Emergency</h2>
 
-      <div style={{ background: 'var(--info-soft)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', padding: '8px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div data-tour="crisis" style={{ background: 'var(--info-soft)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', padding: '8px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '1.1rem' }}>📞</span>
         <span style={{ color: 'var(--info)', fontSize: '0.875rem', fontWeight: 600 }}>
           {helplineNumber}
         </span>
         <span style={{ color: 'var(--soft)', fontSize: '0.75rem', marginLeft: 'auto' }}>24/7 — Free & Confidential</span>
       </div>
+
+      {directEmailCard && (
+        <div className="card" style={{ marginTop: '12px', borderColor: offline ? 'var(--warn)' : 'var(--border-soft)' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '8px' }}>
+            {offline
+              ? '⚠️ You are offline — the app server is unreachable. Use your own mail app to reach someone now:'
+              : '📧 Also reachable directly (works even if the app/server is unreachable):'}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {me.psych_email && (
+              <a
+                className="btn-primary"
+                style={{ textDecoration: 'none', display: 'inline-block' }}
+                href={mailto(
+                  me.psych_email,
+                  `Sentinel Crisis — ${me.name || me.username} needs help`,
+                  `Hi, ${me.name || me.username} (${me.username}) triggered a crisis alert in Sentinel and needs your help as soon as possible. \n\nPlease reach out to them now.`
+                )}
+              >
+                📧 Email your psychologist
+              </a>
+            )}
+            {me.helpline_email && (
+              <a
+                className="btn-primary"
+                style={{ textDecoration: 'none', display: 'inline-block' }}
+                href={mailto(
+                  me.helpline_email,
+                  `Sentinel CRISIS ESCALATION — ${me.name || me.username}`,
+                  `Patient ${me.username} is in crisis and has not been acknowledged. Immediate helpline intervention is required. \n\nTime sensitive — please follow your protocol.`
+                )}
+              >
+                📧 Email helpline
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {!active ? (
         <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
@@ -223,7 +275,7 @@ export default function CrisisPage() {
               <button onClick={acknowledge} className="btn-primary" style={{ flex: 1, padding: '10px' }}>✓ Acknowledge Crisis</button>
             )}
             {triggeredBy === 'patient' && (
-              <button onClick={notifyTC} style={{ flex: 1, padding: '10px' }}>👤 Notify Trusted Contact</button>
+              <button onClick={notifyTC} style={{ flex: 1, padding: '10px' }}>👤 Notify Trusted Contact + Psychologist</button>
             )}
           </div>
         </div>

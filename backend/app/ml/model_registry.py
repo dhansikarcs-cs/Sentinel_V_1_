@@ -104,8 +104,15 @@ registry.register(
     version="1.0.0",
     model_type="tfidf_logistic_regression",
     path=str(Path(__file__).parent / "emotion_model.pkl"),
-    description="GoEmotions 28-class TF-IDF + LogisticRegression one-vs-rest classifier",
-    metrics={"micro_f1": 0.465, "macro_f1": 0.412, "training_samples": 54263},
+    description="GoEmotions 28-class TF-IDF + LogisticRegression one-vs-rest classifier (no validation leakage)",
+    metrics={
+        "micro_f1": 0.4642,
+        "macro_f1": 0.4047,
+        "samples_f1": 0.4947,
+        "training_samples": 48836,
+        "test_samples": 5427,
+        "split": "official train+validation fit; official test held out (no leakage)",
+    },
 )
 
 registry.register(

@@ -16,7 +16,10 @@ def send_email(to: str, subject: str, body: str) -> bool:
         msg = EmailMessage()
         msg.set_content(body)
         msg["Subject"] = subject
-        msg["From"] = settings.email_from
+        sender = settings.email_from
+        if not sender or sender == "sentinel@example.com":
+            sender = settings.smtp_user or sender
+        msg["From"] = sender
         msg["To"] = to
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as s:
             s.ehlo()

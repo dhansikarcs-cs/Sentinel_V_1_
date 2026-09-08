@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Column, Float, ForeignKey, Index, Integer, String
 
 from app.core.database import Base
+from app.core.encrypted_fields import EncryptedText
 
 
 class RiskAssessment(Base):
@@ -21,6 +22,6 @@ class RiskAssessment(Base):
     risk_score = Column(Integer, default=0)
     triggered = Column(Integer, default=0)
     confidence = Column(Float, default=0.0)
-    explanation = Column(Text, default="")
+    explanation = Column(EncryptedText, default="")
     algorithm_version = Column(String, default="1.0.0")
     created_at = Column(String, nullable=False)

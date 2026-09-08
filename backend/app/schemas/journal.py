@@ -1,8 +1,14 @@
 from pydantic import BaseModel, Field
 
 
+class CheckInAnswer(BaseModel):
+    question: str = Field(min_length=1, max_length=200)
+    answer: str = Field(min_length=1, max_length=200)
+
+
 class JournalCreate(BaseModel):
     raw_content: str = Field(min_length=1, max_length=10000)
+    checkin: list[CheckInAnswer] = Field(default_factory=list)
 
 
 class JournalResponse(BaseModel):

@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -12,12 +13,22 @@ from app.schemas.notification import NotificationCreate, NotificationResponse, N
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
+def _for_user(username: str):
+    # Clinician-targeted notices (recipient_username set) are visible only to that
+    # clinician. Patient-targeted notices (recipient_username NULL) go to the patient.
+    return or_(
+        Notification.recipient_username == username,
+        and_(Notification.recipient_username.is_(None), Notification.patient_username == username),
+    )
+
+
 @router.post("", response_model=NotificationResponse)
 def create_notification(
     data: NotificationCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
+    target = data.patient_username if user.role == "psychologist" else user.username
     notif = Notification(
-        patient_username=data.patient_username,
+        patient_username=target,
         title=data.title,
         message=data.message,
         notification_type=data.notification_type,
@@ -34,7 +45,7 @@ def create_notification(
 def get_notifications(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return (
         db.query(Notification)
-        .filter(Notification.patient_username == user.username)
+        .filter(_for_user(user.username))
         .order_by(Notification.sent_at.desc())
         .limit(50)
         .all()
@@ -45,7 +56,7 @@ def get_notifications(user: User = Depends(get_current_user), db: Session = Depe
 def get_unread_notifications(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return (
         db.query(Notification)
-        .filter(Notification.patient_username == user.username, Notification.read == 0)
+        .filter(_for_user(user.username), Notification.read == 0)
         .order_by(Notification.sent_at.desc())
         .all()
     )
@@ -60,7 +71,7 @@ def mark_notification_read(
 ):
     notif = (
         db.query(Notification)
-        .filter(Notification.id == notification_id, Notification.patient_username == user.username)
+        .filter(Notification.id == notification_id, _for_user(user.username))
         .first()
     )
     if notif:
@@ -72,8 +83,6 @@ def mark_notification_read(
 
 @router.put("/read-all")
 def mark_all_notifications_read(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db.query(Notification).filter(Notification.patient_username == user.username, Notification.read == 0).update(
-        {"read": 1}
-    )
+    db.query(Notification).filter(_for_user(user.username), Notification.read == 0).update({"read": 1})
     db.commit()
     return {"status": "ok"}

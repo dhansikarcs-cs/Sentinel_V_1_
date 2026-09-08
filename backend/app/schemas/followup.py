@@ -28,6 +28,8 @@ class FollowupResponse(BaseModel):
     status: str
     grade: str
     feedback: str = ""
+    grade_updated_at: str = ""
+    feedback_updated_at: str = ""
     assigned_at: str
     due_date: str = ""
     completed_at: str = ""

@@ -28,14 +28,31 @@ def check_database() -> dict:
 
 
 def check_database_write() -> dict:
-    """Prove the DB accepts writes by toggling the sqlite user_version header."""
+    """Prove the DB accepts writes with a portable upsert.
+
+    Uses ``PRAGMA user_version`` on SQLite and a tiny ``_health_writes``
+    table with an upsert for everything else (Postgres, MySQL, etc.).
+    """
     try:
         db = SessionLocal()
         try:
             start = time.perf_counter()
-            current = db.execute(text("PRAGMA user_version")).scalar()
-            next_version = (int(current) + 1) % 1000000
-            db.execute(text(f"PRAGMA user_version = {next_version}"))
+            url = str(db.get_bind().url)
+            if "sqlite" in url:
+                current = db.execute(text("PRAGMA user_version")).scalar()
+                next_version = (int(current) + 1) % 1000000
+                db.execute(text(f"PRAGMA user_version = {next_version}"))
+            else:
+                db.execute(text("""
+                    CREATE TABLE IF NOT EXISTS _health_writes (
+                        id   int PRIMARY KEY,
+                        val  text NOT NULL
+                    )
+                """))
+                db.execute(text("""
+                    INSERT INTO _health_writes (id, val) VALUES (1, :ts)
+                    ON CONFLICT (id) DO UPDATE SET val = :ts
+                """), {"ts": str(int(time.time()))})
             db.commit()
             latency_ms = round((time.perf_counter() - start) * 1000, 2)
             return {"status": "up", "latency_ms": latency_ms}

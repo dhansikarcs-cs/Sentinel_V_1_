@@ -448,8 +448,10 @@ def _build_model() -> OneVsRestClassifier:
         from datasets import load_dataset
 
         ds = load_dataset("google-research-datasets/go_emotions", "simplified")
+        # No validation leakage: train pool = official train + validation ONLY;
+        # the official test split is reserved for evaluation (audit fix, Aug 2026).
         texts, labels = [], []
-        for split in ["train", "validation", "test"]:
+        for split in ["train", "validation"]:
             for ex in ds[split]:
                 lbl = [0] * 28
                 for idx in ex["labels"]:

@@ -154,6 +154,7 @@ function PsychFollowups() {
   const [busy, setBusy] = useState<Record<string, boolean>>({})
   const [feedbackBuf, setFeedbackBuf] = useState<Record<string, string>>({})
   const [feedbackSaved, setFeedbackSaved] = useState<Record<string, boolean>>({})
+  const [editEval, setEditEval] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     api.getFollowups().then(d => setTasks(d || [])).catch(() => {})
@@ -205,6 +206,10 @@ function PsychFollowups() {
   }
 
   async function gradeTask(id: string, grade: string) {
+    const current = (tasks || []).find((t: any) => t.id === id)
+    if (current?.grade && current.grade !== 'none' && current.grade !== grade) {
+      if (!window.confirm('Changing this grade updates the evaluation the patient sees. Continue?')) return
+    }
     await run(`grade:${id}`, () => api.updateFollowup(id, { grade, status: 'completed' }))
   }
 
@@ -213,11 +218,18 @@ function PsychFollowups() {
     const grade = currentGrade && currentGrade !== '' ? currentGrade : 'none'
     await run(`feedback:${id}`, () => api.updateFollowup(id, { feedback, grade, status: 'completed' }))
     setFeedbackSaved({ ...feedbackSaved, [id]: true })
+    setEditEval({ ...editEval, [id]: false })
   }
 
   const gradeBorders: Record<string, string> = {
     green: '#44ff44', yellow: '#ffd93d', red: 'var(--danger)', none: 'var(--border)',
   }
+
+  const gradeLabel: Record<string, string> = {
+    green: '🟢 Correctly done', yellow: '🟡 Partially done', red: '🔴 Needs improvement',
+  }
+
+  const fmtTs = (s?: string) => (s ? s.replace('T', ' ').slice(0, 16) : '')
 
   return (
     <div className="animate-fade-in">
@@ -299,40 +311,79 @@ function PsychFollowups() {
                         {t.status === 'completed' && (
                           <div>
                             <hr style={{ margin: '8px 0' }} />
-                            <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '8px' }}>
-                              Grade & Feedback
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Grade & Feedback</span>
                               {t.grade && t.grade !== 'none' && (
-                                <span style={{ color: gradeBorders[t.grade], fontWeight: 700, marginLeft: '8px' }}>
-                                  {t.grade === 'green' ? '🟢 Correct' : t.grade === 'yellow' ? '🟡 Partial' : '🔴 Needs improvement'}
+                                <span style={{ color: gradeBorders[t.grade], fontWeight: 700, fontSize: '0.8125rem' }}>
+                                  {gradeLabel[t.grade]}
                                 </span>
                               )}
-                            </div>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
-                              <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'green')}>🟢 Correct</button>
-                              <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'yellow')}>🟡 Partial</button>
-                              <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'red')}>🔴 Needs work</button>
-                              {t.grade && t.grade !== 'none' && (
-                                <span style={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>Tap to change grade</span>
+                              {!editEval[t.id] && (
+                                <button style={{ fontSize: '0.68rem', padding: '4px 10px', marginLeft: 'auto' }}
+                                  onClick={() => { setFeedbackBuf({ ...feedbackBuf, [t.id]: t.feedback ?? '' }); setEditEval({ ...editEval, [t.id]: true }) }}>
+                                  ✏️ Edit evaluation
+                                </button>
                               )}
                             </div>
-                            <label style={{ fontSize: '0.6875rem', color: 'var(--secondary)', display: 'block', marginBottom: '4px' }}>Written feedback for {t.patient_username}</label>
-                            <textarea
-                              value={feedbackBuf[t.id] ?? t.feedback ?? ''}
-                              onChange={e => { setFeedbackBuf({ ...feedbackBuf, [t.id]: e.target.value }); setFeedbackSaved({ ...feedbackSaved, [t.id]: false }) }}
-                              rows={3}
-                              placeholder="e.g. Nice work on the breathing exercise — notice how calm you felt after. Let's build on this next week."
-                              style={{ width: '100%', fontSize: '0.8125rem', resize: 'vertical', marginBottom: '6px' }}
-                            />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <button className="btn-primary" style={{ fontSize: '0.72rem', padding: '6px 12px' }}
-                                disabled={busy[`feedback:${t.id}`]}
-                                onClick={() => saveFeedback(t.id, t.grade || 'none')}>
-                                {busy[`feedback:${t.id}`] ? 'Saving…' : '💬 Save Feedback'}
-                              </button>
-                              {feedbackSaved[t.id] && (
-                                <span style={{ color: 'var(--ok)', fontSize: '0.6875rem' }}>✓ Saved — visible to the patient</span>
-                              )}
-                            </div>
+
+                            {editEval[t.id] ? (
+                              <div>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                  <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'green')}>🟢 Correct</button>
+                                  <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'yellow')}>🟡 Partial</button>
+                                  <button style={{ fontSize: '0.75rem', padding: '6px 12px' }} disabled={busy[`grade:${t.id}`]} onClick={() => gradeTask(t.id, 'red')}>🔴 Needs work</button>
+                                  {t.grade && t.grade !== 'none' && (
+                                    <span style={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>Changing the grade notifies the patient</span>
+                                  )}
+                                </div>
+                                <label style={{ fontSize: '0.6875rem', color: 'var(--secondary)', display: 'block', marginBottom: '4px' }}>Written feedback for {t.patient_username}</label>
+                                <textarea
+                                  value={feedbackBuf[t.id] ?? t.feedback ?? ''}
+                                  onChange={e => { setFeedbackBuf({ ...feedbackBuf, [t.id]: e.target.value }); setFeedbackSaved({ ...feedbackSaved, [t.id]: false }) }}
+                                  rows={3}
+                                  placeholder="e.g. Nice work on the breathing exercise — notice how calm you felt after. Let's build on this next week."
+                                  style={{ width: '100%', fontSize: '0.8125rem', resize: 'vertical', marginBottom: '6px' }}
+                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <button className="btn-primary" style={{ fontSize: '0.72rem', padding: '6px 12px' }}
+                                    disabled={busy[`feedback:${t.id}`]}
+                                    onClick={() => saveFeedback(t.id, t.grade || 'none')}>
+                                    {busy[`feedback:${t.id}`] ? 'Saving…' : '💬 Save Feedback'}
+                                  </button>
+                                  <button style={{ fontSize: '0.72rem', padding: '6px 12px' }}
+                                    disabled={busy[`feedback:${t.id}`]}
+                                    onClick={() => setEditEval({ ...editEval, [t.id]: false })}>
+                                    Cancel
+                                  </button>
+                                  {feedbackSaved[t.id] && (
+                                    <span style={{ color: 'var(--ok)', fontSize: '0.6875rem' }}>✓ Saved — visible to the patient</span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                {t.grade && t.grade !== 'none' ? (
+                                  <div style={{ color: gradeBorders[t.grade], fontWeight: 'bold', fontSize: '14px', marginBottom: '6px' }}>
+                                    {gradeLabel[t.grade]}
+                                  </div>
+                                ) : (
+                                  <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginBottom: '6px' }}>Not graded yet.</div>
+                                )}
+                                {t.feedback ? (
+                                  <div style={{ marginBottom: '6px', padding: '10px 12px', borderRadius: '8px', background: 'rgba(23,121,110,0.08)', border: '1px solid rgba(23,121,110,0.25)' }}>
+                                    <div style={{ color: 'var(--accent)', fontSize: '0.65rem', fontWeight: 600, marginBottom: '4px' }}>💬 Feedback</div>
+                                    <div style={{ color: 'var(--text)', fontSize: '0.8125rem', lineHeight: 1.5 }}>{t.feedback}</div>
+                                  </div>
+                                ) : (
+                                  <div style={{ color: 'var(--muted)', fontSize: '0.6875rem', marginBottom: '6px' }}>No written feedback yet.</div>
+                                )}
+                                {(t.feedback_updated_at || t.grade_updated_at || t.approved_at) && (
+                                  <div style={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>
+                                    Last evaluated: {fmtTs(t.feedback_updated_at || t.grade_updated_at || t.approved_at)}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
 

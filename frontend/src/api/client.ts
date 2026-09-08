@@ -1,5 +1,7 @@
 const BASE = '/api'
 
+import { enqueueOutbox, isOffline } from './outbox'
+
 const TOKEN_STORE = typeof window !== 'undefined' ? window.sessionStorage : null
 
 let _token: string | null = TOKEN_STORE?.getItem('token') ?? null
@@ -20,6 +22,22 @@ export function setRefreshToken(t: string | null) {
 
 export function getToken() {
   return _token
+}
+
+// True when the fetch failure was a network problem (server unreachable /
+// laptop asleep / tunnel down), NOT an HTTP error response. request() only
+// throws Error(data.detail) for HTTP errors, so a TypeError here means the
+// fetch itself failed — the offline case. The service worker additionally
+// returns 503 {"offline":true,"error":"You are offline"} for API calls when
+// offline, which surfaces here as Error('You are offline').
+export function isNetworkError(err: unknown): boolean {
+  if (isOffline()) return true
+  if (err instanceof TypeError) return true
+  if (err instanceof Error) {
+    if (err.message === 'fetch failed') return true
+    if (err.message === 'You are offline' || err.message.includes('offline')) return true
+  }
+  return false
 }
 
 async function tryRefresh(): Promise<boolean> {
@@ -130,6 +148,7 @@ export const api = {
   // Patients
   getMe: () => request('/patients/me'),
   updateContact: (data: any) => request('/patients/me/contact', { method: 'PUT', body: JSON.stringify(data) }),
+  updatePreferences: (data: any) => request('/patients/me/preferences', { method: 'PUT', body: JSON.stringify(data) }),
   getPatientProfile: (username: string) => request(`/patients/${username}/profile`),
   getPatientSummary: (username: string) => request(`/patients/${username}/summary`),
   getPatientOverview: (username: string) => request(`/patients/${username}/overview`),
@@ -147,7 +166,18 @@ export const api = {
   createPsychNote: (data: any) => request('/psychologists/notes', { method: 'POST', body: JSON.stringify(data) }),
 
   // Journal
-  createJournal: (raw: string) => request('/journal', { method: 'POST', body: JSON.stringify({ raw_content: raw }) }),
+  getJournalPrompts: () => request('/journal/prompts'),
+  async createJournal(raw: string, checkin?: { question: string; answer: string }[]) {
+    const body = { raw_content: raw, timestamp: new Date().toISOString(), checkin: checkin || [] }
+    try {
+      return await request('/journal', { method: 'POST', body: JSON.stringify(body) })
+    } catch (err) {
+      if (isNetworkError(err)) {
+        return { queued: true, offline: true, client_id: await enqueueOutbox('journal', { raw_content: raw, timestamp: new Date().toISOString() }) }
+      }
+      throw err
+    }
+  },
   getJournals: () => request('/journal'),
   getPatientJournals: (username: string) => request(`/journal/${username}`),
   getPatientSummaries: (username: string) => request(`/journal/${username}/summaries`),
@@ -156,8 +186,16 @@ export const api = {
     request('/journal/synthesize-note', { method: 'POST', body: JSON.stringify({ journal_text: journalText, clinical_summary: clinicalSummary || '' }) }),
 
   // Mood
-  logMood: (date: string, emoji: string, label: string) =>
-    request('/mood', { method: 'POST', body: JSON.stringify({ date, emoji, label }) }),
+  async logMood(date: string, emoji: string, label: string) {
+    try {
+      return await request('/mood', { method: 'POST', body: JSON.stringify({ date, emoji, label }) })
+    } catch (err) {
+      if (isNetworkError(err)) {
+        return { queued: true, offline: true, client_id: await enqueueOutbox('mood', { date, emoji, label, timestamp: new Date().toISOString() }) }
+      }
+      throw err
+    }
+  },
   getMoods: () => request('/mood'),
   getPatientMoods: (username: string) => request(`/mood/${username}`),
   checkTodayMood: () => request('/mood/today/check'),

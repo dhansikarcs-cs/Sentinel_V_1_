@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getUser } from '../stores/auth'
 import { api } from '../api/client'
+import { EMAIL_RE } from '../constants'
 
 const STEPS = [
   { emoji: '\u{1F3E0}', label: 'About You' },
@@ -17,6 +18,7 @@ export default function OnboardingPage() {
   const [journal, setJournal] = useState('')
   const [trustedContact, setTrustedContact] = useState('')
   const [contactInfo, setContactInfo] = useState('')
+  const [tcError, setTcError] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -52,8 +54,14 @@ export default function OnboardingPage() {
   }
 
   async function saveTrustedAndNext() {
-    if (trustedContact.trim()) {
-      try { await api.updateContact({ contact_info: contactInfo, trusted_contact: trustedContact }) } catch {}
+    const tc = trustedContact.trim()
+    if (tc && !EMAIL_RE.test(tc)) {
+      setTcError('Enter a valid email address — crisis alerts are sent there.')
+      return
+    }
+    setTcError('')
+    if (tc) {
+      try { await api.updateContact({ contact_info: contactInfo, trusted_contact: tc }) } catch {}
     }
     goTo(3)
   }
@@ -153,13 +161,15 @@ export default function OnboardingPage() {
             <div>
               <h3>🛡️ Emergency Contact</h3>
               <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '12px' }}>
-                If you trigger a crisis alert, your trusted contact will be notified.
+                If you trigger a crisis alert, this trusted contact email is notified. Use the email they check most often.
               </p>
               <input
-                value={trustedContact} onChange={e => setTrustedContact(e.target.value)}
-                placeholder="Trusted contact email or phone"
+                type="email"
+                value={trustedContact} onChange={e => { setTrustedContact(e.target.value); if (tcError) setTcError('') }}
+                placeholder="trusted contact's email (e.g. mom@example.com)"
                 style={{ width: '100%', padding: '10px 12px', fontSize: '0.875rem', marginBottom: '12px' }}
               />
+              {tcError && <div style={{ color: 'var(--danger)', fontSize: '0.75rem', marginBottom: '12px' }}>{tcError}</div>}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button className="btn-primary" onClick={saveTrustedAndNext} style={{ flex: 1 }}>Save →</button>
                 <button onClick={() => goTo(3)} style={{ flex: 1 }}>Skip</button>

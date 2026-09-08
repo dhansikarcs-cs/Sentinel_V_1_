@@ -59,10 +59,10 @@ def test_elevated_risk_medium():
 
 
 def test_overdue_followup_escalates_with_age():
-    from datetime import UTC, datetime, timedelta
+    from datetime import date, timedelta
 
     ctx = _baseline()
-    assigned = (datetime.now(UTC) - timedelta(days=8)).isoformat()
+    assigned = (date.today() - timedelta(days=8)).isoformat()
     ctx["followups"] = [{"id": "f1", "status": "pending", "title": "Daily reflection", "assigned_at": assigned}]
     items = derive_priorities(**ctx)
     assert items[0]["title"] == "Follow-up overdue (8d)"
@@ -70,10 +70,10 @@ def test_overdue_followup_escalates_with_age():
 
 
 def test_recent_pending_followup_not_flagged():
-    from datetime import UTC, datetime, timedelta
+    from datetime import date, timedelta
 
     ctx = _baseline()
-    assigned = (datetime.now(UTC) - timedelta(days=2)).isoformat()
+    assigned = (date.today() - timedelta(days=2)).isoformat()
     ctx["followups"] = [{"id": "f1", "status": "pending", "title": "Daily reflection", "assigned_at": assigned}]
     items = derive_priorities(**ctx)
     assert all("Follow-up overdue" not in i["title"] for i in items)

@@ -1,62 +1,19 @@
 import { useEffect, useState } from 'react'
-import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api/client'
-import { sourceColor, mockHistory } from '../constants'
+import { sourceColor } from '../constants'
 
 export default function PsychJournalPage() {
-  const [sensorLogs, setSensorLogs] = useState<any[]>([])
   const [wellness, setWellness] = useState<any>(null)
 
   useEffect(() => {
-    api.getSensorData().then((d: any[]) => {
-      if (Array.isArray(d) && d.length > 0) setSensorLogs([...d].reverse())
-    }).catch(() => {})
     api.getWellness().then(setWellness).catch(() => {})
   }, [])
-
-  const ring = wellness?.ring || { bpm: 72, stress: 35, sleep: 7, spo2: 98, hrv: 45 }
-
-  const trends = [
-    { key: 'bpm', label: 'Heart Rate', unit: 'bpm', color: '#CC5A4E', data: sensorLogs.length > 0 ? sensorLogs.map(s => ({ v: s.bpm || 0 })) : mockHistory(ring.bpm || 72, 12).map(v => ({ v })) },
-    { key: 'stress', label: 'Stress', unit: '%', color: '#ffd93d', data: sensorLogs.length > 0 ? sensorLogs.map(s => ({ v: s.stress || 0 })) : mockHistory(ring.stress || 35, 10).map(v => ({ v })) },
-    { key: 'sleep', label: 'Sleep', unit: 'hrs', color: '#6bcbff', data: sensorLogs.length > 0 ? sensorLogs.map(s => ({ v: s.sleep_hours || 0 })) : mockHistory(ring.sleep || 7, 1.5).map(v => ({ v })) },
-    { key: 'spo2', label: 'SpO₂', unit: '%', color: '#6bffb8', data: sensorLogs.length > 0 ? sensorLogs.map(s => ({ v: s.spo2 || 0 })) : mockHistory(ring.spo2 || 98, 1).map(v => ({ v })) },
-  ]
 
   return (
     <div className="space-y-6 animate-fade-in">
       <h1>📓 Journal & Wellness</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '8px' }}>
-        {trends.map(t => (
-          <div key={t.key} className="card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--secondary)', fontSize: '0.75rem' }}>{t.label}</span>
-              <span style={{ color: t.color, fontSize: '1rem', fontWeight: 700 }}>{t.data[t.data.length - 1]?.v || '-'}{t.unit === '%' ? '%' : t.unit === 'hrs' ? 'h' : ''}</span>
-            </div>
-            <ResponsiveContainer width="100%" height={80}>
-              <AreaChart data={t.data}>
-                <defs>
-                  <linearGradient id={`grad_${t.key}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={t.color} stopOpacity={0.25} />
-                    <stop offset="100%" stopColor={t.color} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" hide />
-                <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
-                <Tooltip
-                  contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.75rem' }}
-                  labelStyle={{ color: 'var(--muted)' }}
-                  formatter={(val: any) => [`${val}${t.unit === '%' ? '%' : t.unit === 'hrs' ? 'h' : ''}`, t.label]}
-                />
-                <Area type="monotone" dataKey="v" stroke={t.color} strokeWidth={1.5} fill={`url(#grad_${t.key})`} dot={false} activeDot={{ r: 3, fill: t.color }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        ))}
-      </div>
-
-      <div className="card" style={{ padding: '20px' }}>
+      <div className="card" style={{ padding: '20px' }} data-tour="psych-journal">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
           {wellness?.mood && (
             <>

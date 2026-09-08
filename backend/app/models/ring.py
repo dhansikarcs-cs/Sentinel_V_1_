@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Float, Index, Integer, String, Text
+from sqlalchemy import Column, Float, Index, Integer, String
 
 from app.core.database import Base
+from app.core.encrypted_fields import EncryptedText
 
 
 class RingSensorLog(Base):
@@ -9,6 +10,7 @@ class RingSensorLog(Base):
         Index("ix_ring_patient_username", "patient_username"),
         Index("ix_ring_logged_at", "logged_at"),
         Index("ix_ring_device_id", "device_id"),
+        Index("uq_ring_device_seq", "device_id", "seq", unique=True),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -19,5 +21,6 @@ class RingSensorLog(Base):
     sleep_hours = Column(Float, default=0)
     spo2 = Column(Float, default=0)
     hrv = Column(Integer, default=0)
-    raw_json = Column(Text, default="")  # FIXME: normalize into structured columns when ring firmware v2 ships
+    seq = Column(Integer, nullable=True)
+    raw_json = Column(EncryptedText, default="")  # cloud envelope: device_id, seq, source readings, client timestamp
     logged_at = Column(String, nullable=False)

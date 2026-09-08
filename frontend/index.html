@@ -20,6 +20,8 @@
           var t = localStorage.getItem('sentinel-theme')
           var dark = t === 'dark' || (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
           document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+          var meta = document.querySelector('meta[name="theme-color"]')
+          if (meta) meta.content = dark ? '#151824' : '#F4F9F8'
         } catch (e) {}
       })()
     </script>

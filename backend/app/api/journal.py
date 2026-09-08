@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.api_response import ok
 from app.core.database import get_db
+from app.core.dates import dob_matches_today
 from app.core.dependencies import get_current_user, require_role
 from app.core.idempotency import idempotency_store
 from app.core.input_validator import validate_journal_content
@@ -44,6 +46,7 @@ def create_journal(
         clinical_summary="",
         ai_source="pending",
         emotions="",
+        checkin_data=json.dumps([a.model_dump() for a in entry.checkin], ensure_ascii=False),
         timestamp=datetime.now(UTC).isoformat(),
         created_at=datetime.now(UTC).isoformat(),
         version=1,
@@ -62,6 +65,20 @@ def create_journal(
         raw_content=entry.raw_content,
         timestamp=journal.timestamp,
     )
+
+    if user.assigned_psych:
+        psych = db.query(User).filter(User.username == user.assigned_psych, User.role == "psychologist").first()
+        if psych:
+            from app.services.notify import create_notification
+
+            create_notification(
+                db,
+                patient_username=user.username,
+                recipient_username=psych.username,
+                title="📝 New journal entry",
+                message=f"{user.name or user.username} just wrote a new journal entry — the AI summary will be ready shortly.",
+                notification_type="info",
+            )
 
     background_tasks.add_task(
         analyze_journal_background,
@@ -93,6 +110,109 @@ def get_journals(
         date_to=date_to,
     )
     return paginate(items, page=page, page_size=page_size)
+
+
+@router.get("/prompts")
+def get_journal_prompts(user: User = Depends(require_role("patient")), db: Session = Depends(get_db)):
+    today = _user_local_date(user)
+    prompts: list[dict] = []
+
+    if dob_matches_today(user.dob, today):
+        prompts.append(
+            {
+                "key": "birthday",
+                "emoji": "🎂",
+                "title": "It's your birthday!",
+                "question": "How is your special day going so far?",
+                "options": ["Treating myself 🍰", "Time with people I love", "Quiet, low-key day", "Nothing planned, all good"],
+            }
+        )
+
+    if _low_mood_logged_today(db, user.username, today):
+        prompts.append(_low_mood_card())
+    elif today.weekday() >= 5:
+        prompts.append(_weekly_card(today))
+    elif today.toordinal() % 2 == 0:
+        prompts.append(_daily_card(today))
+
+    return {"prompts": prompts[:2]}
+
+
+LOW_MOOD_LABELS = {"bad", "awful", "terrible"}
+
+WEEKEND_CARDS = [
+    {
+        "emoji": "🌤️",
+        "title": "Weekend weather check",
+        "question": "What's the highlight of your weekend so far?",
+        "options": ["Slow morning ☕", "Time with someone I love", "Something new I tried", "A good meal 🍛", "Just recharging"],
+    },
+    {
+        "emoji": "🪁",
+        "title": "Weekend reset",
+        "question": "How does today feel compared to your week?",
+        "options": ["Lighter 😌", "Same as always", "A bit restless", "Sleepier 😴", "Busier than I'd like"],
+    },
+]
+
+DAILY_CARDS = [
+    {
+        "emoji": "🌼",
+        "title": "Tiny wins",
+        "question": "What's one small thing that felt good today?",
+        "options": ["The weather 🌤️", "A nice chat 💬", "Something I ate 🍲", "Time with myself 🧘", "Nothing yet"],
+    },
+    {
+        "emoji": "🧩",
+        "title": "What's on your mind",
+        "question": "What's taking up space in your head today?",
+        "options": ["Something I'm planning", "A person I keep thinking of", "Work or studies", "My health", "Nothing heavy — all good"],
+    },
+    {
+        "emoji": "🍃",
+        "title": "Present moment",
+        "question": "What did today's calmest moment look like?",
+        "options": ["A deep breath", "A few quiet minutes", "Talking with someone", "Being outdoors 🌳", "A coffee/tea break"],
+    },
+]
+
+
+def _low_mood_card() -> dict:
+    return {
+        "key": "low-mood",
+        "emoji": "🤗",
+        "title": "You logged a rough day — checking in",
+        "question": "What's closest to how you're feeling right now?",
+        "options": ["Overwhelmed 😵", "Low but holding on", "Frustrated or angry", "Anxious", "Mostly just tired"],
+    }
+
+
+def _weekly_card(today) -> dict:
+    card = WEEKEND_CARDS[today.toordinal() % len(WEEKEND_CARDS)]
+    return {"key": "weekend", **card}
+
+
+def _daily_card(today) -> dict:
+    card = DAILY_CARDS[today.toordinal() % len(DAILY_CARDS)]
+    return {"key": "curious", **card}
+
+
+def _low_mood_logged_today(db: Session, username: str, day) -> bool:
+    from app.models.mood import MoodLog
+
+    existing = db.query(MoodLog).filter(MoodLog.patient_username == username, MoodLog.date == day.isoformat()).first()
+    return existing is not None and (existing.label or "").lower() in LOW_MOOD_LABELS
+
+
+def _user_local_date(user: User):
+    from datetime import date, datetime
+    from zoneinfo import ZoneInfo
+
+    tz = user.timezone or "UTC"
+    try:
+        return datetime.now(ZoneInfo(tz)).date()
+    except Exception:
+        return date.today()
 
 
 @router.get("/{username}", response_model=list[JournalResponse])

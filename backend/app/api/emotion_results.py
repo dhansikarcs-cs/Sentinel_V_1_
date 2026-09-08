@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.rbac import ensure_owns_or_psych
 from app.models.emotion_result import EmotionResult
 from app.models.user import User
 from app.schemas.emotion_result import EmotionResultResponse
@@ -17,6 +18,7 @@ def get_emotion_result_by_journal(
     result = db.query(EmotionResult).filter(EmotionResult.journal_id == journal_id).first()
     if not result:
         raise HTTPException(status_code=404, detail="Emotion result not found")
+    ensure_owns_or_psych(result.patient_username, user)
     return result
 
 

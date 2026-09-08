@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -6,9 +7,13 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.api_response import ok
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.dates import compute_age
 from app.core.dependencies import get_current_user, require_role
 from app.core.input_validator import validate_file_upload
+from app.core.location import user_timezone
+from app.core.rbac import owns_or_psych as _owns_or_psych
 from app.events import get_event_bus
 from app.ml.crisis_policy import CRISIS_POLICY
 from app.models.ai_analysis import AIAnalysis
@@ -30,23 +35,37 @@ router = APIRouter(prefix="/patients", tags=["patients"])
 
 
 @router.get("/me")
-def get_me(user: User = Depends(require_role("patient", "psychologist"))):
+def get_me(user: User = Depends(require_role("patient", "psychologist")), db: Session = Depends(get_db)):
+    repo = PatientRepository(db)
+    psych_email = repo.contact_email(user.assigned_psych) if user.assigned_psych else ""
     return ok(
         data={
             "username": user.username,
             "name": user.name,
             "role": user.role,
+            "dob": user.dob or "",
+            "age": compute_age(user.dob),
+            "country": user.country or "",
+            "timezone": user.timezone or "",
             "clinic": user.clinic_code or "",
+            "professional_code": user.professional_code or "",
+            "occupation": user.occupation or "",
             "contact_info": user.contact_info or "",
             "trusted_contact": user.trusted_contact or "",
             "assigned_psych": user.assigned_psych or "",
             "onboarding_step": user.onboarding_step or 0,
+            "psych_email": psych_email,
+            "helpline_email": settings.crisis_helpline_email or settings.email_from,
         }
     )
 
 
 @router.get("/{username}/profile")
-def get_patient_profile(username: str, db: Session = Depends(get_db)):
+def get_patient_profile(
+    username: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if user.role != "psychologist" and user.username != username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     repo = PatientRepository(db)
     user = repo.get_by_username(username)
     if not user:
@@ -59,10 +78,6 @@ def get_patient_profile(username: str, db: Session = Depends(get_db)):
             "clinic": user.clinic_code or "",
         }
     )
-
-
-def _owns_or_psych(username: str, user: User) -> bool:
-    return user.username == username or user.role == "psychologist"
 
 
 @router.get("/{username}/summary")
@@ -112,6 +127,13 @@ def get_patient_summary(username: str, user: User = Depends(get_current_user), d
 class ContactUpdate(BaseModel):
     contact_info: str = ""
     trusted_contact: str = ""
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _is_valid_email(value: str) -> bool:
+    return bool(_EMAIL_RE.match(value.strip()))
 
 
 # Decision-prioritization thresholds (single owner for the overview derivation).
@@ -323,7 +345,8 @@ def get_patient_overview(username: str, user: User = Depends(get_current_user), 
         "username": patient.username,
         "name": patient.name,
         "role": patient.role,
-        "age": patient.age or 0,
+        "age": compute_age(patient.dob),
+        "dob": patient.dob or "",
         "occupation": patient.occupation or "",
         "clinic": patient.clinic_code or "",
         "assigned_psych": patient.assigned_psych or "",
@@ -558,7 +581,8 @@ def get_plain_insights(username: str, user: User = Depends(get_current_user), db
     pack = {
         "allow_ai": True,
         "name": patient.name or patient.username,
-        "age": patient.age or 0,
+        "age": compute_age(patient.dob),
+        "dob": patient.dob or "",
         "mood_trend": metrics.mood_trend,
         "current_mood": metrics.current_mood_avg,
         "previous_mood": metrics.previous_mood_avg,
@@ -584,6 +608,16 @@ def get_plain_insights(username: str, user: User = Depends(get_current_user), db
 
 @router.put("/me/contact")
 def update_contact(update: ContactUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if update.trusted_contact.strip() and not _is_valid_email(update.trusted_contact):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Trusted contact must be a valid email address so crisis alerts can reach them",
+        )
+    if user.role == "psychologist" and update.contact_info.strip() and not _is_valid_email(update.contact_info):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Psychologist contact must be a valid email address so crisis alerts can reach you",
+        )
     repo = PatientRepository(db)
     db_user = repo.get_by_username(user.username)
     if db_user:
@@ -592,6 +626,26 @@ def update_contact(update: ContactUpdate, user: User = Depends(get_current_user)
             db_user.trusted_contact = update.trusted_contact
         db.commit()
         get_event_bus().emit("patient:contact_updated", username=user.username)
+    return ok(message="Updated")
+
+
+class PreferencesUpdate(BaseModel):
+    country: str
+    timezone: str
+
+
+@router.put("/me/preferences")
+def update_preferences(
+    update: PreferencesUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    country = update.country.strip()
+    timezone = user_timezone(country, update.timezone)
+    repo = PatientRepository(db)
+    db_user = repo.get_by_username(user.username)
+    if db_user:
+        db_user.country = country
+        db_user.timezone = timezone
+        db.commit()
     return ok(message="Updated")
 
 
