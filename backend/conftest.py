@@ -74,9 +74,9 @@ def db_session():
 @pytest.fixture()
 def make_user(client):
     def _make(username=None, role="patient", **overrides):
-        from datetime import UTC, datetime as _dt
-
         import os as _os
+        from datetime import UTC
+        from datetime import datetime as _dt
 
         from app.core.database import SessionLocal
         from app.core.security import hash_password

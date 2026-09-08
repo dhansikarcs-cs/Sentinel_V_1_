@@ -43,13 +43,7 @@ def create_notification(
 
 @router.get("", response_model=list[NotificationResponse])
 def get_notifications(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return (
-        db.query(Notification)
-        .filter(_for_user(user.username))
-        .order_by(Notification.sent_at.desc())
-        .limit(50)
-        .all()
-    )
+    return db.query(Notification).filter(_for_user(user.username)).order_by(Notification.sent_at.desc()).limit(50).all()
 
 
 @router.get("/unread", response_model=list[NotificationResponse])
@@ -69,11 +63,7 @@ def mark_notification_read(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    notif = (
-        db.query(Notification)
-        .filter(Notification.id == notification_id, _for_user(user.username))
-        .first()
-    )
+    notif = db.query(Notification).filter(Notification.id == notification_id, _for_user(user.username)).first()
     if notif:
         notif.read = 1 if data.read else 0
         db.commit()

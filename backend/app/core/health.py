@@ -43,16 +43,21 @@ def check_database_write() -> dict:
                 next_version = (int(current) + 1) % 1000000
                 db.execute(text(f"PRAGMA user_version = {next_version}"))
             else:
-                db.execute(text("""
+                db.execute(
+                    text("""
                     CREATE TABLE IF NOT EXISTS _health_writes (
                         id   int PRIMARY KEY,
                         val  text NOT NULL
                     )
-                """))
-                db.execute(text("""
+                """)
+                )
+                db.execute(
+                    text("""
                     INSERT INTO _health_writes (id, val) VALUES (1, :ts)
                     ON CONFLICT (id) DO UPDATE SET val = :ts
-                """), {"ts": str(int(time.time()))})
+                """),
+                    {"ts": str(int(time.time()))},
+                )
             db.commit()
             latency_ms = round((time.perf_counter() - start) * 1000, 2)
             return {"status": "up", "latency_ms": latency_ms}

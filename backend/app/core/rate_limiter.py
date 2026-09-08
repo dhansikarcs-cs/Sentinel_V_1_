@@ -26,7 +26,9 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         # shared per-IP limiter would wrongly throttle many devices behind one
         # gateway. Only IP-limit unauthenticated paths.
         p = request.url.path
-        if p.endswith("/ring/data") and (request.headers.get("X-Device-Serial") and request.headers.get("X-Device-Token")):
+        if p.endswith("/ring/data") and (
+            request.headers.get("X-Device-Serial") and request.headers.get("X-Device-Token")
+        ):
             return await call_next(request)
 
         client_ip = request.client.host if request.client else "unknown"

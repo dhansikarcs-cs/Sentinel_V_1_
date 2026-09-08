@@ -124,7 +124,12 @@ def get_journal_prompts(user: User = Depends(require_role("patient")), db: Sessi
                 "emoji": "🎂",
                 "title": "It's your birthday!",
                 "question": "How is your special day going so far?",
-                "options": ["Treating myself 🍰", "Time with people I love", "Quiet, low-key day", "Nothing planned, all good"],
+                "options": [
+                    "Treating myself 🍰",
+                    "Time with people I love",
+                    "Quiet, low-key day",
+                    "Nothing planned, all good",
+                ],
             }
         )
 
@@ -145,7 +150,13 @@ WEEKEND_CARDS = [
         "emoji": "🌤️",
         "title": "Weekend weather check",
         "question": "What's the highlight of your weekend so far?",
-        "options": ["Slow morning ☕", "Time with someone I love", "Something new I tried", "A good meal 🍛", "Just recharging"],
+        "options": [
+            "Slow morning ☕",
+            "Time with someone I love",
+            "Something new I tried",
+            "A good meal 🍛",
+            "Just recharging",
+        ],
     },
     {
         "emoji": "🪁",
@@ -166,13 +177,25 @@ DAILY_CARDS = [
         "emoji": "🧩",
         "title": "What's on your mind",
         "question": "What's taking up space in your head today?",
-        "options": ["Something I'm planning", "A person I keep thinking of", "Work or studies", "My health", "Nothing heavy — all good"],
+        "options": [
+            "Something I'm planning",
+            "A person I keep thinking of",
+            "Work or studies",
+            "My health",
+            "Nothing heavy — all good",
+        ],
     },
     {
         "emoji": "🍃",
         "title": "Present moment",
         "question": "What did today's calmest moment look like?",
-        "options": ["A deep breath", "A few quiet minutes", "Talking with someone", "Being outdoors 🌳", "A coffee/tea break"],
+        "options": [
+            "A deep breath",
+            "A few quiet minutes",
+            "Talking with someone",
+            "Being outdoors 🌳",
+            "A coffee/tea break",
+        ],
     },
 ]
 

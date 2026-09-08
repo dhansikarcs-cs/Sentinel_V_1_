@@ -9,7 +9,16 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _register(client, username: str, *, dob: str, timezone: str = "", country: str = "India", password: str = "Str0ng!Pass1", **extra):
+def _register(
+    client,
+    username: str,
+    *,
+    dob: str,
+    timezone: str = "",
+    country: str = "India",
+    password: str = "Str0ng!Pass1",
+    **extra,
+):
     payload = {
         "username": username,
         "password": password,
@@ -67,7 +76,14 @@ def test_register_with_dob_and_computed_age(client):
 def test_register_rejects_future_dob(client):
     resp = client.post(
         "/api/auth/register",
-        json={"username": "future_dob", "password": "Str0ng!Pass1", "name": "Future Person", "dob": "3080-01-01", "occupation": "Student", "country": "India"},
+        json={
+            "username": "future_dob",
+            "password": "Str0ng!Pass1",
+            "name": "Future Person",
+            "dob": "3080-01-01",
+            "occupation": "Student",
+            "country": "India",
+        },
     )
     assert resp.status_code == 422
 
@@ -88,7 +104,14 @@ def test_timezone_defaults_from_country(client):
 def test_invalid_timezone_rejects(client):
     resp = client.post(
         "/api/auth/register",
-        json={"username": "bad_tz", "password": "Str0ng!Pass1", "name": "Bad TZ", "dob": "2006-05-14", "occupation": "Student", "timezone": "Not/A/Timezone"},
+        json={
+            "username": "bad_tz",
+            "password": "Str0ng!Pass1",
+            "name": "Bad TZ",
+            "dob": "2006-05-14",
+            "occupation": "Student",
+            "timezone": "Not/A/Timezone",
+        },
     )
     assert resp.status_code == 422
 
@@ -96,7 +119,9 @@ def test_invalid_timezone_rejects(client):
 def test_preferences_update(client):
     _register(client, "pref_user", dob="2006-05-14", country="India")
     headers = _login_and_headers(client, "pref_user")
-    resp = client.put("/api/patients/me/preferences", json={"country": "Australia", "timezone": "Australia/Sydney"}, headers=headers)
+    resp = client.put(
+        "/api/patients/me/preferences", json={"country": "Australia", "timezone": "Australia/Sydney"}, headers=headers
+    )
     assert resp.status_code == 200
     me = client.get("/api/patients/me", headers=headers).json()["data"]
     assert me["country"] == "Australia"
@@ -146,7 +171,9 @@ def test_journal_prompts_curious_card_even_day(client):
     # Use 2026-11-11 (Tuesday) -> 739569 odd; use 2026-11-10 (Monday) -> 739568 even, not weekend.
     with _patch_journal_today(date(2026, 11, 10)):
         _register(client, "curious_pat", dob="1996-05-01")
-        prompts = client.get("/api/journal/prompts", headers=_login_and_headers(client, "curious_pat")).json()["prompts"]
+        prompts = client.get("/api/journal/prompts", headers=_login_and_headers(client, "curious_pat")).json()[
+            "prompts"
+        ]
         assert prompts and prompts[0]["key"] == "curious"
 
 
@@ -161,7 +188,9 @@ def test_journal_prompts_odd_day_no_card(client):
 def test_journal_prompts_low_mood_card(client, make_user, db_session):
     patient = make_user(role="patient", dob="1996-01-01")
     # Log a "bad" mood today
-    client.post("/api/mood", json={"date": "2026-09-08", "emoji": "😞", "label": "bad"}, headers=_auth(patient["access_token"]))
+    client.post(
+        "/api/mood", json={"date": "2026-09-08", "emoji": "😞", "label": "bad"}, headers=_auth(patient["access_token"])
+    )
     with _patch_journal_today(date(2026, 9, 8)):
         prompts = client.get("/api/journal/prompts", headers=_auth(patient["access_token"])).json()["prompts"]
         assert prompts and prompts[0]["key"] == "low-mood"
@@ -171,7 +200,12 @@ def test_journal_prompts_birthday_takes_priority(client):
     # Birthday + weekend same day
     with _patch_journal_today(date(2026, 11, 14)):  # Saturday
         _register(client, "bday_wknd", dob="1996-11-14")
-        keys = {p["key"] for p in client.get("/api/journal/prompts", headers=_login_and_headers(client, "bday_wknd")).json()["prompts"]}
+        keys = {
+            p["key"]
+            for p in client.get("/api/journal/prompts", headers=_login_and_headers(client, "bday_wknd")).json()[
+                "prompts"
+            ]
+        }
         assert "birthday" in keys
         assert "weekend" in keys  # both appear, capped to 2
 
@@ -180,9 +214,14 @@ def test_journal_prompts_low_mood_plus_weekend_max_two(client, make_user):
     # Register user whose birthday is today, weekend, plus low-mood
     # max 2 cards: birthday + low-mood (low-mood beats weekend)
     patient = make_user(role="patient", dob="1996-11-14", timezone="UTC")
-    client.post("/api/mood", json={"date": "2026-11-14", "emoji": "😞", "label": "bad"}, headers=_auth(patient["access_token"]))
+    client.post(
+        "/api/mood", json={"date": "2026-11-14", "emoji": "😞", "label": "bad"}, headers=_auth(patient["access_token"])
+    )
     with _patch_journal_today(date(2026, 11, 14)):
-        keys = {p["key"] for p in client.get("/api/journal/prompts", headers=_auth(patient["access_token"])).json()["prompts"]}
+        keys = {
+            p["key"]
+            for p in client.get("/api/journal/prompts", headers=_auth(patient["access_token"])).json()["prompts"]
+        }
         assert "birthday" in keys
         assert "low-mood" in keys
         assert len(keys) == 2
@@ -222,7 +261,9 @@ def test_celebrations_worker_no_birthday_wrong_day(client):
 
     _register(client, "no_bday", dob="1996-03-04", timezone="UTC")
     _sweep_celebrations(on=date(2026, 3, 5))
-    titles = [n["title"] for n in client.get("/api/notifications", headers=_login_and_headers(client, "no_bday")).json()]
+    titles = [
+        n["title"] for n in client.get("/api/notifications", headers=_login_and_headers(client, "no_bday")).json()
+    ]
     assert titles == []
 
 
@@ -232,10 +273,14 @@ def test_celebrations_worker_respects_tz(client):
     # user in Asia/Tokyo (+9) birthday Mar 4 -> sweep on Mar 3 UTC still 20:00 JST same day
     _register(client, "tokyo_bday", dob="1996-03-04", timezone="Asia/Tokyo")
     _sweep_celebrations(on=date(2026, 3, 3))  # UTC date 3, but tokyo date 3 -> no birthday
-    titles = [n["title"] for n in client.get("/api/notifications", headers=_login_and_headers(client, "tokyo_bday")).json()]
+    titles = [
+        n["title"] for n in client.get("/api/notifications", headers=_login_and_headers(client, "tokyo_bday")).json()
+    ]
     assert titles == []
     _sweep_celebrations(on=date(2026, 3, 4))  # UTC 4 -> tokyo still 4 -> birthday fires
-    titles = [n["title"] for n in client.get("/api/notifications", headers=_login_and_headers(client, "tokyo_bday")).json()]
+    titles = [
+        n["title"] for n in client.get("/api/notifications", headers=_login_and_headers(client, "tokyo_bday")).json()
+    ]
     assert "🎂 Happy Birthday!" in titles
 
 

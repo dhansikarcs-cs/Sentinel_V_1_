@@ -102,21 +102,47 @@ def test_peer_patient_cannot_read_other_patient_clinical_data(client, make_user,
     _seed_clinical_rows(db_session, owner["username"], jid)
 
     # owner can read
-    assert client.get(f"/api/risk-assessments/patient/{owner['username']}", headers=_auth(owner["access_token"])).status_code == 200
-    assert client.get(f"/api/ai-analyses/patient/{owner['username']}", headers=_auth(owner["access_token"])).status_code == 200
+    assert (
+        client.get(
+            f"/api/risk-assessments/patient/{owner['username']}", headers=_auth(owner["access_token"])
+        ).status_code
+        == 200
+    )
+    assert (
+        client.get(f"/api/ai-analyses/patient/{owner['username']}", headers=_auth(owner["access_token"])).status_code
+        == 200
+    )
     assert client.get(f"/api/emotion-results/journal/{jid}", headers=_auth(owner["access_token"])).status_code == 200
 
     # attacker blocked with 403, not leaked
-    assert client.get(f"/api/risk-assessments/patient/{owner['username']}", headers=_auth(attacker["access_token"])).status_code == 403
-    assert client.get(f"/api/risk-assessments/journal/{jid}", headers=_auth(attacker["access_token"])).status_code == 403
-    assert client.get(f"/api/ai-analyses/patient/{owner['username']}", headers=_auth(attacker["access_token"])).status_code == 403
+    assert (
+        client.get(
+            f"/api/risk-assessments/patient/{owner['username']}", headers=_auth(attacker["access_token"])
+        ).status_code
+        == 403
+    )
+    assert (
+        client.get(f"/api/risk-assessments/journal/{jid}", headers=_auth(attacker["access_token"])).status_code == 403
+    )
+    assert (
+        client.get(f"/api/ai-analyses/patient/{owner['username']}", headers=_auth(attacker["access_token"])).status_code
+        == 403
+    )
     assert client.get(f"/api/ai-analyses/journal/{jid}", headers=_auth(attacker["access_token"])).status_code == 403
     assert client.get(f"/api/emotion-results/journal/{jid}", headers=_auth(attacker["access_token"])).status_code == 403
-    assert client.get(f"/api/emotions/summary/{owner['username']}", headers=_auth(attacker["access_token"])).status_code == 403
+    assert (
+        client.get(f"/api/emotions/summary/{owner['username']}", headers=_auth(attacker["access_token"])).status_code
+        == 403
+    )
 
     # psychologist still allowed
     psych = make_user(role="psychologist")
-    assert client.get(f"/api/risk-assessments/patient/{owner['username']}", headers=_auth(psych["access_token"])).status_code == 200
+    assert (
+        client.get(
+            f"/api/risk-assessments/patient/{owner['username']}", headers=_auth(psych["access_token"])
+        ).status_code
+        == 200
+    )
 
 
 def test_crisis_log_scoped_to_own_patient(client, make_user, db_session):
@@ -172,9 +198,7 @@ def test_refresh_rotation_invalidates_old_token(client, make_user):
 
 def test_logout_revokes_refresh_token(client, make_user):
     user = make_user()
-    login = client.post(
-        "/api/auth/login", json={"username": user["username"], "password": user["password"]}
-    )
+    login = client.post("/api/auth/login", json={"username": user["username"], "password": user["password"]})
     refresh = login.json()["refresh_token"]
     assert client.post("/api/auth/logout").status_code == 200
     assert client.post("/api/auth/refresh", json={"refresh_token": refresh}).status_code == 401
@@ -185,8 +209,9 @@ def test_logout_revokes_refresh_token(client, make_user):
 
 def test_ws_psych_rejects_patient_token(client, make_user):
     patient = make_user()
-    with pytest.raises(WebSocketDisconnect) as exc, client.websocket_connect(
-        f"/api/ws/psych?token={patient['access_token']}"
+    with (
+        pytest.raises(WebSocketDisconnect) as exc,
+        client.websocket_connect(f"/api/ws/psych?token={patient['access_token']}"),
     ):
         pass
     assert exc.value.code == 1008

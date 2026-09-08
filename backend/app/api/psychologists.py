@@ -36,7 +36,13 @@ def get_assigned_patients(user: User = Depends(require_role("psychologist")), db
 def get_available_psychologists(clinic: str = "", db: Session = Depends(get_db)):
     repo = PatientRepository(db)
     return [
-        {"username": p.username, "name": p.name, "professional_code": p.professional_code or "", "clinic": p.clinic_code or "", "specialisation": p.occupation or ""}
+        {
+            "username": p.username,
+            "name": p.name,
+            "professional_code": p.professional_code or "",
+            "clinic": p.clinic_code or "",
+            "specialisation": p.occupation or "",
+        }
         for p in repo.get_psychologists(clinic)
     ]
 

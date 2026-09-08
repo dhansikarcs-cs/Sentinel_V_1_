@@ -54,9 +54,7 @@ def test_anymore_does_not_neutralize_cant():
 
 
 def test_cross_window_negation_does_not_bleed():
-    disc, sentiment, bio, _ = _detect(
-        "not feeling great today but actually today was better", 60, 30
-    )
+    disc, sentiment, bio, _ = _detect("not feeling great today but actually today was better", 60, 30)
     assert sentiment == "neutral"
 
 

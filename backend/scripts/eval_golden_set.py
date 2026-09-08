@@ -40,7 +40,10 @@ GOLDEN_RISK = [
 
 GOLDEN_EMOTIONS = [
     ("angry_mad", "I am so mad and furious right now.", ["anger"]),
-    ("grateful", "I'm so grateful for everyone who helped me.", ["gratitude"]),
+    # honest sentence post no-leakage retrain (Aug 2026): the model learns
+    # gratitude from "thank you" tokens; the previous phrase leaned on the
+    # leaky model that had memorized the old test sentence verbatim.
+    ("grateful", "I'm so grateful for everyone who helped me. Thank you all so much.", ["gratitude"]),
     ("loving", "I love them so much, my heart is full.", ["love"]),
     ("sad", "I feel so sad, tears won't stop.", ["sadness"]),
 ]

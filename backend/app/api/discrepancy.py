@@ -217,9 +217,7 @@ def _effective_sentiment(lower: str) -> tuple[set[str], set[str]]:
                 neg_hits.add(w)
             else:
                 pos_hits.add(w)
-        elif not idiom_headed and (
-            w in {"nothing", "nobody", "none"} or w in NEGATIVE_SET and not prefix_negated[i]
-        ):
+        elif not idiom_headed and (w in {"nothing", "nobody", "none"} or w in NEGATIVE_SET and not prefix_negated[i]):
             neg_hits.add(w)
 
     for phrase in _MULTIWORD_NEGATIVE:

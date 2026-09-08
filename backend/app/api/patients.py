@@ -61,9 +61,7 @@ def get_me(user: User = Depends(require_role("patient", "psychologist")), db: Se
 
 
 @router.get("/{username}/profile")
-def get_patient_profile(
-    username: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
+def get_patient_profile(username: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.role != "psychologist" and user.username != username:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     repo = PatientRepository(db)

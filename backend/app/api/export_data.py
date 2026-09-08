@@ -112,7 +112,17 @@ def export_patient_data(user: User = Depends(require_role("psychologist")), db: 
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(
-        ["Patient", "Name", "Age", "Date of Birth", "Occupation", "Clinic", "Assigned Psych", "Onboarding Step", "Registered"]
+        [
+            "Patient",
+            "Name",
+            "Age",
+            "Date of Birth",
+            "Occupation",
+            "Clinic",
+            "Assigned Psych",
+            "Onboarding Step",
+            "Registered",
+        ]
     )
 
     for p in patients:

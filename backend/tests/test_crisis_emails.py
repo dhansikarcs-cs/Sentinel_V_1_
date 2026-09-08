@@ -20,13 +20,11 @@ def test_notify_emails_trusted_contact_and_psychologist(client, make_user, db_se
     captured = []
     monkeypatch.setattr(
         "app.api.crisis.send_email",
-        lambda to, subject, body: (captured.append((to, subject)) or True),
+        lambda to, subject, body: captured.append((to, subject)) or True,
     )
     psych = make_user(role="psychologist")
     patient = make_user(role="patient")
-    db_session.query(User).filter(User.username == psych["username"]).update(
-        {"contact_info": "psych@example.com"}
-    )
+    db_session.query(User).filter(User.username == psych["username"]).update({"contact_info": "psych@example.com"})
     _set_patient(db_session, patient["username"], "mom@example.com", psych["username"])
 
     h = auth_headers(patient["access_token"])
@@ -46,13 +44,11 @@ def test_notify_without_trusted_contact_still_emails_psychologist(client, make_u
     captured = []
     monkeypatch.setattr(
         "app.api.crisis.send_email",
-        lambda to, subject, body: (captured.append((to, subject)) or True),
+        lambda to, subject, body: captured.append((to, subject)) or True,
     )
     psych = make_user(role="psychologist")
     patient = make_user(role="patient")
-    db_session.query(User).filter(User.username == psych["username"]).update(
-        {"contact_info": "psych@example.com"}
-    )
+    db_session.query(User).filter(User.username == psych["username"]).update({"contact_info": "psych@example.com"})
     _set_patient(db_session, patient["username"], "", psych["username"])
 
     h = auth_headers(patient["access_token"])
@@ -71,13 +67,11 @@ def test_auto_escalation_emails_trusted_contact_and_psychologist(client, make_us
     captured = []
     monkeypatch.setattr(
         "app.api.crisis.send_email",
-        lambda to, subject, body: (captured.append((to, subject)) or True),
+        lambda to, subject, body: captured.append((to, subject)) or True,
     )
     psych = make_user(role="psychologist")
     patient = make_user(role="patient")
-    db_session.query(User).filter(User.username == psych["username"]).update(
-        {"contact_info": "psych@example.com"}
-    )
+    db_session.query(User).filter(User.username == psych["username"]).update({"contact_info": "psych@example.com"})
     _set_patient(db_session, patient["username"], "mom@example.com", psych["username"])
 
     h = auth_headers(patient["access_token"])
@@ -97,10 +91,14 @@ def test_contact_update_rejects_phone_for_trusted_contact(client, make_user):
     patient = make_user(role="patient")
     h = auth_headers(patient["access_token"])
 
-    ok = client.put("/api/patients/me/contact", json={"contact_info": "5551234", "trusted_contact": "mom@example.com"}, headers=h)
+    ok = client.put(
+        "/api/patients/me/contact", json={"contact_info": "5551234", "trusted_contact": "mom@example.com"}, headers=h
+    )
     assert ok.status_code == 200
 
-    bad = client.put("/api/patients/me/contact", json={"contact_info": "", "trusted_contact": "just-a-phone-number"}, headers=h)
+    bad = client.put(
+        "/api/patients/me/contact", json={"contact_info": "", "trusted_contact": "just-a-phone-number"}, headers=h
+    )
     assert bad.status_code == 400
 
 
@@ -111,7 +109,9 @@ def test_contact_update_rejects_phone_for_psychologist_email(client, make_user):
     bad = client.put("/api/patients/me/contact", json={"contact_info": "5551234", "trusted_contact": ""}, headers=h)
     assert bad.status_code == 400
 
-    ok = client.put("/api/patients/me/contact", json={"contact_info": "psych@example.com", "trusted_contact": ""}, headers=h)
+    ok = client.put(
+        "/api/patients/me/contact", json={"contact_info": "psych@example.com", "trusted_contact": ""}, headers=h
+    )
     assert ok.status_code == 200
 
 
@@ -119,9 +119,7 @@ def test_get_me_exposes_psych_email_and_helpline_email(client, make_user, db_ses
     monkeypatch.setattr(settings, "crisis_helpline_email", "help@example.com")
     psych = make_user(role="psychologist")
     patient = make_user(role="patient")
-    db_session.query(User).filter(User.username == psych["username"]).update(
-        {"contact_info": "psych@example.com"}
-    )
+    db_session.query(User).filter(User.username == psych["username"]).update({"contact_info": "psych@example.com"})
     _set_patient(db_session, patient["username"], "mom@example.com", psych["username"])
 
     me = client.get("/api/patients/me", headers=auth_headers(patient["access_token"])).json()["data"]

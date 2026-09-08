@@ -34,16 +34,16 @@ class PhysiologicalSignal(Base):
 
     # Normalized vitals (kept numeric/queryable by design)
     heart_rate = Column(Integer, default=0)
-    hrv_rmssd = Column(Float, default=0.0)      # heart rate variability (ms)
-    stress = Column(Integer, default=0)          # 0-100
+    hrv_rmssd = Column(Float, default=0.0)  # heart rate variability (ms)
+    stress = Column(Integer, default=0)  # 0-100
     sleep_hours = Column(Float, default=0.0)
-    spo2 = Column(Float, default=0.0)            # 0-100 %
-    temperature = Column(Float, default=0.0)     # deg C
+    spo2 = Column(Float, default=0.0)  # 0-100 %
+    temperature = Column(Float, default=0.0)  # deg C
     respiratory_rate = Column(Integer, default=0)
 
     # Provenance / quality (for the four-model experiment)
     quality = Column(String, default="unknown")  # good | fair | poor | unknown
-    confidence = Column(Float, default=0.0)      # 0-1
+    confidence = Column(Float, default=0.0)  # 0-1
 
     # Raw vendor payload (encrypted) — provenance only, not interpreted
     raw_json = Column(EncryptedText, default="")

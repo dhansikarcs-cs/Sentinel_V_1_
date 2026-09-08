@@ -31,6 +31,19 @@ IRIS/
 IRIS_2026_SENTINEL/
 MindRise*
 *.tsbuildinfo
+# docs kept locally in the workspace, not published to GitHub
+kiot/
+docs/business/
+docs/research/
+docs/hosting-plan.md
+docs/proposal_1000.md
+docs/proposal_1000.pdf
+docs/proposal_250.md
+docs/proposal_250.pdf
+docs/proposal_500.md
+docs/proposal_sports_psychologist.md
+docs/Sentinel.pdf
+docs/ENGINEERING_LOGBOOK.pdf
 test.pdf
 # private review artifacts (never pushed)
 concerns.md

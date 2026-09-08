@@ -44,20 +44,18 @@ def _sweep_celebrations(on: date | None = None) -> None:
         patients = db.query(User).filter(User.role == "patient", User.deleted_at.is_(None)).all()
         for p in patients:
             today = on or _user_today(p)
-            if dob_matches_today(p.dob, today) and not _already_sent_recently(
-                db, p.username, BIRTHDAY_TITLE
-            ):
-                    db.add(
-                        Notification(
-                            patient_username=p.username,
-                            title=BIRTHDAY_TITLE,
-                            message="Wishing you a day full of little joys. 🧁 Your journal has a quick birthday card waiting for you!",
-                            notification_type="celebration",
-                            read=0,
-                            sent_at=datetime.now(UTC).isoformat(),
-                        )
+            if dob_matches_today(p.dob, today) and not _already_sent_recently(db, p.username, BIRTHDAY_TITLE):
+                db.add(
+                    Notification(
+                        patient_username=p.username,
+                        title=BIRTHDAY_TITLE,
+                        message="Wishing you a day full of little joys. 🧁 Your journal has a quick birthday card waiting for you!",
+                        notification_type="celebration",
+                        read=0,
+                        sent_at=datetime.now(UTC).isoformat(),
                     )
-                    db.commit()
+                )
+                db.commit()
     except Exception:
         logger.exception("celebration sweep failed")
     finally:
