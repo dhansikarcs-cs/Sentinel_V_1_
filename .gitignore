@@ -23,6 +23,8 @@ backend/*.db-wal
 frontend/node_modules/
 frontend/dist/
 archive/
+*.zip
+*.tgz
 *.tsbuildinfo
 test.pdf
 # private review artifacts (never pushed)

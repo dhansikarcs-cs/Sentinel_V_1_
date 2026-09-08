@@ -53,8 +53,6 @@ sentinel3/
 │   └── src/{api,components,lib,pages,stores}
 ├── scripts/                           # ring_bridge, sim_ring, test_ring_api, seeding, ML training
 ├── docs/                              # Design, decisions, judge Q&A, hardware roadmap
-├── generate_paper.py                  # → docs/sentinel_paper.pdf (research paper)
-├── generate_docs_pdf.py               # → judge-prep PDFs
 ├── docker-compose.yml
 └── README.md
 ```
