@@ -44,6 +44,15 @@ docs/proposal_500.md
 docs/proposal_sports_psychologist.md
 docs/Sentinel.pdf
 docs/ENGINEERING_LOGBOOK.pdf
+# scratch probes/experiments (local only)
+backend/probe_discrepancy.py
+backend/check_discrepancy_regression.py
+backend/sweep_api.py
+backend/seed_hrvdemo.py
+backend/benchmarks/run_*
+backend/benchmarks/research_*
+generate_proposal_variants.py
+proposal.md
 test.pdf
 # private review artifacts (never pushed)
 concerns.md
