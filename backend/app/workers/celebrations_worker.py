@@ -5,12 +5,14 @@ from zoneinfo import ZoneInfo
 
 from app.core.database import SessionLocal
 from app.core.dates import dob_matches_today
+from app.core.leader import leader
 from app.models.notification import Notification
 from app.models.user import User
 
 logger = logging.getLogger("sentinel")
 
 _SWEEP_SECONDS = 60 * 60 * 6  # every 6 hours
+_LEADER_RETRY_SECONDS = 30
 
 BIRTHDAY_TITLE = "🎂 Happy Birthday!"
 _RECENT_WINDOW = timedelta(hours=30)  # avoid duplicates across sweep runs
@@ -65,6 +67,9 @@ def _sweep_celebrations(on: date | None = None) -> None:
 async def celebrations_loop() -> None:
     loop = asyncio.get_running_loop()
     while True:
+        if not await leader.ensure():
+            await asyncio.sleep(_LEADER_RETRY_SECONDS)
+            continue
         try:
             await loop.run_in_executor(None, _sweep_celebrations)
         except Exception:

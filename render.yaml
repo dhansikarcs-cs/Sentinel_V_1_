@@ -39,6 +39,9 @@ services:
 
   - type: worker
     name: sentinel-scheduler
+    # Runs with a PostgreSQL advisory lock so multiple replicas are failover-safe:
+    # exactly one active scheduler drives the reminder/celebration loops. To scale
+    # out, increase the instance count on this worker; the rest stand by.
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend

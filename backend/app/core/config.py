@@ -40,6 +40,18 @@ class Settings(BaseSettings):
     rate_limit_window: int = 60
     rate_limit_backend: str = "memory"  # "memory" (single process) | "db" (shared via DATABASE_URL)
 
+    # WebSocket fan-out. "auto" enables PostgreSQL LISTEN/NOTIFY whenever
+    # DATABASE_URL is postgres (SQLite stays single-process/local); "pg" forces
+    # it; "off" disables cross-process broadcast entirely.
+    ws_pubsub: str = "auto"
+
+    # Scheduler leader election (PostgreSQL only). Several scheduler replicas may
+    # run; exactly one holds the advisory lock and drives the reminder /
+    # celebration loops. The lock is released automatically if that process dies,
+    # so a replica takes over (failover-safe). Ignored on SQLite.
+    scheduler_lock_key: int = 749493
+    scheduler_heartbeat_seconds: int = 10
+
     # Set RUN_WORKERS=false on any process that should NOT run scheduler loops
     # (e.g. uvicorn --workers 4 API boxes); one dedicated process/service runs them.
     run_workers: bool = True

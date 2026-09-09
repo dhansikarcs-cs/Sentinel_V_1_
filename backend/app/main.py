@@ -54,6 +54,8 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.structured_errors import ErrorCode, make_error
 from app.events import get_event_bus
 from app.events.subscribers import register_all_subscribers
+from app.services import ws_pubsub
+from app.services.websocket_manager import manager
 
 logger = logging.getLogger("sentinel")
 
@@ -99,22 +101,29 @@ async def lifespan(app: FastAPI):
     _init_db()
     register_all_subscribers(get_event_bus())
     logger.info("Event subscribers registered")
-    if not settings.run_workers:
-        logger.info("run_workers=false — scheduler loops are NOT running in this process")
-        yield
-        return
-    from app.workers.celebrations_worker import celebrations_loop
-    from app.workers.reminder_worker import reminder_loop
-
-    reminder_task = asyncio.create_task(reminder_loop())
-    celebration_task = asyncio.create_task(celebrations_loop())
-    logger.info("Journal reminder worker started")
-    logger.info("Celebrations worker started")
+    manager.start_pubsub(asyncio.get_running_loop())
+    logger.info("WebSocket pub/sub manager ready (pg_enabled=%s)", ws_pubsub.pubsub_enabled())
+    reminder_task = None
+    celebration_task = None
     try:
+        if not settings.run_workers:
+            logger.info("run_workers=false — scheduler loops are NOT running in this process")
+            yield
+            return
+        from app.workers.celebrations_worker import celebrations_loop
+        from app.workers.reminder_worker import reminder_loop
+
+        reminder_task = asyncio.create_task(reminder_loop())
+        celebration_task = asyncio.create_task(celebrations_loop())
+        logger.info("Journal reminder worker started")
+        logger.info("Celebrations worker started")
         yield
     finally:
-        reminder_task.cancel()
-        celebration_task.cancel()
+        if reminder_task is not None:
+            reminder_task.cancel()
+        if celebration_task is not None:
+            celebration_task.cancel()
+        manager.stop_pubsub()
 
 
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)

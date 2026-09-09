@@ -44,8 +44,9 @@ services:
     networks:
       - internal
 
-  # Exactly ONE scheduler: runs the reminder/celebration loops so no API worker
-  # duplicates notifications.
+  # Scheduler for the reminder/celebration loops. Replicas are failover-safe:
+  # a PostgreSQL advisory lock elects exactly ONE active scheduler; if it dies the
+  # lock is released and a replica takes over. API workers never run the loops.
   sentinel-scheduler:
     build: ./backend
     profiles: ["scaled"]

@@ -64,6 +64,8 @@ Set `BACKEND_URL` to `https://sentinel-backend.onrender.com` (public) or the int
 | `EMAIL_FROM`, `CRISIS_HELPLINE_EMAIL` | — | sender + helpline contact (crisis escalation) |
 | `LOG_FORMAT` | `json` | `json` = one JSON object per line; `text` = human-readable |
 | `RATE_LIMIT_BACKEND` | `memory` | `memory` = in-process sliding window (single worker); `db` = fixed-window counters shared via `DATABASE_URL` |
+| `WS_PUBSUB` | `auto` | `auto` = PG `LISTEN/NOTIFY` when `DATABASE_URL` is postgres; `pg` = force; `off` = single-process local broadcasts |
+| `SCHEDULER_LOCK_KEY` / `SCHEDULER_HEARTBEAT_SECONDS` | `749493` / `10` | advisory-lock leader election; the key must match across scheduler replicas |
 | `RUN_WORKERS` | `true` | `false` on API processes when a dedicated scheduler service runs the loops |
 | `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | `10` / `20` | SQLAlchemy pool for PostgreSQL/MySQL (ignored for SQLite) |
 | `DB_POOL_TIMEOUT` / `DB_POOL_RECYCLE` / `DB_POOL_PRE_PING` | `30` / `1800` / `true` | pool health defaults |
@@ -75,23 +77,29 @@ All settings are read in `backend/app/core/config.py` (`pydantic-settings`, env 
 
 Sentinel is multi-worker safe by design:
 
-- **Exactly one scheduler.** Reminder + celebration loops run in one place. API workers
+- **Single active scheduler with failover.** Reminder + celebration loops use a PG
+  advisory lock (`pg_try_advisory_lock` on `SCHEDULER_LOCK_KEY`). Any number of
+  scheduler replicas can run; exactly one holds the lock and sweeps, and the lock
+  is freed automatically if that process dies, so a replica takes over. API workers
   set `RUN_WORKERS=false`; the `sentinel-scheduler` service (or Docker
-  `--profile scaled` service) runs `python -m app.workers.runner`. This prevents
-  duplicate notifications when more than one uvicorn process is up.
+  `--profile scaled` service) runs `python -m app.workers.runner`.
+- **Cross-worker WebSocket fan-out.** Crisis/discrepancy broadcasts use PostgreSQL
+  `LISTEN/NOTIFY` (`WS_PUBSUB=auto`): every API worker publishes alerts to the
+  `sentinel_ws` channel, every worker listens on a dedicated connection and pushes
+  to its own local dashboard clients — so a client connected to ANY worker sees
+  the alert. On SQLite this stays single-process/local automatically.
 - **Shared rate limits.** `RATE_LIMIT_BACKEND=db` moves the per-IP budget from per-process
   memory into `rate_limit_counters` (atomic upsert), so the budget holds across N workers.
 - **Shared revocation.** The JWT blacklist is DB-backed (`token_blacklist` table), so a
   logout on one worker is honored by all.
 - **PostgreSQL.** `DATABASE_URL=postgresql://...` gives real multi-writer concurrency and
-  pooling. Schema is managed by Alembic (`alembic upgrade head`; migration
-  `9f3e2a1b7c4d` adds the two scale tables). `alembic/env.py` honors `DATABASE_URL`
-  and bootstraps a fresh database from the ORM before applying idempotent migrations,
-  so empty DBs and already-formed DBs both converge to head. SQLite remains the default for local dev.
-- **Boundaries that stay single-process.** The live WebSocket broadcast reaches clients on
-  the same process only; crisis *state* is persisted in the DB, so syncs are never lost,
-  but push fan-out across workers needs a pub/sub layer (Redis or PG `LISTEN/NOTIFY`)
-  before running many API instances with WS clients split between them.
+  pooling (`psycopg2-binary` is in `requirements.txt`). Schema is managed by Alembic
+  (`alembic upgrade head`; migration `9f3e2a1b7c4d` adds the two scale tables).
+  `alembic/env.py` honors `DATABASE_URL` and bootstraps a fresh database from the ORM
+  before applying idempotent migrations, so empty DBs and already-formed DBs both
+  converge to head. SQLite remains the default for local dev.
+- **Crisis state and syncs are always DB-persisted**; the pub/sub layer only pushes
+  dashboards, so nothing is lost if a publish fails.
 
 Local scaled layout:
 

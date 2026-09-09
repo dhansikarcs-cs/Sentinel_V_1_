@@ -3,6 +3,7 @@ import logging
 from datetime import UTC, datetime
 
 from app.core.database import SessionLocal
+from app.core.leader import leader
 from app.models.journal import JournalEntry
 from app.models.notification import Notification
 from app.models.user import User
@@ -10,6 +11,7 @@ from app.models.user import User
 logger = logging.getLogger("sentinel")
 
 _REMINDER_CHECK_SECONDS = 60 * 30  # sweep every 30 minutes
+_REMINDER_LEADER_RETRY_SECONDS = 30
 _REMINDER_ACTIVE_FROM_HOUR = 8  # only queue reminders between 08:00 and 21:00
 _REMINDER_ACTIVE_UNTIL_HOUR = 21
 
@@ -69,6 +71,9 @@ def _sweep_reminders() -> None:
 async def reminder_loop() -> None:
     loop = asyncio.get_running_loop()
     while True:
+        if not await leader.ensure():
+            await asyncio.sleep(_REMINDER_LEADER_RETRY_SECONDS)
+            continue
         try:
             await loop.run_in_executor(None, _sweep_reminders)
         except Exception:

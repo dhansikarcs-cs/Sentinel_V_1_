@@ -60,9 +60,13 @@ class DBRateStore(BaseRateStore):
 
     def __init__(self):
         self._last_prune = 0.0
+        self._table_ready = False
 
     def _ensure_table(self) -> None:
+        if self._table_ready:
+            return
         Base.metadata.create_all(bind=engine, tables=[RateLimitCounter.__table__], checkfirst=True)
+        self._table_ready = True
 
     def allows(self, key: str, window_seconds: int, max_requests: int) -> bool:
         self._ensure_table()
