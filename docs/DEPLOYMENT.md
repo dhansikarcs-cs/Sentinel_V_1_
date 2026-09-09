@@ -109,14 +109,15 @@ docker compose --profile scaled up -d   # postgres + backend (4 workers) + sched
 
 ## SQLite storage — important caveat
 
-`DATABASE_URL` points at a SQLite file under `backend/data/`. Render's free/starter plans
-have an **ephemeral filesystem**: the file is recreated on each deploy and not shared
-across instances. For a real deployment, either:
+`DATABASE_URL` points at a SQLite file under `backend/data/`. Some hosts (e.g. Render's
+starter plans) have an **ephemeral filesystem**: the file is recreated on each deploy and
+not shared across instances. For a real deployment, either:
 
-1. attach a Render **Disk** to `sentinel-backend` and set
+1. attach a persistent **Disk** to `sentinel-backend` and set
    `DATABASE_URL=sqlite:////var/data/sentinel.db`; or
-2. swap to a managed Postgres later (the data layer already goes through SQLAlchemy;
-   only the `PRAGMA user_version` write-probe in `core/health.py` is SQLite-specific).
+2. use the **supported PostgreSQL path** described under "Running at scale" — Alembic
+   migrations and the health write-probe are cross-DB, so `DATABASE_URL=postgresql://…`
+   is a configuration change, not a code change.
 
 **Backup path (local/native):** `backend/data/sentinel.db` (plus `-wal`/`-shm` if WAL is
 on). Stop the process, then copy all three files.

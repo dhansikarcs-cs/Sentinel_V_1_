@@ -174,7 +174,7 @@ if not key or key == "gsk_your_key_here":
 | `RiskAssessment` | `explanation` | ✅ Now `EncryptedText` |
 | `RingSensorLog` | `raw_json` | ✅ Now `EncryptedText` |
 
-These were plaintext; now encrypted. 99/99 tests pass.
+These were plaintext; now encrypted. 222/222 tests pass (2026-09-09).
 
 **🟠 MODERATE — physiological readings (health data) — plaintext by design, see compensating control below**
 

@@ -492,15 +492,57 @@ Fresh validation data captured 2026-08-06 with Ollama live:
 | bleak (bridge-only) | ~0.22 |
 
 ## Stats
-- Lines: ~25,000
-- Commits: 25+
-- Security patches: 22 + device-token auth + 8 red-team fixes (cc43d0b)
+- Lines: ~25,000+
+- Commits: 30+
+- Security patches: 22 + device-token auth + 8 red-team fixes (cc43d0b) + Argon2id + read-path hard-fail
 - Benchmarks: 54 (52 pass; 9 ring API/SDK tests)
-- Backend tests: 89 (pytest) + 14-case golden set (CI-gated)
-- Open TODOs: ~12
+- Backend tests: **222 (pytest)** + 23-case golden set (16 risk / 7 emotion, CI-gated `--strict`)
+- CI: GitHub Actions, 6 jobs (lint+typecheck, security scan, backend tests, frontend build, docker build, deploy)
+- Open TODOs: ~8 (per-patient crisis states, refresh tokens, charting lib)
 
 ---
 
-*Late 2025 → 2026-08-05*
+## Phase 8 — Multi-Worker Scale (2026-08/09)
+
+- **PostgreSQL is now a first-class deployment target.** `psycopg2-binary` added to
+  `backend/requirements.txt` (the PG driver was previously missing — deploy path broken).
+  `alembic/env.py` honors `DATABASE_URL`, bootstraps empty DBs from ORM models, and the
+  migration chain (`a059d07dd9b6 → 4ff25c97017e → d0e1c7a9b2f3 → 9f3e2a1b7c4d`) is
+  idempotent and cross-DB (uses SQLAlchemy `inspect`, not SQLite-only PRAGMA). Verified
+  on a fresh SQLite DB and on a real PostgreSQL 17 cluster.
+- **Rate limiting is shared across workers.** `RATE_LIMIT_BACKEND=memory|db`; the DB
+  backend uses a single fixed-window upsert on `rate_limit_counters`. API processes run
+  with `RUN_WORKERS=false`.
+- **Exactly one scheduler, failover-safe.** `core/leader.py` takes a PostgreSQL advisory
+  lock (`SCHEDULER_LOCK_KEY=749493`, `SCHEDULER_HEARTBEAT_SECONDS=10`); a replica takes
+  over automatically if the leader dies — verified by killing the leader and watching the
+  standby acquire.
+- **Cross-worker WebSocket fan-out without Redis.** `services/ws_pubsub.py` uses
+  PostgreSQL `LISTEN/NOTIFY` (channel `sentinel_ws`); `WS_PUBSUB=auto|pg|off`. SQLite
+  stays local (single-process). Two-manager pub/sub round-trip and failover verified
+  against real Postgres.
+- **Token blacklist is DB-backed** (works across workers). Alembic head reached on both
+  engines; 10 new scale-runtime tests (`tests/test_scale_runtime.py`).
+- Full suite: **216 passed** → now **222 passed** after the security batch. `docker compose
+  --profile scaled up -d` runs postgres + backend (4 workers) + scheduler.
+
+## Phase 9 — Security Batch (2026-09-09)
+
+- **Argon2id password hashing** (`argon2-cffi`): `time_cost=3, memory_cost=65536,
+  parallelism=4`; `verify_password` keeps a bcrypt fallback; `password_needs_rehash`
+  flags bcrypt/malformed hashes; **login transparently re-hashes legacy passwords**
+  (`app/api/auth.py`). Logger `sentinel.auth` added.
+- **Read-path encryption hard-fail:** `decrypt_text` raises `EncryptionNotReadyError`
+  when encryption is required but the key is missing, instead of leaking ciphertext.
+- **Golden set expanded** to 16 risk + 7 emotion cases (grief, financial stress, burnout,
+  hopeful recovery, physical illness, loneliness; optimism/caring/grief emotions) — passes
+  `python -m scripts.eval_golden_set --strict`.
+- **`.env.example` fixed** to the real config field names (`SMTP_*`, `ENCRYPTION_SALT`,
+  `ENCRYPTION_PASSPHRASE`, `COOKIE_SECURE`, `WS_PUBSUB`, `SCHEDULER_*`, …).
+- 6 new hardening tests; **222 passed**, ruff clean, golden + ring gates green, CI green.
+
+---
+
+*Late 2025 → 2026-09-09*
 *Sentinel: On-Premises Psychophysiological Triage Node*
 *Samsung Solve for Tomorrow · IRIS · ISEF 2026*

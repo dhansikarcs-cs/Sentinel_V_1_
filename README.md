@@ -145,7 +145,7 @@ cd backend && python -m pytest     # backend test suite
 | `docs/ENGINEERING_LOGBOOK.md` | Build narrative with timestamps |
 | `docs/JUDGE_QA.md` | Anticipated judge questions + defensible answers |
 | `docs/ROADMAP_HARDWARE.md` | Hardware milestones M1–M3 |
-| `docs/sentinel_paper.pdf` | Research paper |
+| `docs/sentinel_paper.md` / `.pdf` | Research paper (markdown source + PDF build via `scripts/generate_paper_pdf.py`) |
 | `SENTINEL_CODEBOOK.md` | Per-file code explanation |
 
 ---

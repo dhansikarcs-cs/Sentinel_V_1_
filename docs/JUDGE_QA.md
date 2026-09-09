@@ -42,11 +42,11 @@ A: Fernet bundles authentication (HMAC), timestamp verification, and serializati
 **Q: Why 600,000 PBKDF2 iterations?**
 A: NIST SP 800-132 recommends 100-300ms derivation latency. Our benchmark produces 154.8ms at 600K iterations — within the NIST sweet spot. Higher iterations increase security at the cost of login latency. 600K was chosen as the point where latency is still acceptable (<200ms) while iteration count is well above common defaults (many apps use 100K).
 
-**Q: Why not Argon2id?**
-A: Argon2id is superior (memory-hard, ASIC-resistant). It requires the `argon2-cffi` package with compiled C bindings. For a Python application targeting clinics without software engineers, bcrypt + PBKDF2 was the more conservative choice. A TODO in the code explicitly marks Argon2id for the September 2026 pilot migration.
+**Q: Why weren't you using Argon2id from the start?**
+A: The original choice was bcrypt + PBKDF2 for stdlib simplicity during the grant timeline. As of 2026-09-09 all new passwords are hashed with **Argon2id** (`argon2-cffi`, `time_cost=3`, 64 MiB memory, `parallelism=4`), replacing bcrypt per OWASP. Legacy bcrypt hashes are verified and **transparently re-hashed on the next successful login** (`password_needs_rehash`), so no user loses access. PBKDF2-600K remains only for the separate encryption-passphrase key derivation (Section J), not for passwords.
 
 **Q: Why not use Redis?**
-A: Redis is another service to deploy, monitor, and backup. For WebSocket pub/sub, Redis would survive server restarts — but Sentinel currently runs single-process, where in-memory connections work fine. The `websocket_manager.py` has a TODO to migrate to Redis when multi-process deployment is needed.
+A: Redis is another service to deploy, monitor, and keep credentials for. When multi-process deployment became real, we solved cross-worker WebSocket fan-out with **PostgreSQL `LISTEN/NOTIFY`** (`WS_PUBSUB=pg`) instead — the Postgres we already run. Cross-worker delivery and leader failover were verified against real PostgreSQL 17. SQLite deployments stay single-process with in-process fan-out.
 
 **Q: Why not use a proper task queue (Celery)?**
 A: Celery requires a broker (Redis/RabbitMQ). The crisis countdown engine doesn't need persistent queuing — it needs immediate, cancellable threads. Celery tasks are designed for durable, retryable workloads. Crisis escalation is ephemeral — either the psychologist acknowledges within 60 seconds or the helpline fires. Threads handle this correctly.
@@ -55,11 +55,11 @@ A: Celery requires a broker (Redis/RabbitMQ). The crisis countdown engine doesn'
 
 ## Section C: Security
 
-**Q: How did you find 19 vulnerabilities?**
-A: We ran a pre-deployment penetration test using standard OWASP methodology: manual endpoint review, automated scanning with OWASP ZAP, and code review for common vulnerability classes (IDOR, privilege escalation, timing attacks). The 19 findings include 4 critical, 8 high, 4 medium, 3 low.
+**Q: How did you find 22 vulnerabilities?**
+A: We ran a pre-deployment penetration test using standard OWASP methodology: manual endpoint review, automated scanning with OWASP ZAP, and code review for common vulnerability classes (IDOR, privilege escalation, timing attacks). The 22 findings include 4 critical, 8 high, 7 medium, 3 low.
 
-**Q: Why didn't you patch all 19?**
-A: All 10 critical and high-severity findings were patched. The remaining 9 (4 medium, 3 low, 2 informational) include items like rate limiting (needs Redis — deferred to pilot), Docker health checks (operational, not security-critical), and Content Security Policy headers (frontend enhancement). These don't pose immediate data exposure risk.
+**Q: Did you patch all 22?**
+A: Yes — all 22 were remediated before submission. Highlights: stored/reflected XSS (DOMPurify with empty allowlists), missing rate limiting (RateLimiterMiddleware — in-memory or shared DB backend), verbose schema disclosure (sanitized global exception handlers), role escalation and IDOR (Literal role constraint + ownership guards), HMAC timing side-channel (constant-time compare), and missing security headers (CSP + HSTS + nosniff via `SecurityHeadersMiddleware`).
 
 **Q: Is the timing side channel really exploitable?**
 A: Yes — Python's `==` operator on HMAC digests short-circuits on the first non-matching byte. A remote attacker could send millions of HMAC values and statistically determine the correct digest byte-by-byte. `hmac.compare_digest()` runs in constant time regardless of input, making this attack impossible. The fix was one line: `hmac.compare_digest(provided, expected)` instead of `provided == expected`.
@@ -68,7 +68,7 @@ A: Yes — Python's `==` operator on HMAC digests short-circuits on the first no
 A: The registration endpoint originally accepted any string for the `role` field. An attacker could register with `role: "admin"` or `role: "superuser"` to bypass psychologist access controls. The fix constrains the role to `Literal["patient", "psychologist"]` at the Pydantic schema layer — any other value is rejected at the API boundary with a 422 validation error.
 
 **Q: How does the encryption unlock work?**
-A: Two independent secrets: (1) password for authentication (bcrypt-hashed, JWT-issued), (2) passphrase for encryption (PBKDF2-derived Fernet key). The server never stores the passphrase — only the derived key in memory after unlock. Even a full database breach yields encrypted journal content. Without the passphrase (entered each session), data stays encrypted.
+A: Two independent secrets: (1) password for authentication (Argon2id-hashed, with transparent re-hash of legacy bcrypt hashes on login, JWT-issued), (2) passphrase for encryption (PBKDF2-derived Fernet key). The server never stores the passphrase — only the derived key in memory after unlock. Even a full database breach yields encrypted journal content. Without the passphrase (entered each session), data stays encrypted.
 
 **Q: What happens if the passphrase is lost?**
 A: Data is unrecoverable. This is by design — zero-knowledge encryption means no backdoor. For production deployment, we recommend the clinic designate two key holders (a 2-of-2 Shamir Secret Sharing scheme could be implemented). The current system logs a warning if encryption hasn't been unlocked after 24 hours.
@@ -132,10 +132,10 @@ A: A CSV file produced by `benchmarks/runner.py` with columns: Run ID, Component
 ## Section G: Deployment & Practicality
 
 **Q: A clinic would need a server. Isn't that a barrier?**
-A: A $200 mini PC (Raspberry Pi 5, Intel N100) runs Ollama + Sentinel simultaneously. Or free tier on Render.com — zero cost for the first clinic. Docker Compose is two commands and the entire stack is running. For clinics with no technical staff, we provide a pre-configured Docker image.
+A: A ~$200 mini PC (Raspberry Pi 5, Intel N100) runs Ollama + Sentinel simultaneously — that is the reference deployment, and it's a genuine one-time hardware cost. No clinic runs this on thin air; the cost model (mini-PC ≈ $200, domain ≈ $8–10/yr, optional cloud VM ≈ $15/mo) is laid out in `docs/hosting-plan.md` and priced in the business model. Docker Compose is two commands, and for clinics with no technical staff we provide a pre-configured Docker image.
 
 **Q: How does a patient get a smart ring?**
-A: Many patients already own smart rings/watches (Oura, Apple Watch, Fitbit have 30%+ penetration in urban India). The September 2026 pilot will provide rings to 30 subjects. We're also developing a Bluetooth-paired phone app that uses the phone's camera-based PPG as a zero-cost alternative.
+A: Many patients already own smart rings/watches (Oura, Apple Watch, Fitbit have 30%+ penetration in urban India) — that BYOD path needs no additional hardware. The September 2026 pilot will provision rings to 30 subjects, financed through the patient ring/HaaS subscription tier. We're also developing a Bluetooth-paired phone app that uses the phone's camera-based PPG as a no-extra-hardware alternative.
 
 **Q: What about internet connectivity?**
 A: Core functions (discrepancy engine, crisis escalation) require zero internet. AI summarization prefers Ollama (local, no internet needed) with Groq as cloud fallback. The only internet-dependent feature is trusted contact email (SMTP). A clinic can run Sentinel fully offline by configuring a local SMTP relay or disabling email alerts.
@@ -144,7 +144,7 @@ A: Core functions (discrepancy engine, crisis escalation) require zero internet.
 A: A web application reaches any device with a browser — no app store approval, no platform lock-in, no update friction. Psychologists can triage from a desktop, tablet, or phone. The React SPA is responsive and works on mobile screens.
 
 **Q: What about HIPAA / data residency compliance?**
-A: With Ollama (local inference) and SQLite (local storage), patient data never leaves the clinic network. The encryption design (PBKDF2 + Fernet, zero-knowledge passphrase) satisfies HIPAA data-at-rest requirements. Hash-chained audit logs satisfy HIPAA audit trail requirements. For clinics requiring cloud deployment, Render's SOC 2 compliance covers the infrastructure layer.
+A: With Ollama (local inference) and local storage (SQLite or PostgreSQL), patient data never leaves the clinic network. The encryption design (PBKDF2 + Fernet, zero-knowledge passphrase) addresses HIPAA data-at-rest requirements. Hash-chained audit logs address HIPAA audit-trail requirements. For clinics requiring cloud deployment, the infrastructure provider's compliance (e.g. SOC 2) covers the infrastructure layer.
 
 ---
 
@@ -170,7 +170,7 @@ A: The literature primarily uses neural networks (LSTM, transformers) to combine
 ## Section I: Future Work
 
 **Q: What's next after the September 2026 pilot?**
-A: Four priorities: (1) per-patient crisis states (multi-crisis support), (2) Argon2id migration, (3) Redis pub/sub for multi-process WebSocket scaling, (4) labeled discrepancy corpus from pilot data for rule set extension.
+A: The completed items are Argon2id password migration and cross-worker WebSocket scaling (solved with PostgreSQL `LISTEN/NOTIFY` instead of Redis). Remaining priorities: (1) per-patient crisis states (multi-crisis support), (2) a labeled discrepancy corpus from pilot data for rule-set extension, (3) a companion mobile app and uptime/HA hardening for production.
 
 **Q: Will you open-source this?**
 A: The codebase (21,810 lines) is already in a repository with MIT license consideration. Post-pilot, we plan to publish the full benchmark suite and training pipeline for academic reproducibility.

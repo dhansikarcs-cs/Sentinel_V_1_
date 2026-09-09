@@ -6,7 +6,7 @@
 
 | # | Component | Decision | Why | Alternative(s) | Trade-off |
 |---|-----------|----------|-----|----------------|-----------|
-| 1 | Auth | bcrypt password hashing | Mature, stdlib, well-audited | Argon2id | Argon2id has better GPU/ASIC resistance; migration planned for Sept 2026 |
+| 1 | Auth | Argon2id password hashing | Memory-hard, GPU/ASIC-resistant (OWASP); legacy bcrypt hashes still verify and are transparently re-hashed on next login | bcrypt | Adds compiled dependency (`argon2-cffi`); bcrypt retained only as a migration fallback |
 | 2 | Auth | HS256 JWT (symmetric) | Simpler than asymmetric for 2-service architecture | RS256 | No public-key verification without sharing secret; acceptable for Docker network |
 | 3 | Auth | 8-hour token, no refresh | Covers clinical workday; re-auth = re-unlock | Refresh tokens | User re-authenticates daily; ensures passphrase is fresh |
 | 4 | Auth | 5-failure lockout, 15-min cooldown | Simple, effective brute-force protection | Progressive delay (1s/2s/5s) | No gradual slowdown; lockout triggers after 5 rapid attempts |
@@ -18,7 +18,7 @@
 | 10 | Encryption | Fernet (AES-128-CBC + HMAC) | Bundles auth, timestamp, serialization | Raw AES-GCM | 128-bit vs 256-bit key; Fernet's bundled format reduces implementation bugs |
 | 11 | Encryption | PBKDF2 600K iterations | NIST range 100-300ms; our result: 154.8ms | scrypt, Argon2id | Not memory-hard; ASIC-resistant but not ASIC-proof |
 | 12 | Encryption | HKDF-Expand for key separation | Cryptographic independence between Fernet and HMAC keys | Single derived key | Adds a derivation step (~0.01ms); best practice per Ferguson et al. |
-| 13 | Storage | SQLite with WAL mode | Atomic transactions, concurrent reads, B-tree indexing | JSON files, PostgreSQL, MongoDB | 19ms slower on bulk writes vs JSON; file-level vs network database |
+| 13 | Storage | SQLite with WAL mode (single-clinic) | Atomic transactions, concurrent reads, B-tree indexing | JSON files, PostgreSQL, MongoDB | 19ms slower on bulk writes vs JSON; PostgreSQL mode added for multi-worker deploys (DRIVER psycopg2, Alembic) |
 | 14 | Storage | SQLAlchemy ORM | DB-agnostic; PostgreSQL migration is one env var change | Raw SQL, SQLAlchemy Core | ORM overhead (~5%); enables flexible deployment without code changes |
 | 15 | Storage | String timestamps (ISO format) | Timezone-safe, works identically across DB backends | Native DateTime columns | Date-range queries use lexicographic string comparison; no DB date functions |
 | 16 | AI | Ollama local inference (primary) | Zero network dependency; data never leaves clinic | OpenAI API, Groq Cloud | 7.2B model requires ~8GB RAM; slower than cloud (200-500ms vs 50-100ms) |
@@ -38,7 +38,7 @@
 | 30 | Benchmark | Custom CSV logbook (not pytest-benchmark) | IRIS-standard format for academic reproducibility | pytest-benchmark, ASV | Single-run per test (no confidence intervals); designed for paper, not CI |
 | 31 | Auth | HttpOnly cookie for JWT | Prevents XSS token theft | localStorage only | Cookie requires browser auto-send; localStorage fallback for programmatic clients |
 | 32 | Encryption | EncryptedText TypeDecorator | Transparent data-at-rest encryption at ORM layer | Raw Text columns | ~0.5ms overhead per read/write; pre-unlock plaintext data becomes inaccessible |
-| 33 | Security | RateLimiterMiddleware (100 req/min per IP) | Basic DDoS protection without Redis infrastructure | slowapi, Redis token bucket | In-memory state resets on server restart; not distributed |
+| 33 | Security | RateLimiterMiddleware (memory or DB-backed) | Basic DDoS protection without Redis infrastructure | slowapi, Redis token bucket | In-memory state resets on restart; DB backend (`RATE_LIMIT_BACKEND=db`) shares the window across workers |
 | 34 | Security | DOMPurify frontend sanitization | Defense-in-depth XSS prevention | Server-side HTML stripping, CSP headers | Client-side sanitization bypassable if attacker controls JS bundle |
 | 35 | Deployment | Internal Docker network (internal: true) | Backend unreachable from LAN | Host network mode, default bridge | All API traffic must route through frontend Nginx proxy |
 | 36 | Security | Global exception handler with sanitized 500s | Prevents stack trace leakage in error responses | Default FastAPI tracebacks | Debugging requires server log access instead of client error details |
@@ -64,21 +64,21 @@ All 22 vulnerabilities identified during penetration testing are now patched: 10
 
 ## Quick Reference: What Would You Do Differently With Unlimited Resources?
 
-1. **Argon2id** for password hashing and key derivation
-2. **Redis pub/sub** for multi-process WebSocket scaling
-3. **PostgreSQL** for production multi-server deployment
-4. **Alembic** for database migration management
-5. **Refresh tokens** with HttpOnly cookie storage
-6. **Rate limiting** (slowapi + Redis) on auth endpoints
-7. **Content Security Policy** headers
-8. **Per-patient crisis states** instead of singleton
-9. **Chart.js / D3** for biometric trend visualization
-10. **CI pipeline** (GitHub Actions) for automated benchmark regression
+1. ~~Argon2id~~ — **DONE (2026-09-09):** password hashing is Argon2id; PBKDF2-600K retained only for the encryption-passphrase key derivation
+2. ~~Redis pub/sub for multi-process WebSocket scaling~~ — **SOLVED WITHOUT REDIS:** PostgreSQL `LISTEN/NOTIFY` fan-out (`WS_PUBSUB=pg`) across workers; local pub/sub on SQLite
+3. ~~PostgreSQL for production multi-server deployment~~ — **DONE:** psycopg2 driver, `RUN_WORKERS`, scaled Compose profile, verified on real PostgreSQL 17
+4. ~~Alembic for database migration management~~ — **DONE:** chain to head `9f3e2a1b7c4d`, idempotent + cross-DB, bootstraps empty DBs
+5. **Refresh tokens** with HttpOnly cookie storage — OPEN
+6. ~~Rate limiting (slowapi + Redis) on auth endpoints~~ — **PARTIAL:** memory|db backend shipped; Redis unnecessary for the target scale
+7. ~~Content Security Policy headers~~ — **DONE** (`SecurityHeadersMiddleware` + HSTS + nosniff)
+8. **Per-patient crisis states** instead of singleton — OPEN (critical path for the pilot)
+9. **Chart.js / D3** for biometric trend visualization — OPEN
+10. ~~CI pipeline (GitHub Actions)~~ — **DONE:** 6 jobs incl. golden-gate `--strict` and docker builds
 
 ## Key Defensible Positions (For Judges)
 
 - **Rule-based over ML for triage:** A deterministic system with 100% auditable accuracy is safer than a probabilistic system with 94% accuracy when false negatives are lethal
-- **SQLite over PostgreSQL for clinic deployment:** Zero-config, zero-DBA, zero-cost — and fully migratable when scale demands it
+- **SQLite over PostgreSQL for single-clinic deployment:** Zero-config, zero-DBA, commodity hardware — runs on a ~$200 mini-PC; PostgreSQL mode (SQLAlchemy + Alembic) serves multi-worker deployments without code changes
 - **Local AI over cloud AI:** Works during internet outages, zero data leaving the clinic, no per-token cost
 - **Custom auth over OAuth2:** No third-party dependency, works offline, two-factor with encryption unlock
 - **Threads over tasks for crisis:** Immediate, cancellable execution without broker infrastructure
@@ -86,4 +86,4 @@ All 22 vulnerabilities identified during penetration testing are now patched: 10
 ---
 
 *Prepared for Samsung Solve for Tomorrow · IRIS · ISEF 2026*
-*~25,000 lines | 54 benchmarks | 22 security patches + device-token auth | 21-page paper*
+*~25,000 lines | 222 pytest tests + 23-case golden gate | 6-job CI | 22 security patches + device-token auth | 21-page paper*

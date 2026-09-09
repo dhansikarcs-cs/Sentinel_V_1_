@@ -25,13 +25,13 @@
 
 ## 1. Authentication System
 
-### Decision: bcrypt Password Hashing + HS256 JWT + PBKDF2 Encryption Key
+### Decision: Argon2id Password Hashing + HS256 JWT + PBKDF2 Encryption Key
 
 #### How It Works
 
 Sentinel uses a **two-factor authentication model** — but not the usual "password + OTP" approach. Instead:
 
-1. **Password login** authenticates the user's identity (bcrypt-verified, JWT-issued)
+1. **Password login** authenticates the user's identity (Argon2id-verified, JWT-issued)
 2. **Encryption unlock** derives a separate Fernet encryption key from a passphrase (PBKDF2 600K iterations)
 
 These two factors are cryptographically independent. The password authenticates *who you are*. The passphrase unlocks *what data you can see*. This means even if the server is compromised, journal content remains encrypted without the passphrase.
@@ -44,14 +44,11 @@ Storing a master encryption key in an environment variable is simpler but defeat
 
 Adding Google Login or Auth0 would reduce friction but introduces dependence on third-party auth providers — unacceptable for a clinic that may operate offline or in low-connectivity environments.
 
-#### Alternative Considered: Argon2id
+#### Adopted: Argon2id (password hashing)
 
-Argon2id is the password-hashing competition winner and offers better GPU/ASIC resistance than bcrypt. A TODO in `security.py` acknowledges this. We chose bcrypt because:
-- It is available in the Python stdlib via `bcrypt` package
-- 4.1.x is mature and well-audited
-- The Samsung SFT grant timeline didn't allow the extra validation Argon2id would need in a clinical context
+Argon2id is the password-hashing competition winner and offers better GPU/ASIC resistance than bcrypt. As of 2026-09-09 Sentinel hashes all new passwords with Argon2id (`argon2-cffi`, `time_cost=3`, 64 MiB memory, `parallelism=4`, per OWASP recommendations). Existing bcrypt hashes are still verified and are **transparently re-hashed with Argon2id on the next successful login** (`password_needs_rehash`), so no user is forced to reset a password during migration.
 
-**Trade-off:** bcrypt caps password length at 72 bytes and uses less memory than Argon2id. Migration to Argon2id is planned for the September 2026 pilot.
+**Trade-off:** Argon2id adds a compiled dependency, and bcrypt was the original choice for stdlib simplicity during the grant timeline. bcrypt now exists only as a one-time migration fallback. PBKDF2-600K remains exclusively for the separate encryption-passphrase key derivation (Section 4).
 
 #### Key Design Detail: HKDF Key Separation
 
@@ -239,16 +236,16 @@ NIST SP 800-132 recommends PBKDF2 with a cost factor that produces 100-300ms der
 
 **Alternative Considered: scrypt** — Memory-hard (resists GPU/ASIC attacks better than PBKDF2). Python's `hashlib.scrypt()` is available but produces variable-latency derivation depending on CPU cache — harder to benchmark and guarantee real-time bounds.
 
-**Alternative Considered: Argon2id** — Gold standard for password hashing and key derivation. Requires the `argon2-cffi` binding which adds a compiled dependency. Planned for post-pilot deployment.
+**Alternative Considered: Argon2id for key derivation** — Gold standard for password hashing *and* key derivation. Argon2id is now **implemented for password hashing** (Section 1); PBKDF2-600K is retained specifically for the encryption-passphrase key derivation, where the one-time 154.8 ms latency and deterministic serial behavior are preferred and remain within the NIST sweet spot.
 
 #### Salt Management
 
 The encryption salt is:
 1. Generated as 16 random bytes via `os.urandom(16)`
-2. Stored in `SENTINEL_ENCRYPTION_SALT` environment variable
+2. Read from `ENCRYPTION_SALT` (config field `encryption_salt`), with `SENTINEL_ENCRYPTION_SALT` still honored as a legacy alias
 3. Written to `os.environ` at runtime if not present
 
-**Trade-off:** Writing to `os.environ` at runtime is process-level. Multiple uvicorn workers could race on salt initialization. Deployments with multiple workers should pre-set the salt in the environment.
+**Trade-off:** Writing to `os.environ` at runtime is process-level. Multiple uvicorn workers could race on salt initialization. Deployments with multiple workers should pre-set the salt in the environment (now documented in `.env.example`).
 
 #### Zero-Knowledge Architecture
 
@@ -588,7 +585,7 @@ The WebSocket upgrade headers support real-time crisis alerts. `try_files $uri $
 
 #### All 22 Findings Now Patched
 
-The original penetration test identified 19 findings (4 critical, 8 high, 4 medium, 3 low). All 19 have been patched (#A–#J for the original 10, #K–#P for the remaining 6 security findings, and #Q–#S for the 3 architectural fixes). The system is hardened against the identified attack surface for the September 2026 pilot deployment.
+The original penetration test identified 22 findings (4 critical, 8 high, 7 medium, 3 low). All 22 have been patched (original fixes + hardening + architectural/docs fixes), with rate limiting, sanitized errors, CSP/HSTS headers, and Argon2id password hashing among the follow-ups. The system is hardened against the identified attack surface for the September 2026 pilot deployment.
 
 ---
 
@@ -596,7 +593,7 @@ The original penetration test identified 19 findings (4 critical, 8 high, 4 medi
 
 ### Benchmark Suite Design
 
-The `benchmarks/runner.py` orchestrator runs 45 benchmarks across 5 categories, producing an IRIS-standard CSV logbook.
+The test infrastructure now has three tiers: the legacy `benchmarks/runner.py` orchestrator (structured timing benchmarks producing an IRIS-standard CSV logbook), the full pytest suite (**222 tests**, ~72 s), and a **23-case golden-set regression gate** (16 risk + 7 emotion cases) enforced with `--strict` in CI. The pytest suite spans authentication, journal pipeline, discrepancy detection, crisis concurrency, storage I/O, AI fallback, cryptography, ring ingestion, hardening, and scale-runtime configuration.
 
 | Category | Tests | Metric | Result |
 |----------|-------|--------|--------|
@@ -652,14 +649,15 @@ These devices are already in widespread use. Sentinel doesn't require a dedicate
 
 ### Cost Architecture
 
-Sentinel is designed for **zero financial barrier to entry**:
-- Ollama (local LLM): free, runs on CPU
-- Groq (cloud LLM): free tier available
-- Render (cloud hosting): free tier
-- SQLite: zero licensing cost
-- Docker: free for small-scale deployment
+Sentinel is engineered for **low-cost, on-premises deployment** — not a zero-money operation. The realistic cost floor:
 
-A clinic can deploy Sentinel for the cost of a $15/month cloud server or a $200 mini PC on-premises.
+- **Host:** on-premises mini-PC (Raspberry Pi 5 / Intel N100) ≈ **$200 one-time**, or a cloud VM ≈ **$15/month** if the clinic has no on-site hardware
+- **Domain + HTTPS:** ≈ **$8–10/year**
+- **AI:** Ollama (local) is free; Groq (cloud) is pay-as-you-go — local inference keeps patient data on-site
+- **Software:** SQLite/PostgreSQL and Docker are open source (no licensing fee)
+- **Wearables:** BYOD = zero marginal hardware cost; a clinically provisioned ring (OEM, pilot of 30) is financed through the patient ring/HaaS subscription tier (see the business model — patient tiers ₹499–1,499/month, clinic SaaS ₹2,499/month + ₹999/month maintenance)
+
+A clinic can run Sentinel on a ~$200 mini-PC (one-time) or a ~$15/month cloud VM; the one-time deployment package, clinic SaaS, and patient subscriptions follow the pricing in `docs/business/business_model.md`.
 
 ---
 
