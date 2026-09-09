@@ -57,14 +57,18 @@ def _safe_create_index(conn, index_name, table_name, columns):
         op.create_index(index_name, table_name, columns, unique=False)
 
 
+def _table_columns(table_name: str) -> set[str]:
+    from sqlalchemy import inspect
+
+    return {c["name"] for c in inspect(op.get_bind()).get_columns(table_name)}
+
+
 def upgrade() -> None:
     # Add version column to journal_entries if missing
-    conn = op.get_bind()
-    result = conn.execute(sa.text("PRAGMA table_info(journal_entries)"))
-    cols = [row[1] for row in result]
-    if "version" not in cols:
+    if "version" not in _table_columns("journal_entries"):
         op.add_column("journal_entries", sa.Column("version", sa.Integer(), server_default="1", nullable=False))
 
+    conn = op.get_bind()
     for index_name, table_name, columns in INDEXES:
         _safe_create_index(conn, index_name, table_name, columns)
 
@@ -74,8 +78,5 @@ def downgrade() -> None:
         with contextlib.suppress(Exception):
             op.drop_index(index_name, table_name=table_name)
 
-    conn = op.get_bind()
-    result = conn.execute(sa.text("PRAGMA table_info(journal_entries)"))
-    cols = [row[1] for row in result]
-    if "version" in cols:
+    if "version" in _table_columns("journal_entries"):
         op.drop_column("journal_entries", "version")

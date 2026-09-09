@@ -99,6 +99,10 @@ async def lifespan(app: FastAPI):
     _init_db()
     register_all_subscribers(get_event_bus())
     logger.info("Event subscribers registered")
+    if not settings.run_workers:
+        logger.info("run_workers=false — scheduler loops are NOT running in this process")
+        yield
+        return
     from app.workers.celebrations_worker import celebrations_loop
     from app.workers.reminder_worker import reminder_loop
 

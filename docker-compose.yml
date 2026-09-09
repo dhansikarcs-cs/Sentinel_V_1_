@@ -23,8 +23,65 @@ services:
     networks:
       - internal
 
+  # Scaled layout (PostgreSQL + multi-worker API + dedicated scheduler):
+  #   docker compose --profile scaled up -d
+  sentinel-backend-scaled:
+    build: ./backend
+    profiles: ["scaled"]
+    expose:
+      - "8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    environment:
+      - DATABASE_URL=postgresql://sentinel:sentinel@postgres:5432/sentinel
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - CORS_ORIGINS=http://localhost:5173
+      - RUN_WORKERS=false
+      - RATE_LIMIT_BACKEND=db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # Exactly ONE scheduler: runs the reminder/celebration loops so no API worker
+  # duplicates notifications.
+  sentinel-scheduler:
+    build: ./backend
+    profiles: ["scaled"]
+    command: python -m app.workers.runner
+    environment:
+      - DATABASE_URL=postgresql://sentinel:sentinel@postgres:5432/sentinel
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - RUN_WORKERS=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["scaled"]
+    environment:
+      - POSTGRES_USER=sentinel
+      - POSTGRES_PASSWORD=sentinel
+      - POSTGRES_DB=sentinel
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - internal
+
 volumes:
   sentinel_data:
+  postgres_data:
 
 networks:
   internal:

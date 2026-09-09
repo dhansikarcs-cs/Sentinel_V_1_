@@ -14,17 +14,16 @@ _connect_args = {"check_same_thread": False} if "sqlite" in settings.database_ur
 _pool_args = {}
 if "sqlite" not in settings.database_url:
     _pool_args = {
-        "pool_size": 10,
-        "max_overflow": 20,
-        "pool_timeout": 30,
-        "pool_recycle": 1800,
-        "pool_pre_ping": True,
+        "pool_size": settings.db_pool_size,
+        "max_overflow": settings.db_max_overflow,
+        "pool_timeout": settings.db_pool_timeout,
+        "pool_recycle": settings.db_pool_recycle,
     }
 
 engine = create_engine(
     settings.database_url,
     connect_args=_connect_args,
-    pool_pre_ping=True,
+    pool_pre_ping=settings.db_pool_pre_ping,
     **_pool_args,
 )
 

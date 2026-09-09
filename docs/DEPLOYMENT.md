@@ -10,6 +10,7 @@ degrades gracefully when pieces fail.
 |---------|-------------|---------|----------------|--------------|
 | `sentinel-backend` | web | docker | `./backend` | `GET /health` |
 | `sentinel-frontend` | web | docker | `./frontend` | `GET /` |
+| `sentinel-scheduler` | worker | docker | `./backend` | — (runs `python -m app.workers.runner`) |
 
 Both services run on Render's injected `PORT` (default `10000`). Neither assumes the old
 hardcoded `8000`.
@@ -62,9 +63,41 @@ Set `BACKEND_URL` to `https://sentinel-backend.onrender.com` (public) or the int
 | `SMTP_HOST/PORT/USER/PASSWORD` | gmail defaults | for crisis notifications; unset → email disabled (logs only) |
 | `EMAIL_FROM`, `CRISIS_HELPLINE_EMAIL` | — | sender + helpline contact (crisis escalation) |
 | `LOG_FORMAT` | `json` | `json` = one JSON object per line; `text` = human-readable |
+| `RATE_LIMIT_BACKEND` | `memory` | `memory` = in-process sliding window (single worker); `db` = fixed-window counters shared via `DATABASE_URL` |
+| `RUN_WORKERS` | `true` | `false` on API processes when a dedicated scheduler service runs the loops |
+| `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | `10` / `20` | SQLAlchemy pool for PostgreSQL/MySQL (ignored for SQLite) |
+| `DB_POOL_TIMEOUT` / `DB_POOL_RECYCLE` / `DB_POOL_PRE_PING` | `30` / `1800` / `true` | pool health defaults |
 
 All settings are read in `backend/app/core/config.py` (`pydantic-settings`, env file
 `../.env` for local dev).
+
+## Running at scale
+
+Sentinel is multi-worker safe by design:
+
+- **Exactly one scheduler.** Reminder + celebration loops run in one place. API workers
+  set `RUN_WORKERS=false`; the `sentinel-scheduler` service (or Docker
+  `--profile scaled` service) runs `python -m app.workers.runner`. This prevents
+  duplicate notifications when more than one uvicorn process is up.
+- **Shared rate limits.** `RATE_LIMIT_BACKEND=db` moves the per-IP budget from per-process
+  memory into `rate_limit_counters` (atomic upsert), so the budget holds across N workers.
+- **Shared revocation.** The JWT blacklist is DB-backed (`token_blacklist` table), so a
+  logout on one worker is honored by all.
+- **PostgreSQL.** `DATABASE_URL=postgresql://...` gives real multi-writer concurrency and
+  pooling. Schema is managed by Alembic (`alembic upgrade head`; migration
+  `9f3e2a1b7c4d` adds the two scale tables). `alembic/env.py` honors `DATABASE_URL`
+  and bootstraps a fresh database from the ORM before applying idempotent migrations,
+  so empty DBs and already-formed DBs both converge to head. SQLite remains the default for local dev.
+- **Boundaries that stay single-process.** The live WebSocket broadcast reaches clients on
+  the same process only; crisis *state* is persisted in the DB, so syncs are never lost,
+  but push fan-out across workers needs a pub/sub layer (Redis or PG `LISTEN/NOTIFY`)
+  before running many API instances with WS clients split between them.
+
+Local scaled layout:
+
+```bash
+docker compose --profile scaled up -d   # postgres + backend (4 workers) + scheduler
+```
 
 ## SQLite storage — important caveat
 

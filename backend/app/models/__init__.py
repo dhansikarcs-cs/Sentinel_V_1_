@@ -11,6 +11,8 @@ from app.models.mood import MoodLog
 from app.models.notification import Notification
 from app.models.physiological_signal import PhysiologicalSignal
 from app.models.psych_journal import PsychJournalEntry
+from app.models.rate_limit_counter import RateLimitCounter
+from app.models.revoked_token import RevokedToken
 from app.models.ring import RingSensorLog
 from app.models.ring_device import RingDevice
 from app.models.risk_assessment import RiskAssessment
@@ -34,6 +36,8 @@ __all__ = [
     "Notification",
     "PhysiologicalSignal",
     "PsychJournalEntry",
+    "RateLimitCounter",
+    "RevokedToken",
     "RingSensorLog",
     "RingDevice",
     "RiskAssessment",

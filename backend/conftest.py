@@ -8,6 +8,7 @@ WORKDIR = Path(__file__).resolve().parent
 os.environ["DATABASE_URL"] = f"sqlite:///{WORKDIR / 'data' / ('pytest_' + uuid.uuid4().hex[:8] + '.db')}"
 os.environ.setdefault("JWT_SECRET", "pytest-secret-not-for-production")
 os.environ["ENCRYPTION_REQUIRED"] = "false"
+os.environ["RUN_WORKERS"] = "false"
 
 import asyncio
 

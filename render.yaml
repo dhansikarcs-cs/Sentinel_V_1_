@@ -1,3 +1,10 @@
+databases:
+  - name: sentinel-db
+    databaseName: sentinel
+    user: sentinel
+    plan: starter
+    region: oregon
+
 services:
   - type: web
     name: sentinel-backend
@@ -8,11 +15,17 @@ services:
     plan: starter
     envVars:
       - key: DATABASE_URL
-        value: sqlite:///./data/sentinel.db
+        fromDatabase:
+          name: sentinel-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
         value: https://sentinel-frontend.onrender.com
+      - key: RUN_WORKERS
+        value: "false"
+      - key: RATE_LIMIT_BACKEND
+        value: "db"
       - key: SMTP_HOST
         sync: false
       - key: SMTP_USER
@@ -23,6 +36,23 @@ services:
         sync: false
       - key: CRISIS_HELPLINE_EMAIL
         sync: false
+
+  - type: worker
+    name: sentinel-scheduler
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    command: python -m app.workers.runner
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sentinel-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RUN_WORKERS
+        value: "true"
 
   - type: web
     name: sentinel-frontend

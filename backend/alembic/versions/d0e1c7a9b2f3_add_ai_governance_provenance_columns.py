@@ -30,9 +30,9 @@ ADD_COLUMNS = [
 
 
 def _table_columns(table_name: str) -> set[str]:
-    conn = op.get_bind()
-    result = conn.execute(sa.text(f"PRAGMA table_info({table_name})"))
-    return {row[1] for row in result}
+    from sqlalchemy import inspect
+
+    return {c["name"] for c in inspect(op.get_bind()).get_columns(table_name)}
 
 
 def upgrade() -> None:

@@ -38,6 +38,18 @@ class Settings(BaseSettings):
 
     rate_limit_max: int = 300
     rate_limit_window: int = 60
+    rate_limit_backend: str = "memory"  # "memory" (single process) | "db" (shared via DATABASE_URL)
+
+    # Set RUN_WORKERS=false on any process that should NOT run scheduler loops
+    # (e.g. uvicorn --workers 4 API boxes); one dedicated process/service runs them.
+    run_workers: bool = True
+
+    # Connection pooling for PostgreSQL/MySQL deployments (ignored for SQLite)
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_pool_timeout: int = 30
+    db_pool_recycle: int = 1800
+    db_pool_pre_ping: bool = True
 
     class Config:
         env_file = "../.env"
