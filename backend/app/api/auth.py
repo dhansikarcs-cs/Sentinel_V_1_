@@ -1,3 +1,4 @@
+import logging
 import time as _time
 from datetime import UTC, datetime, timedelta
 
@@ -18,6 +19,7 @@ from app.core.security import (
     hash_password,
     initialize_encryption,
     is_encryption_ready,
+    password_needs_rehash,
     verify_password,
 )
 from app.core.token_blacklist import token_blacklist
@@ -26,6 +28,8 @@ from app.models.user import User
 from app.repositories import PatientRepository
 from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse, UnlockRequest
 from app.services.audit import log_audit
+
+logger = logging.getLogger("sentinel.auth")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -138,6 +142,9 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
     login_rate_limiter.record_attempt(req.username, success=True)
     user.failed_attempts = 0
     user.locked_until = ""
+    if password_needs_rehash(user.password_hash or ""):
+        user.password_hash = hash_password(req.password)
+        logger.info("rehashed password for %s with Argon2id", req.username)
     db.commit()
 
     get_event_bus().emit("auth:login_success", username=user.username, role=user.role)

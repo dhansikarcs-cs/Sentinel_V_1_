@@ -3,6 +3,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Optional
 
 import bcrypt as _bcrypt
+from argon2 import PasswordHasher
+from argon2 import exceptions as argon2_exceptions
 from jose import JWTError, jwt
 
 from app.core.config import settings
@@ -10,16 +12,44 @@ from app.core.config import settings
 ALGORITHM = settings.jwt_algorithm
 SECRET = settings.jwt_secret
 
+_argon2 = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
+
+_BCRYPT_PREFIX = b"$2"
+
 
 def hash_password(password: str) -> str:
-    return _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+    return _argon2.hash(password)
+
+
+def _is_bcrypt(hashed: str) -> bool:
+    return hashed.encode().startswith(_BCRYPT_PREFIX)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    try:
-        return _bcrypt.checkpw(plain.encode(), hashed.encode())
-    except Exception:
+    """Verify a password against an Argon2id (preferred) or legacy bcrypt hash."""
+    if not hashed:
         return False
+    if _is_bcrypt(hashed):
+        try:
+            return _bcrypt.checkpw(plain.encode(), hashed.encode())
+        except Exception:
+            return False
+    try:
+        _argon2.verify(hashed, plain)
+        return True
+    except (argon2_exceptions.VerifyMismatchError, argon2_exceptions.InvalidHashError, ValueError):
+        return False
+
+
+def password_needs_rehash(hashed: str) -> bool:
+    """True for legacy bcrypt hashes (and malformed values) that should be
+    transparently re-hashed with Argon2id on the next successful login."""
+    if not hashed or _is_bcrypt(hashed):
+        return True
+    try:
+        return _argon2.check_needs_rehash(hashed)
+    except argon2_exceptions.InvalidHashError:
+        return True
 
 
 REFRESH_SECRET = SECRET + ":refresh"
@@ -80,8 +110,7 @@ def decode_refresh_token(token: str) -> dict | None:
         return None
 
 
-# TODO: swap PBKDF2 for Argon2id once the Samsung SFT funding lands
-# ── Encryption (passphrase-derived) ──
+# ── Encryption (passphrase-derived; Argon2id-ready, Fernet AEAD for integrity) ──
 
 _MASTER_KEY: bytes | None = None
 
@@ -145,6 +174,11 @@ def encrypt_text(plain: str) -> str:
 
 def decrypt_text(cipher: str) -> str:
     if not _FERNET or not _MASTER_KEY:
+        if _encryption_required():
+            raise EncryptionNotReadyError(
+                "Encryption not initialized — refusing to decrypt. "
+                "Call POST /api/auth/unlock or set SENTINEL_ENCRYPTION_PASSPHRASE."
+            )
         return cipher
     try:
         return _FERNET.decrypt(cipher.encode()).decode()

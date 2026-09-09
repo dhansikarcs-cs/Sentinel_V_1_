@@ -36,6 +36,51 @@ GOLDEN_RISK = [
     ("positive_day", "Today was wonderful, I feel joy and gratitude for all my friends.", 1, 4, False),
     ("neutral", "I attended the meeting and cooked dinner today.", 1, 4, False),
     ("empty", "", 1, 2, False),
+    # broadened coverage (Sep 2026): real-world scenarios beyond acute crisis
+    (
+        "grief",
+        "My grandmother passed away last week and I can't stop crying, I miss her so much. "
+        "I keep remembering all our memories together and it hurts.",
+        3,
+        6,
+        False,
+    ),
+    (
+        "financial_stress",
+        "I lost my job and I don't know how I will pay the rent this month, the stress is eating me alive.",
+        3,
+        7,
+        False,
+    ),
+    (
+        "burnout",
+        "I've been completely burned out at work, exhausted every day, and I can't focus on anything.",
+        2,
+        6,
+        False,
+    ),
+    (
+        "hopeful_recovery",
+        "I started therapy last month and I finally feel hopeful that I can get better, "
+        "my counselor is really helping me.",
+        1,
+        5,
+        False,
+    ),
+    (
+        "physical_illness",
+        "I've been sick all week with a fever and body aches, but it's nothing serious and I am resting at home.",
+        2,
+        6,
+        False,
+    ),
+    (
+        "lonely_friday",
+        "Friday night and no one texted me all day, I sat alone on the couch feeling invisible.",
+        6,
+        10,
+        True,
+    ),
 ]
 
 GOLDEN_EMOTIONS = [
@@ -46,6 +91,9 @@ GOLDEN_EMOTIONS = [
     ("grateful", "I'm so grateful for everyone who helped me. Thank you all so much.", ["gratitude"]),
     ("loving", "I love them so much, my heart is full.", ["love"]),
     ("sad", "I feel so sad, tears won't stop.", ["sadness"]),
+    ("optimistic", "I am optimistic about the future and excited for what is coming next.", ["optimism", "excitement"]),
+    ("caring", "I want to take care of my little sister and protect her from everything scary.", ["caring"]),
+    ("grieving", "I feel deep grief and longing for my friend who is gone.", ["sadness"]),
 ]
 
 
