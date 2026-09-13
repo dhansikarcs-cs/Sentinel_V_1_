@@ -173,7 +173,7 @@ A: The literature primarily uses neural networks (LSTM, transformers) to combine
 A: The completed items are Argon2id password migration and cross-worker WebSocket scaling (solved with PostgreSQL `LISTEN/NOTIFY` instead of Redis). Remaining priorities: (1) per-patient crisis states (multi-crisis support), (2) a labeled discrepancy corpus from pilot data for rule-set extension, (3) a companion mobile app and uptime/HA hardening for production.
 
 **Q: Will you open-source this?**
-A: The codebase (21,810 lines) is already in a repository with MIT license consideration. Post-pilot, we plan to publish the full benchmark suite and training pipeline for academic reproducibility.
+A: The codebase (21,810 lines) is in a publicly accessible repository for demonstration and review under an All Rights Reserved license. Post-pilot, we plan to publish the full benchmark suite and training pipeline for academic reproducibility under a license chosen at that time.
 
 **Q: What would ISEF-level impact look like?**
 A: A deployable system that demonstrates a 30% reduction in crisis escalations over standard care, or a 20% improvement in clinician documentation time. The pilot is designed to measure both metrics.
