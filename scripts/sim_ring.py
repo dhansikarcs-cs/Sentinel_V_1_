@@ -74,9 +74,16 @@ def main():
         jwt = login_resp["access_token"]
         serial = f"ring_{args.username}"
         if not device_token:
-            paired = pair_device(args.api, jwt, serial)
-            device_token = paired["token"]
-            print(f"[pair] device {serial} paired, token issued")
+            try:
+                paired = pair_device(args.api, jwt, serial)
+                device_token = paired["token"]
+                print(f"[pair] device {serial} paired, token issued")
+            except urllib.error.HTTPError as e:
+                if e.code == 409:
+                    print(f"[pair] device {serial} already paired; pushing via patient JWT")
+                    device_token = ""
+                else:
+                    raise
 
     ring = SimulatedRing(username=args.username or serial, device_id=serial, scenario=args.scenario)
     ring.connect()
@@ -84,7 +91,10 @@ def main():
 
     while True:
         sd = ring.read_sensors()
-        resp = push(args.api, sd, serial=serial, device_token=device_token)
+        if device_token:
+            resp = push(args.api, sd, serial=serial, device_token=device_token)
+        else:
+            resp = push(args.api, sd, jwt=jwt)
         print(f"[push] bpm={sd.bpm} stress={sd.stress} hrv={sd.hrv} sleep={sd.sleep_hours} spo2={sd.spo2} -> id={resp['id']}")
         if args.once:
             break

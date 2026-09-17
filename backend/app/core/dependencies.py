@@ -95,5 +95,10 @@ def get_ring_identity(
         db.commit()
         return RingIdentity(user=user, device=device)
 
-    user = get_current_user(request=request, credentials=None, db=db)
+    auth_header = request.headers.get("Authorization") or ""
+    if auth_header.lower().startswith("bearer "):
+        creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=auth_header[7:].strip())
+        user = get_current_user(request=request, credentials=creds, db=db)
+    else:
+        user = get_current_user(request=request, credentials=None, db=db)
     return RingIdentity(user=user, device=None)
